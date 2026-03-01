@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { ROUND_DURATION_MS } from "../src/lib/constants";
 import { createSession, resetStore } from "../src/server/store";
 
 describe("sessions", () => {
@@ -49,9 +50,9 @@ describe("sessions", () => {
     expect(different).toBe(true);
   });
 
-  it("expiresAt = startedAt + 60000", () => {
+  it("expiresAt = startedAt + round duration", () => {
     const session = createSession("firecrawl");
-    expect(session.expiresAt - session.startedAt).toBe(60_000);
+    expect(session.expiresAt - session.startedAt).toBe(ROUND_DURATION_MS);
   });
 
   it("create without github throws", () => {

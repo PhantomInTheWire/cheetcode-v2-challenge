@@ -3,6 +3,8 @@ import { internalMutation, query, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { PROBLEM_BANK } from "../server/problems";
 import { computeElo, getDifficultyBonus } from "../src/lib/scoring";
+import { ROUND_DURATION_MS, ROUND_DURATION_SECONDS } from "./constants";
+import { sortByEloAndAttempts, calculateRank } from "./helpers";
 
 const EXPLOIT_BONUS_CAP = 1000;
 
@@ -39,12 +41,12 @@ export const recordResultsInternal = internalMutation({
       Math.min(EXPLOIT_BONUS_CAP, args.exploitBonus ?? 0),
     );
 
-    const clampedTime = Math.max(0, Math.min(60_000, args.timeElapsedMs));
+    const clampedTime = Math.max(0, Math.min(ROUND_DURATION_MS, args.timeElapsedMs));
 
     const solvedCount = validSolvedIds.length;
     const timeRemainingSecs = Math.max(
       0,
-      60 - Math.floor(clampedTime / 1000),
+      ROUND_DURATION_SECONDS - Math.floor(clampedTime / 1000),
     );
 
     const solvedSet = new Set(validSolvedIds);
@@ -111,17 +113,9 @@ export const recordResultsInternal = internalMutation({
       .withIndex("by_elo")
       .order("desc")
       .take(100);
-    const sorted = top.sort((a, b) => {
-      if (b.elo !== a.elo) return b.elo - a.elo;
-      return (a.attempts ?? 1) - (b.attempts ?? 1);
-    });
+    const sorted = sortByEloAndAttempts(top);
     const userAttempts = (existing?.attempts ?? 0) + 1;
-    const rankIdx = sorted.findIndex(
-      (row) =>
-        row.elo < elo ||
-        (row.elo === elo && (row.attempts ?? 1) > userAttempts),
-    );
-    const rank = rankIdx === -1 ? sorted.length + 1 : rankIdx + 1;
+    const rank = calculateRank(sorted, elo, userAttempts);
 
     return { elo, solved: solvedCount, rank, timeRemaining: timeRemainingSecs };
   },

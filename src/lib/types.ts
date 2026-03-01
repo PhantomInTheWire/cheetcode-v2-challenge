@@ -15,25 +15,25 @@ export type GameProblem = {
   testCases: ProblemTestCase[];
 };
 
-export type SubmissionDraft = {
+type SubmissionDraft = {
   problemId: string;
   code: string;
   tier: ProblemTier;
   testCases: ProblemTestCase[];
 };
 
-export type SessionResponse = {
+type SessionResponse = {
   sessionId: string;
   expiresAt: number;
   problems: GameProblem[];
 };
 
-export type SubmissionResult = {
+type SubmissionResult = {
   problemId: string;
   passed: boolean;
 };
 
-export type SubmitResultsResponse = {
+type SubmitResultsResponse = {
   elo: number;
   solved: number;
   rank: number;

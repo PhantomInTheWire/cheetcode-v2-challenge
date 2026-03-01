@@ -9,9 +9,10 @@
 // Brief cache to avoid hammering GitHub API on rapid successive calls
 const tokenCache = new Map<string, { username: string; expiresAt: number }>();
 const CACHE_TTL_MS = 60_000; // 1 minute
+const GITHUB_API_URL = "https://api.github.com/user";
 
 /** Verify a GitHub PAT and return the associated username, or null if invalid */
-export async function verifyGitHubToken(token: string): Promise<string | null> {
+async function verifyGitHubToken(token: string): Promise<string | null> {
   // Check cache first
   const cached = tokenCache.get(token);
   if (cached && cached.expiresAt > Date.now()) {
@@ -19,7 +20,7 @@ export async function verifyGitHubToken(token: string): Promise<string | null> {
   }
 
   try {
-    const res = await fetch("https://api.github.com/user", {
+    const res = await fetch(GITHUB_API_URL, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github+json",
@@ -50,5 +51,5 @@ export async function resolveGitHubFromHeader(
   if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.slice(7).trim();
   if (!token) return null;
-  return verifyGitHubToken(token);
+  return await verifyGitHubToken(token);
 }

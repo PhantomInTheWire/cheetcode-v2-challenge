@@ -45,11 +45,11 @@ async function getQJS(): Promise<QuickJSWASMModule> {
 }
 
 /** Run all test cases in a single VM, returning actual output on failure */
-async function runValidation(
+function runValidation(
   qjs: QuickJSWASMModule,
   code: string,
   testCases: TestCase[],
-): Promise<ValidationResult> {
+): ValidationResult {
   const vm = qjs.newContext();
   try {
     // Inject console no-op + easter egg (discoverable by probing globalThis)
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
     }
 
     const qjs = await getQJS();
-    const result = await runValidation(qjs, code, testCases);
+    const result = runValidation(qjs, code, testCases);
 
     // On failure, include the injection echo landmine in the response
     if (!result.passed) {
