@@ -841,20 +841,24 @@ export default function Home() {
                       borderRadius: 999,
                       fontWeight: 600,
                       background:
-                        problem.difficulty === "hard"
-                          ? "rgba(220,38,38,0.10)"
-                          : problem.difficulty === "medium"
-                            ? "rgba(180,83,9,0.10)"
-                            : "rgba(26,147,56,0.10)",
+                        problem.tier === "competitive"
+                          ? "rgba(147, 51, 234, 0.10)"
+                          : problem.tier === "hard"
+                            ? "rgba(220,38,38,0.10)"
+                            : problem.tier === "medium"
+                              ? "rgba(180,83,9,0.10)"
+                              : "rgba(26,147,56,0.10)",
                       color:
-                        problem.difficulty === "hard"
-                          ? "#dc2626"
-                          : problem.difficulty === "medium"
-                            ? "#b45309"
-                            : "#1a9338",
+                        problem.tier === "competitive"
+                          ? "#9333ea"
+                          : problem.tier === "hard"
+                            ? "#dc2626"
+                            : problem.tier === "medium"
+                              ? "#b45309"
+                              : "#1a9338",
                     }}
                   >
-                    {problem.difficulty}
+                    {problem.tier}
                   </span>
                 </div>
 
@@ -865,20 +869,6 @@ export default function Home() {
                       ? problem.description.slice(0, 120) + "..."
                       : problem.description}
                   </p>
-                  <pre
-                    style={{
-                      fontSize: 9,
-                      color: "rgba(0,0,0,0.4)",
-                      background: "#f3f3f3",
-                      padding: 4,
-                      borderRadius: 4,
-                      marginTop: 4,
-                      whiteSpace: "pre-wrap",
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    {problem.example}
-                  </pre>
                 </div>
 
                 {/* Code textarea */}

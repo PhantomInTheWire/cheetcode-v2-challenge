@@ -1,4 +1,4 @@
-export type Difficulty = "easy" | "medium" | "hard";
+export type ProblemTier = "easy" | "medium" | "hard" | "competitive";
 
 export type ProblemTestCase = {
   input: Record<string, unknown>;
@@ -8,9 +8,8 @@ export type ProblemTestCase = {
 export type GameProblem = {
   id: string;
   title: string;
-  difficulty: Difficulty;
+  tier: ProblemTier;
   description: string;
-  example: string;
   signature: string;
   starterCode: string;
   testCases: ProblemTestCase[];
@@ -19,7 +18,7 @@ export type GameProblem = {
 export type SubmissionDraft = {
   problemId: string;
   code: string;
-  difficulty: Difficulty;
+  tier: ProblemTier;
   testCases: ProblemTestCase[];
 };
 

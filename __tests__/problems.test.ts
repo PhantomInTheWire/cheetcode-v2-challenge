@@ -3,8 +3,8 @@ import { PROBLEM_BANK } from "../server/problems";
 import fs from "node:fs";
 
 describe("problems", () => {
-  it("exports 20+ problems", () => {
-    expect(PROBLEM_BANK.length).toBeGreaterThanOrEqual(20);
+  it("exports problems in pool", () => {
+    expect(PROBLEM_BANK.length).toBeGreaterThanOrEqual(90);
   });
 
   it("every problem has required fields", () => {
@@ -12,11 +12,10 @@ describe("problems", () => {
       expect(problem.id).toBeTruthy();
       expect(problem.title).toBeTruthy();
       expect(problem.description).toBeTruthy();
-      expect(problem.example).toBeTruthy();
       expect(problem.signature).toBeTruthy();
       expect(problem.testCases.length).toBeGreaterThanOrEqual(3);
       expect(problem.solution).toBeTruthy();
-      expect(["easy", "medium", "hard"]).toContain(problem.difficulty);
+      expect(["easy", "medium", "hard", "competitive"]).toContain(problem.tier);
     }
   });
 
