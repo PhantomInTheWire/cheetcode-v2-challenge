@@ -7,17 +7,19 @@ import {
 } from "../server/problems";
 import { validateGithub } from "../src/lib/validation";
 import { ROUND_DURATION_MS } from "./constants";
+import { LEVEL2_PROBLEMS } from "../server/level2/problems";
 
 const SESSION_COOLDOWN_MS = 5_000;
+export const ROUND_DURATION_L2_MS = 45_000;
 
 export const createInternal = internalMutation({
-  args: { github: v.string() },
+  args: { github: v.string(), requestedLevel: v.optional(v.number()), isDev: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
     const ghResult = validateGithub(args.github);
     if (ghResult.ok === false) throw new Error(ghResult.error);
     const github = ghResult.value;
 
-    // Rate limit: reject if user has a session created in the last few seconds
+    // Rate limit
     const recent = await ctx.db
       .query("sessions")
       .withIndex("by_github", (q) => q.eq("github", github))
@@ -27,28 +29,57 @@ export const createInternal = internalMutation({
       throw new Error("rate limited — wait a few seconds");
     }
 
-    const picked = selectSessionProblems();
+    const leaderboard = await ctx.db
+      .query("leaderboard")
+      .withIndex("by_github", (q) => q.eq("github", github))
+      .first();
+
+    const unlockedLevel = leaderboard?.unlockedLevel ?? 1;
+    let level = args.requestedLevel ?? unlockedLevel;
+    
+    // In dev mode (explicit flag from frontend), allow playing any level
+    if (!args.isDev && level > unlockedLevel) {
+      level = unlockedLevel;
+    }
+
     const startedAt = Date.now();
-    const expiresAt = startedAt + ROUND_DURATION_MS;
+    let expiresAt = startedAt + ROUND_DURATION_MS;
+    let problemsToReturn: Record<string, unknown>[] = [];
+    let problemIds: string[] = [];
+
+    if (level === 2) {
+      expiresAt = startedAt + ROUND_DURATION_L2_MS;
+      problemIds = LEVEL2_PROBLEMS.map(p => p.id);
+      problemsToReturn = LEVEL2_PROBLEMS.map(p => ({
+        id: p.id,
+        question: p.question,
+      }));
+    } else {
+      const picked = selectSessionProblems();
+      problemIds = picked.map((problem) => problem.id);
+      problemsToReturn = picked.map(stripSolution);
+    }
+
     const sessionId = await ctx.db.insert("sessions", {
       github,
-      problemIds: picked.map((problem) => problem.id),
+      problemIds,
       startedAt,
       expiresAt,
+      level,
     });
 
     return {
       sessionId,
       startedAt,
       expiresAt,
-      problems: picked.map(stripSolution),
+      problems: problemsToReturn,
+      level,
     };
   },
 });
 
-/** Authenticated gateway — only the Next.js server can call this */
 export const create = action({
-  args: { secret: v.string(), github: v.string() },
+  args: { secret: v.string(), github: v.string(), requestedLevel: v.optional(v.number()), isDev: v.optional(v.boolean()) },
   handler: async (
     ctx,
     args,
@@ -57,12 +88,15 @@ export const create = action({
     startedAt: number;
     expiresAt: number;
     problems: Record<string, unknown>[];
+    level: number;
   }> => {
     if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
       throw new Error("unauthorized");
     }
     return await ctx.runMutation(internal.sessions.createInternal, {
       github: args.github,
+      requestedLevel: args.requestedLevel,
+      isDev: args.isDev,
     });
   },
 });
