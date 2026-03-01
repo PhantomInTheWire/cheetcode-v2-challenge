@@ -28,7 +28,7 @@ export const createInternal = internalMutation({
 
     const picked = selectSessionProblems();
     const startedAt = Date.now();
-    const expiresAt = startedAt + 45_000;
+    const expiresAt = startedAt + 60_000;
     const sessionId = await ctx.db.insert("sessions", {
       github,
       problemIds: picked.map((problem) => problem.id),

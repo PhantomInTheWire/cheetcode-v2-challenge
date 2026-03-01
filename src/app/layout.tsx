@@ -17,10 +17,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://cheetcode-ctf.firecrawl.dev"),
   title: "CheetCode CTF",
-  description: "10 problems. 45 seconds. Good luck.",
+  description: "25 problems. 60 seconds. Good luck.",
   openGraph: {
     title: "CheetCode CTF",
-    description: "10 problems. 45 seconds. Good luck.",
+    description: "25 problems. 60 seconds. Good luck.",
     url: "https://cheetcode-ctf.firecrawl.dev",
     siteName: "CheetCode CTF",
     images: [{ url: "/opengraph-image" }],

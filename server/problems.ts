@@ -34,7 +34,13 @@ const typedProblemsData = problemsData as {
 
 export const PROBLEM_BANK: Problem[] = typedProblemsData.problems;
 
-export const PROBLEM_DISTRIBUTION = typedProblemsData.distribution;
+// Per-session problem distribution (how many of each tier per game)
+export const PROBLEM_DISTRIBUTION = {
+  easy: 7,
+  medium: 7,
+  hard: 6,
+  competitive: 5,
+};
 
 export const DIFFICULTY_BONUS: Record<ProblemTier, number> = {
   easy: 0,
