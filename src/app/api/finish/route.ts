@@ -179,7 +179,7 @@ export async function POST(request: Request) {
     const landminePenalty = totalLandminePenalty(landmines);
 
     // Clamp timeElapsed for base ELO — exploits get bonuses, not infinite time
-    const clampedTimeElapsedMs = Math.max(0, Math.min(45_000, timeElapsed));
+    const clampedTimeElapsedMs = Math.max(0, Math.min(60_000, timeElapsed));
 
     // Net modifier = exploit bonuses + landmine penalties (penalties are negative)
     const scoreModifier = exploitBonus + landminePenalty;

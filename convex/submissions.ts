@@ -39,12 +39,12 @@ export const recordResultsInternal = internalMutation({
       Math.min(EXPLOIT_BONUS_CAP, args.exploitBonus ?? 0),
     );
 
-    const clampedTime = Math.max(0, Math.min(45_000, args.timeElapsedMs));
+    const clampedTime = Math.max(0, Math.min(60_000, args.timeElapsedMs));
 
     const solvedCount = validSolvedIds.length;
     const timeRemainingSecs = Math.max(
       0,
-      45 - Math.floor(clampedTime / 1000),
+      60 - Math.floor(clampedTime / 1000),
     );
 
     const solvedSet = new Set(validSolvedIds);

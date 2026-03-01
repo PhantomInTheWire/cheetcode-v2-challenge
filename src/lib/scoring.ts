@@ -20,7 +20,9 @@ export function computeElo(params: {
   difficultyBonus: number;
 }): number {
   const { solvedCount, timeRemainingSecs, difficultyBonus } = params;
-  return solvedCount * 100 + timeRemainingSecs * 20 + difficultyBonus;
+  // Time remaining only counts if you solved at least one problem
+  const timeBonus = solvedCount > 0 ? timeRemainingSecs * 20 : 0;
+  return solvedCount * 100 + timeBonus + difficultyBonus;
 }
 
 // ── Exploit reward system ────────────────────────────────────
@@ -99,18 +101,18 @@ export function detectExploits(params: {
       bonus: 150,
       message:
         "🗂️ PROBLEM HOARDER — You submitted solutions for problems outside your session. " +
-        "The server validated against the full problem bank instead of your assigned 10. " +
+        "The server validated against the full problem bank instead of your assigned 25. " +
         "Nice discovery — but we've capped it now. +150",
     });
   }
 
   // Exploit 6: Sent timeElapsed > 2× round duration — boundary probing
-  if (params.timeElapsedMs > 90_000) {
+  if (params.timeElapsedMs > 120_000) {
     rewards.push({
       id: "overflow_artist",
       bonus: 100,
       message:
-        "💥 OVERFLOW ARTIST — You sent timeElapsed > 90s on a 45s round. " +
+        "💥 OVERFLOW ARTIST — You sent timeElapsed > 120s on a 60s round. " +
         "Testing boundaries is a good instinct. +100",
     });
   }

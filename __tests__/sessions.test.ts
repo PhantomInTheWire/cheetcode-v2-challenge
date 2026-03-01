@@ -49,9 +49,9 @@ describe("sessions", () => {
     expect(different).toBe(true);
   });
 
-  it("expiresAt = startedAt + 45000", () => {
+  it("expiresAt = startedAt + 60000", () => {
     const session = createSession("firecrawl");
-    expect(session.expiresAt - session.startedAt).toBe(45_000);
+    expect(session.expiresAt - session.startedAt).toBe(60_000);
   });
 
   it("create without github throws", () => {

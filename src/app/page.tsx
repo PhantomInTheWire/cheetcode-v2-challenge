@@ -31,7 +31,7 @@ type ResultsData = {
   landmines?: LandmineInfo[];
 };
 
-const ROUND_MS = 45_000;
+const ROUND_MS = 60_000;
 const MOBILE_BREAKPOINT = 900;
 
 /** Original announcement tweet — every share quote-tweets this to amplify it. */
@@ -221,7 +221,7 @@ export default function Home() {
 
   async function shareScore() {
     if (!results) return;
-    const text = `I just scored ${results.elo.toLocaleString()} (rank #${results.rank}) on CheetCode CTF — 10 problems, 45 seconds. Think your agent can beat it? 🔥`;
+    const text = `I just scored ${results.elo.toLocaleString()} (rank #${results.rank}) on CheetCode CTF — 25 problems, 60 seconds. Think your agent can beat it? 🔥`;
     // Include tweet URL in the text body — X auto-renders it as a quote tweet
     const fullText = `${text}\n\n${ORIGINAL_TWEET_URL}`;
     const tweetUrl = `https://x.com/intent/post?text=${encodeURIComponent(fullText)}`;
@@ -333,8 +333,8 @@ export default function Home() {
                             {rank}
                           </td>
                           <td style={{ padding: "10px 14px", fontSize: 13, color: "#262626" }}>@{row.github}</td>
-                          <td style={{ padding: "10px 14px", fontSize: 13, color: row.solved === 10 ? "#1a9338" : "rgba(0,0,0,0.4)" }}>
-                            {row.solved}/10
+                          <td style={{ padding: "10px 14px", fontSize: 13, color: row.solved === 25 ? "#1a9338" : "rgba(0,0,0,0.4)" }}>
+                            {row.solved}/25
                           </td>
                           <td style={{ padding: "10px 14px", fontSize: 13, color: "rgba(0,0,0,0.35)" }}>
                             {row.attempts ?? 1}
@@ -421,7 +421,7 @@ export default function Home() {
             }}
           >
             <p style={{ fontSize: 44, fontWeight: 800, color: "#262626", margin: 0, lineHeight: 1.1, letterSpacing: -0.5 }}>
-              10 problems. 45 seconds.
+              25 problems. 60 seconds.
             </p>
             <p style={{ fontSize: 16, color: "rgba(0,0,0,0.45)", margin: "12px 0 0", fontWeight: 400 }}>
               Good luck.
@@ -430,7 +430,7 @@ export default function Home() {
 
           {/* Info chips */}
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10, marginTop: 28 }}>
-            {["Solve all 10 coding challenges", "You have 45 seconds", "That's 4.5 seconds per problem"].map((t) => (
+            {["Solve all 25 coding challenges", "You have 60 seconds", "That's 2.4 seconds per problem"].map((t) => (
               <span
                 key={t}
                 style={{
@@ -615,8 +615,8 @@ export default function Home() {
                               {rank}
                             </td>
                             <td style={{ padding: "10px 18px", fontSize: 13, color: "#262626" }}>@{row.github}</td>
-                            <td style={{ padding: "10px 18px", fontSize: 13, color: row.solved === 10 ? "#1a9338" : "rgba(0,0,0,0.4)" }}>
-                              {row.solved}/10
+                            <td style={{ padding: "10px 18px", fontSize: 13, color: row.solved === 25 ? "#1a9338" : "rgba(0,0,0,0.4)" }}>
+                              {row.solved}/25
                             </td>
                             <td style={{ padding: "10px 18px", fontSize: 13, color: "rgba(0,0,0,0.35)" }}>
                               {row.attempts ?? 1}
@@ -660,7 +660,7 @@ export default function Home() {
   }
 
   /* ═══════════════════════════════════════════════════════════
-     PLAYING — 5×2 grid, all 10 problems visible
+     PLAYING — 5×5 grid, all 25 problems visible
      ═══════════════════════════════════════════════════════════ */
   if (screen === "playing") {
     const timerBg = secondsLeft <= 10 ? "#dc2626" : secondsLeft <= 20 ? "#fa5d19" : "#1a9338";
@@ -722,8 +722,8 @@ export default function Home() {
             {/* Solved */}
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(0,0,0,0.35)", textTransform: "uppercase" }}>Solved</span>
-              <span style={{ fontSize: 16, fontWeight: 800, color: solvedLocal === 10 ? "#1a9338" : "#262626" }}>
-                {solvedLocal}<span style={{ color: "rgba(0,0,0,0.25)" }}>/10</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: solvedLocal === 25 ? "#1a9338" : "#262626" }}>
+                {solvedLocal}<span style={{ color: "rgba(0,0,0,0.25)" }}>/25</span>
               </span>
             </div>
             {/* Timer */}
@@ -954,15 +954,15 @@ export default function Home() {
             }}
           >
             <div style={{ textAlign: "center", background: "#ffffff", borderRadius: 20, padding: "48px 56px", border: "1px solid #e5e5e5", boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
-              <p style={{ fontSize: 52, fontWeight: 800, color: solvedLocal === 10 ? "#1a9338" : "#dc2626", margin: 0 }}>
+              <p style={{ fontSize: 52, fontWeight: 800, color: solvedLocal === 25 ? "#1a9338" : "#dc2626", margin: 0 }}>
                 {isSubmitting
                   ? "SUBMITTING..."
-                  : solvedLocal === 10
+                  : solvedLocal === 25
                     ? "ALL CLEAR 🔥"
                     : "TIME'S UP"}
               </p>
               <p style={{ fontSize: 22, color: "rgba(0,0,0,0.45)", margin: "8px 0 0" }}>
-                {solvedLocal}/10 solved locally
+                {solvedLocal}/25 solved locally
               </p>
               {!isSubmitting && (
                 <button
@@ -1044,7 +1044,7 @@ export default function Home() {
               fontWeight: 800,
               margin: 0,
               lineHeight: 1.1,
-              color: results.solved === 10 ? "#fa5d19" : "#262626",
+              color: results.solved === 25 ? "#fa5d19" : "#262626",
             }}
           >
             {results.solved <= 2
@@ -1059,7 +1059,7 @@ export default function Home() {
               You probably need a different approach.
             </p>
           )}
-          {results.solved === 10 && (
+          {results.solved === 25 && (
             <p style={{ marginTop: 16, fontSize: 15, fontWeight: 600, color: "#fa5d19" }}>
               We want to talk to you.
             </p>
@@ -1078,7 +1078,7 @@ export default function Home() {
             }}
           >
             {[
-              { label: "Solved", value: `${results.solved}/10`, color: "#262626" },
+              { label: "Solved", value: `${results.solved}/25`, color: "#262626" },
               { label: "Score", value: results.elo.toLocaleString(), color: "#fa5d19" },
               { label: "Rank", value: `#${results.rank}`, color: "#262626" },
             ].map((stat, i) => (
@@ -1110,7 +1110,7 @@ export default function Home() {
             {/* Base score */}
             <div style={{ background: "#f3f3f3", borderRadius: 10, padding: "14px 18px", marginBottom: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                <span style={{ color: "rgba(0,0,0,0.5)" }}>Base score ({results.solved}/10 solved, {results.timeRemaining}s remaining)</span>
+                <span style={{ color: "rgba(0,0,0,0.5)" }}>Base score ({results.solved}/25 solved, {results.timeRemaining}s remaining)</span>
                 <span style={{ fontWeight: 700, color: "#262626" }}>
                   {results.elo - (results.exploits ?? []).reduce((s, e) => s + e.bonus, 0) - (results.landmines ?? []).reduce((s, l) => s + l.penalty, 0)}
                 </span>
