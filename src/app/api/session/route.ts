@@ -29,6 +29,15 @@ export async function POST(request: Request) {
     );
   }
 
+  // Parse request body for level selection
+  let requestedLevel: number | undefined;
+  try {
+    const body = await request.json().catch(() => ({}));
+    requestedLevel = body.level;
+  } catch {
+    // Ignore parse errors, use default
+  }
+
   try {
     const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
     const hasSecret = !!process.env.CONVEX_MUTATION_SECRET;
@@ -40,9 +49,13 @@ export async function POST(request: Request) {
     }
 
     const convex = new ConvexHttpClient(convexUrl);
+    // In dev mode, allow any level to be played (for testing Level 2)
+    const isDev = process.env.NODE_ENV === "development";
     const result = await convex.action(api.sessions.create, {
       secret: process.env.CONVEX_MUTATION_SECRET!,
       github,
+      requestedLevel,
+      isDev,
     });
     return NextResponse.json(result);
   } catch (err) {

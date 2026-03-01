@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { GameProblem } from "@/lib/types";
 import type { Id } from "../../convex/_generated/dataModel";
+import { Level2Game } from "@/components/Level2Game";
 import { validateEmail, validateXHandle } from "@/lib/validation";
 import { ROUND_DURATION_MS, ROUND_DURATION_SECONDS, PROBLEMS_PER_SESSION, SITE_URL } from "@/lib/constants";
 
@@ -83,6 +84,12 @@ export default function Home() {
   const [lbPage, setLbPage] = useState(0);
   const LB_PAGE_SIZE = 25;
 
+  // ── Level progression state ──
+  const unlockedLevel = useQuery(api.leaderboard.getMyLevel, { github: github || "" }) ?? 1;
+  const isLocalDev = process.env.NODE_ENV === "development";
+  const [currentLevel, setCurrentLevel] = useState(1);
+  const [l2Problems, setL2Problems] = useState<{ id: string; question: string }[]>([]);
+
   // No worker — local validation uses the same QuickJS sandbox as final scoring
   // via /api/validate to guarantee parity between local and server checks
 
@@ -135,17 +142,37 @@ export default function Home() {
     if (screen === "playing" && timeLeftMs === 0) void finishGame();
   }, [timeLeftMs, screen, finishGame]);
 
-  async function startGame() {
+  async function startGame(requestedLevel?: number) {
     if (!isAuthenticated) return;
 
+    // Determine which level to play
+    const level = requestedLevel ?? 1;
+    // In local dev, allow any level. In production, enforce unlockedLevel.
+    if (!isLocalDev && level > unlockedLevel) return;
+
     try {
-      const res = await fetch("/api/session", { method: "POST" });
+      const res = await fetch("/api/session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ level, isDev: isLocalDev }),
+      });
       if (!res.ok) throw new Error(`session creation failed: ${res.status}`);
       const d = await res.json();
+      
+      setCurrentLevel(d.level);
       setSessionId(d.sessionId);
       setExpiresAt(d.expiresAt);
-      setProblems(d.problems as unknown as GameProblem[]);
-      setCodes(Object.fromEntries(d.problems.map((p: { id: string; starterCode: string }) => [p.id, p.starterCode])));
+      
+      if (d.level === 2) {
+        // Level 2: Set text problems
+        setL2Problems(d.problems as { id: string; question: string }[]);
+        setProblems([]);
+      } else {
+        // Level 1: Set code problems
+        setProblems(d.problems as unknown as GameProblem[]);
+        setCodes(Object.fromEntries(d.problems.map((p: { id: string; starterCode: string }) => [p.id, p.starterCode])));
+      }
+      
       setLocalPass({});
       setSubmittedLead(false);
       setResults(null);
@@ -534,22 +561,57 @@ export default function Home() {
                     sign out
                   </button>
                 </div>
-                {/* Primary CTA — Firecrawl branded button */}
-                <button
-                  onClick={startGame}
-                  className="btn-heat"
-                  style={{
-                    width: "100%",
-                    height: 52,
-                    borderRadius: 12,
-                    fontSize: 17,
-                    fontWeight: 800,
-                    letterSpacing: 2,
-                    fontFamily: "inherit",
-                  }}
-                >
-                  START
-                </button>
+                {/* Level selection */}
+                {unlockedLevel < 2 && !isLocalDev ? (
+                  <button
+                    onClick={() => startGame(1)}
+                    className="btn-heat"
+                    style={{
+                      width: "100%",
+                      height: 52,
+                      borderRadius: 12,
+                      fontSize: 17,
+                      fontWeight: 800,
+                      letterSpacing: 2,
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    START
+                  </button>
+                ) : (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => startGame(1)}
+                      className="btn-heat"
+                      style={{
+                        flex: 1,
+                        height: 52,
+                        borderRadius: 12,
+                        fontSize: 17,
+                        fontWeight: 800,
+                        letterSpacing: 2,
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      PLAY LEVEL 1
+                    </button>
+                    <button
+                      onClick={() => startGame(2)}
+                      className="btn-heat"
+                      style={{
+                        flex: 1,
+                        height: 52,
+                        borderRadius: 12,
+                        fontSize: 17,
+                        fontWeight: 800,
+                        letterSpacing: 2,
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      PLAY LEVEL 2
+                    </button>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -662,6 +724,24 @@ export default function Home() {
      PLAYING — 5×5 grid, all {PROBLEMS_PER_SESSION} problems visible
      ═══════════════════════════════════════════════════════════ */
   if (screen === "playing") {
+    // Level 2: Render the separate Level2Game component
+    if (currentLevel === 2) {
+      return (
+        <Level2Game
+          sessionId={sessionId!}
+          github={github}
+          problems={l2Problems}
+          expiresAt={expiresAt}
+          onFinish={(results) => {
+            setResults(results);
+            setScreen("results");
+          }}
+          onReset={resetAll}
+        />
+      );
+    }
+
+    // Level 1: Original game UI
     const timerBg = secondsLeft <= 10 ? "#dc2626" : secondsLeft <= 20 ? "#fa5d19" : "#1a9338";
     const timerFg = secondsLeft <= 10 ? "#dc2626" : secondsLeft <= 20 ? "#fa5d19" : "#1a9338";
 
@@ -1257,6 +1337,27 @@ export default function Home() {
               TRY AGAIN
             </button>
           </div>
+
+          {/* Continue to Level 2 after perfect Level 1 */}
+          {results.solved === 25 && (
+            <button
+              onClick={() => startGame(2)}
+              className="btn-heat"
+              style={{
+                width: "100%",
+                height: 52,
+                borderRadius: 12,
+                fontSize: 17,
+                fontWeight: 800,
+                letterSpacing: 2,
+                fontFamily: "inherit",
+                marginTop: 20,
+                background: "#fa5d19",
+              }}
+            >
+              CONTINUE TO LEVEL 2 →
+            </button>
+          )}
         </div>
       )}
     </div>

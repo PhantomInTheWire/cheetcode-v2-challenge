@@ -5,13 +5,10 @@ import { PROBLEM_BANK } from "../server/problems";
 import { computeElo, getDifficultyBonus } from "../src/lib/scoring";
 import { ROUND_DURATION_MS, ROUND_DURATION_SECONDS } from "./constants";
 import { sortByEloAndAttempts, calculateRank } from "./helpers";
+import { ROUND_DURATION_L2_MS } from "./sessions";
 
 const EXPLOIT_BONUS_CAP = 1000;
 
-/**
- * recordResultsInternal — internal mutation only callable from Convex actions.
- * Validates all inputs server-side regardless of what the caller sends.
- */
 export const recordResultsInternal = internalMutation({
   args: {
     sessionId: v.id("sessions"),
@@ -24,82 +21,128 @@ export const recordResultsInternal = internalMutation({
     const session = await ctx.db.get(args.sessionId);
     if (!session) throw new Error("session not found");
 
-    // Defense-in-depth: github must match the session owner
     if (args.github !== session.github) {
       throw new Error("github mismatch");
     }
 
-    // Only accept problem IDs that were actually assigned to this session
     const sessionProblemSet = new Set(session.problemIds);
     const validSolvedIds = args.solvedProblemIds.filter((id) =>
       sessionProblemSet.has(id),
     );
 
-    // Cap exploitBonus at the mutation layer too
     const cappedExploitBonus = Math.max(
       -EXPLOIT_BONUS_CAP,
       Math.min(EXPLOIT_BONUS_CAP, args.exploitBonus ?? 0),
     );
 
-    const clampedTime = Math.max(0, Math.min(ROUND_DURATION_MS, args.timeElapsedMs));
+    const level = session.level ?? 1;
+    const maxTime = level === 2 ? ROUND_DURATION_L2_MS : ROUND_DURATION_MS;
+    const clampedTime = Math.max(0, Math.min(maxTime, args.timeElapsedMs));
 
     const solvedCount = validSolvedIds.length;
     const timeRemainingSecs = Math.max(
       0,
-      ROUND_DURATION_SECONDS - Math.floor(clampedTime / 1000),
+      Math.floor((maxTime - clampedTime) / 1000),
     );
 
-    const solvedSet = new Set(validSolvedIds);
-    const difficultyBonus = getDifficultyBonus(
-      PROBLEM_BANK.filter((p) => solvedSet.has(p.id)).map((p) => ({
-        solved: true,
-        difficulty: p.tier,
-      })),
-    );
-
-    const baseElo = computeElo({
-      solvedCount,
-      timeRemainingSecs,
-      difficultyBonus,
-    });
-    const elo = baseElo + cappedExploitBonus;
+    let elo = 0;
+    
+    if (level === 1) {
+      const solvedSet = new Set(validSolvedIds);
+      const difficultyBonus = getDifficultyBonus(
+        PROBLEM_BANK.filter((p) => solvedSet.has(p.id)).map((p) => ({
+          solved: true,
+          difficulty: p.tier,
+        })),
+      );
+      const baseElo = computeElo({
+        solvedCount,
+        timeRemainingSecs,
+        difficultyBonus,
+      });
+      elo = baseElo + cappedExploitBonus;
+    } else if (level === 2) {
+      // Level 2 scoring: flat 150 points per problem solved + time bonus
+      const baseElo = solvedCount * 150;
+      const timeBonus = solvedCount > 0 ? timeRemainingSecs * 5 : 0;
+      elo = baseElo + timeBonus + cappedExploitBonus;
+    }
 
     const existing = await ctx.db
       .query("leaderboard")
       .withIndex("by_github", (q) => q.eq("github", args.github))
       .first();
 
-    // Anti-grief: reject zero-value submissions that would only inflate attempts
     if (!existing && solvedCount === 0 && elo <= 0) {
       return { elo: 0, solved: 0, rank: 0, timeRemaining: timeRemainingSecs };
     }
+
+    let currentL1Solved = existing?.level1BestSolved ?? 0;
+    let currentL1Elo = existing?.level1BestElo ?? 0;
+    let currentL2Solved = existing?.level2BestSolved ?? 0;
+    let currentL2Elo = existing?.level2BestElo ?? 0;
+    let unlockedLevel = existing?.unlockedLevel ?? 1;
+
+    let shouldUpdateBests = false;
+
+    if (level === 1) {
+      if (elo > currentL1Elo) {
+        currentL1Elo = elo;
+        currentL1Solved = solvedCount;
+        shouldUpdateBests = true;
+      }
+      if (solvedCount === 25) {
+        unlockedLevel = 2;
+        shouldUpdateBests = true;
+      }
+    } else if (level === 2) {
+      if (elo > currentL2Elo) {
+        currentL2Elo = elo;
+        currentL2Solved = solvedCount;
+        shouldUpdateBests = true;
+      }
+    }
+
+    const totalSolved = currentL1Solved + currentL2Solved;
+    const totalElo = currentL1Elo + currentL2Elo;
 
     if (!existing) {
       if (solvedCount > 0 || elo > 0) {
         await ctx.db.insert("leaderboard", {
           github: args.github,
-          solved: solvedCount,
+          solved: totalSolved,
           timeSecs: Math.floor(clampedTime / 1000),
-          elo,
+          elo: totalElo,
           sessionId: args.sessionId,
           attempts: 1,
+          unlockedLevel,
+          level1BestSolved: currentL1Solved,
+          level1BestElo: currentL1Elo,
+          level2BestSolved: currentL2Solved,
+          level2BestElo: currentL2Elo,
         });
       }
     } else {
       const updates: Record<string, unknown> = {};
 
-      // Only count attempts with actual effort
       if (solvedCount > 0 || elo > 0) {
         updates.attempts = (existing.attempts ?? 1) + 1;
       }
 
-      if (elo > existing.elo) {
+      if (shouldUpdateBests) {
         Object.assign(updates, {
-          solved: solvedCount,
-          timeSecs: Math.floor(clampedTime / 1000),
-          elo,
+          solved: totalSolved,
+          timeSecs: Math.floor(clampedTime / 1000), // Time of their most recent best-improving run
+          elo: totalElo,
           sessionId: args.sessionId,
+          unlockedLevel,
+          level1BestSolved: currentL1Solved,
+          level1BestElo: currentL1Elo,
+          level2BestSolved: currentL2Solved,
+          level2BestElo: currentL2Elo,
         });
+      } else if (unlockedLevel > (existing.unlockedLevel ?? 1)) {
+         updates.unlockedLevel = unlockedLevel;
       }
 
       if (Object.keys(updates).length > 0) {
@@ -107,7 +150,6 @@ export const recordResultsInternal = internalMutation({
       }
     }
 
-    // Compute rank
     const top = await ctx.db
       .query("leaderboard")
       .withIndex("by_elo")
@@ -115,13 +157,14 @@ export const recordResultsInternal = internalMutation({
       .take(100);
     const sorted = sortByEloAndAttempts(top);
     const userAttempts = (existing?.attempts ?? 0) + 1;
-    const rank = calculateRank(sorted, elo, userAttempts);
+    // calculateRank needs to check the totalElo against sorted list
+    const rank = calculateRank(sorted, totalElo, userAttempts);
 
-    return { elo, solved: solvedCount, rank, timeRemaining: timeRemainingSecs };
+    // Return the AGGREGATE solved/elo so the UI shows the massive combined score
+    return { elo: totalElo, solved: totalSolved, rank, timeRemaining: timeRemainingSecs };
   },
 });
 
-/** Authenticated gateway — only the Next.js server can call this */
 export const recordResults = action({
   args: {
     secret: v.string(),

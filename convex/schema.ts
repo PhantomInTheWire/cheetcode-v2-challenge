@@ -7,6 +7,7 @@ export default defineSchema({
     problemIds: v.array(v.string()),
     startedAt: v.number(),
     expiresAt: v.number(),
+    level: v.optional(v.number()), // Default to 1 in code
   }).index("by_github", ["github"]),
 
   leaderboard: defineTable({
@@ -15,8 +16,12 @@ export default defineSchema({
     timeSecs: v.number(),
     elo: v.number(),
     sessionId: v.id("sessions"),
-    // Track total attempts per user — visible on the leaderboard
     attempts: v.optional(v.number()),
+    unlockedLevel: v.optional(v.number()),
+    level1BestSolved: v.optional(v.number()),
+    level1BestElo: v.optional(v.number()),
+    level2BestSolved: v.optional(v.number()),
+    level2BestElo: v.optional(v.number()),
   })
     .index("by_elo", ["elo"])
     .index("by_github", ["github"]),
