@@ -1,8 +1,8 @@
-import { DIFFICULTY_BONUS, type Difficulty } from "../../server/problems";
+import { DIFFICULTY_BONUS, type ProblemTier } from "../../server/problems";
 
 export type SubmissionScoreInput = {
   solved: boolean;
-  difficulty: Difficulty;
+  difficulty: ProblemTier;
 };
 
 export function getDifficultyBonus(submissions: SubmissionScoreInput[]): number {

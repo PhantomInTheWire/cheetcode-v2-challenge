@@ -51,7 +51,7 @@ export const recordResultsInternal = internalMutation({
     const difficultyBonus = getDifficultyBonus(
       PROBLEM_BANK.filter((p) => solvedSet.has(p.id)).map((p) => ({
         solved: true,
-        difficulty: p.difficulty,
+        difficulty: p.tier,
       })),
     );
 
