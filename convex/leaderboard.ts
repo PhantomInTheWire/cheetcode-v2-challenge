@@ -1,4 +1,5 @@
 import { query } from "./_generated/server";
+import { sortByEloAndAttempts } from "./helpers";
 
 export const getAll = query({
   args: {},
@@ -9,9 +10,6 @@ export const getAll = query({
       .order("desc")
       .collect();
 
-    return entries.sort((a, b) => {
-      if (b.elo !== a.elo) return b.elo - a.elo;
-      return (a.attempts ?? 1) - (b.attempts ?? 1);
-    });
+    return sortByEloAndAttempts(entries);
   },
 });

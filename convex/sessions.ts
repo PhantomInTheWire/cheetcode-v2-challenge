@@ -6,6 +6,7 @@ import {
   stripSolution,
 } from "../server/problems";
 import { validateGithub } from "../src/lib/validation";
+import { ROUND_DURATION_MS } from "./constants";
 
 const SESSION_COOLDOWN_MS = 5_000;
 
@@ -28,7 +29,7 @@ export const createInternal = internalMutation({
 
     const picked = selectSessionProblems();
     const startedAt = Date.now();
-    const expiresAt = startedAt + 60_000;
+    const expiresAt = startedAt + ROUND_DURATION_MS;
     const sessionId = await ctx.db.insert("sessions", {
       github,
       problemIds: picked.map((problem) => problem.id),

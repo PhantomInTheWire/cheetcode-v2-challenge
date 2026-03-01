@@ -7,6 +7,7 @@ import { api } from "../../convex/_generated/api";
 import type { GameProblem } from "@/lib/types";
 import type { Id } from "../../convex/_generated/dataModel";
 import { validateEmail, validateXHandle } from "@/lib/validation";
+import { ROUND_DURATION_MS, ROUND_DURATION_SECONDS, PROBLEMS_PER_SESSION, SITE_URL } from "@/lib/constants";
 
 type Screen = "landing" | "playing" | "results";
 
@@ -31,12 +32,10 @@ type ResultsData = {
   landmines?: LandmineInfo[];
 };
 
-const ROUND_MS = 60_000;
 const MOBILE_BREAKPOINT = 900;
 
 /** Original announcement tweet — every share quote-tweets this to amplify it. */
 const ORIGINAL_TWEET_URL = "https://x.com/CalebPeffer/status/2024167056372097131";
-const ORIGINAL_TWEET_ID = "2024167056372097131";
 
 /** True when viewport < 900px — gate gameplay on small screens */
 function useIsMobile() {
@@ -94,7 +93,7 @@ export default function Home() {
 
   const timeLeftMs = useMemo(() => Math.max(0, expiresAt - now), [expiresAt, now]);
   const secondsLeft = Math.ceil(timeLeftMs / 1000);
-  const progress = expiresAt ? Math.max(0, Math.min(100, (timeLeftMs / ROUND_MS) * 100)) : 0;
+  const progress = expiresAt ? Math.max(0, Math.min(100, (timeLeftMs / ROUND_DURATION_MS) * 100)) : 0;
   const solvedLocal = useMemo(
     () => problems.filter((p) => localPass[p.id] === true).length,
     [problems, localPass],
@@ -113,7 +112,7 @@ export default function Home() {
         body: JSON.stringify({
           sessionId,
           github,
-          timeElapsed: ROUND_MS - timeLeftMs,
+          timeElapsed: ROUND_DURATION_MS - timeLeftMs,
           submissions: problems.map((p) => ({
             problemId: p.id,
             code: codes[p.id] ?? "",
@@ -221,7 +220,7 @@ export default function Home() {
 
   async function shareScore() {
     if (!results) return;
-    const text = `I just scored ${results.elo.toLocaleString()} (rank #${results.rank}) on CheetCode CTF — 25 problems, 60 seconds. Think your agent can beat it? 🔥`;
+    const text = `I just scored ${results.elo.toLocaleString()} (rank #${results.rank}) on CheetCode CTF — ${PROBLEMS_PER_SESSION} problems, ${ROUND_DURATION_SECONDS} seconds. Think your agent can beat it? 🔥`;
     // Include tweet URL in the text body — X auto-renders it as a quote tweet
     const fullText = `${text}\n\n${ORIGINAL_TWEET_URL}`;
     const tweetUrl = `https://x.com/intent/post?text=${encodeURIComponent(fullText)}`;
@@ -403,7 +402,7 @@ export default function Home() {
               </h1>
             </div>
             <a
-              href="https://cheetcode-ctf.firecrawl.dev"
+              href={SITE_URL}
               style={{ fontSize: 12, color: "rgba(0,0,0,0.3)", marginTop: 6, textDecoration: "none", fontWeight: 500 }}
             >
               cheetcode-ctf.firecrawl.dev
@@ -421,7 +420,7 @@ export default function Home() {
             }}
           >
             <p style={{ fontSize: 44, fontWeight: 800, color: "#262626", margin: 0, lineHeight: 1.1, letterSpacing: -0.5 }}>
-              25 problems. 60 seconds.
+              {PROBLEMS_PER_SESSION} problems. {ROUND_DURATION_SECONDS} seconds.
             </p>
             <p style={{ fontSize: 16, color: "rgba(0,0,0,0.45)", margin: "12px 0 0", fontWeight: 400 }}>
               Good luck.
@@ -430,7 +429,7 @@ export default function Home() {
 
           {/* Info chips */}
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10, marginTop: 28 }}>
-            {["Solve all 25 coding challenges", "You have 60 seconds", "That's 2.4 seconds per problem"].map((t) => (
+            {[`Solve all ${PROBLEMS_PER_SESSION} coding challenges`, `You have ${ROUND_DURATION_SECONDS} seconds`, `That's ${(ROUND_DURATION_SECONDS / PROBLEMS_PER_SESSION).toFixed(1)} seconds per problem`].map((t) => (
               <span
                 key={t}
                 style={{
@@ -660,7 +659,7 @@ export default function Home() {
   }
 
   /* ═══════════════════════════════════════════════════════════
-     PLAYING — 5×5 grid, all 25 problems visible
+     PLAYING — 5×5 grid, all {PROBLEMS_PER_SESSION} problems visible
      ═══════════════════════════════════════════════════════════ */
   if (screen === "playing") {
     const timerBg = secondsLeft <= 10 ? "#dc2626" : secondsLeft <= 20 ? "#fa5d19" : "#1a9338";

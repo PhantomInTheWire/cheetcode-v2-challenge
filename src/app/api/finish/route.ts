@@ -12,6 +12,7 @@ import {
 } from "../../../lib/scoring";
 import { resolveGitHubFromHeader } from "../../../lib/github-auth";
 import { auth } from "../../../../auth";
+import { ROUND_DURATION_MS } from "../../../lib/constants";
 
 /**
  * POST /api/finish
@@ -53,11 +54,11 @@ async function getQJS(): Promise<QuickJSWASMModule> {
  * Validate all test cases for one problem in a single VM context.
  * One VM per problem — fast, isolated, no cross-problem state leaks.
  */
-async function validateSubmission(
+function validateSubmission(
   qjs: QuickJSWASMModule,
   code: string,
   testCases: TestCase[],
-): Promise<boolean> {
+): boolean {
   const vm = qjs.newContext();
   try {
     // Inject console no-op + easter egg
@@ -95,7 +96,7 @@ async function validateSubmission(
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as RequestBody;
-    const { sessionId, github, submissions, timeElapsed } = body;
+    const { sessionId, submissions, timeElapsed } = body;
 
     if (!sessionId || !Array.isArray(submissions)) {
       return NextResponse.json({ error: "invalid request" }, { status: 400 });
@@ -155,7 +156,7 @@ export async function POST(request: Request) {
       const codeResult = validateCode(sub.code);
       if (codeResult.ok === false) continue;
 
-      const passed = await validateSubmission(qjs, codeResult.value, problem.testCases);
+      const passed = validateSubmission(qjs, codeResult.value, problem.testCases);
       if (passed) solvedProblemIds.push(sub.problemId);
     }
 
@@ -179,7 +180,7 @@ export async function POST(request: Request) {
     const landminePenalty = totalLandminePenalty(landmines);
 
     // Clamp timeElapsed for base ELO — exploits get bonuses, not infinite time
-    const clampedTimeElapsedMs = Math.max(0, Math.min(60_000, timeElapsed));
+    const clampedTimeElapsedMs = Math.max(0, Math.min(ROUND_DURATION_MS, timeElapsed));
 
     // Net modifier = exploit bonuses + landmine penalties (penalties are negative)
     const scoreModifier = exploitBonus + landminePenalty;

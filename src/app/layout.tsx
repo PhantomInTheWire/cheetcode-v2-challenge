@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
 import AuthProvider from "@/components/AuthProvider";
+import { GAME_DESCRIPTION, SITE_URL } from "@/lib/constants";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,13 +16,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://cheetcode-ctf.firecrawl.dev"),
+  metadataBase: new URL(SITE_URL),
   title: "CheetCode CTF",
-  description: "25 problems. 60 seconds. Good luck.",
+  description: GAME_DESCRIPTION,
   openGraph: {
     title: "CheetCode CTF",
-    description: "25 problems. 60 seconds. Good luck.",
-    url: "https://cheetcode-ctf.firecrawl.dev",
+    description: GAME_DESCRIPTION,
+    url: SITE_URL,
     siteName: "CheetCode CTF",
     images: [{ url: "/opengraph-image" }],
   },

@@ -1,5 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
+const BASE_URL = "http://127.0.0.1:3000";
+
 export default defineConfig({
   testDir: "__tests__",
   timeout: 30_000,
@@ -9,7 +11,7 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
   },
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: BASE_URL,
     headless: true,
   },
 });

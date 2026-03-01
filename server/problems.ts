@@ -1,11 +1,11 @@
 export type ProblemTier = "easy" | "medium" | "hard" | "competitive";
 
-export type ProblemTestCase = {
+type ProblemTestCase = {
   input: Record<string, unknown>;
   expected: unknown;
 };
 
-export type Problem = {
+type Problem = {
   id: string;
   title: string;
   tier: ProblemTier;
@@ -16,7 +16,7 @@ export type Problem = {
   solution: string;
 };
 
-export type PublicProblem = Omit<Problem, "solution">;
+type PublicProblem = Omit<Problem, "solution">;
 
 import problemsData from "../data/problems.json";
 
