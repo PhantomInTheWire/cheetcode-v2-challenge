@@ -3,6 +3,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
+import { SHADOW_BAN_HEADER } from "../../../lib/abuse-guard";
 
 /**
  * POST /api/finish-l2
@@ -44,6 +45,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
     const clientElapsedMs = Math.max(0, Math.min(session.expiresAt - session.startedAt, timeElapsed));
+
+    if (request.headers.get(SHADOW_BAN_HEADER) === "1") {
+      return NextResponse.json({
+        elo: 0,
+        solved: 0,
+        rank: 9999,
+        timeRemaining: Math.max(0, Math.floor((session.expiresAt - session.startedAt - clientElapsedMs) / 1000)),
+      });
+    }
 
     // Record results via authenticated Convex action
     const result = await convex.action(api.submissions.recordResults, {
