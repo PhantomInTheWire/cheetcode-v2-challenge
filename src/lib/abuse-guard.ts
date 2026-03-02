@@ -1,13 +1,11 @@
-import { isIP } from "is-ip";
+import { getIdentityKeys, TRUSTED_FINGERPRINT_HEADER } from "./abuse-identity";
 
 export type AbuseRoute =
   | "session"
-  | "validate"
   | "validate-l1"
   | "validate-batch"
   | "validate-l2"
   | "validate-l3"
-  | "finish"
   | "finish-l1"
   | "finish-l2"
   | "finish-l3";
@@ -26,16 +24,13 @@ export type AbuseDecision = {
 };
 
 export const SHADOW_BAN_HEADER = "x-ctf-shadow-banned";
-export const TRUSTED_FINGERPRINT_HEADER = "x-ctf-fingerprint";
-
-const DEFAULT_IDENTITY = "anon";
+export { TRUSTED_FINGERPRINT_HEADER };
 const SHADOW_BAN_DURATION_MS = 24 * 60 * 60 * 1000;
 const MAX_KEYS = 20_000;
 const SWEEP_INTERVAL_MS = 60_000;
 
 const routeConfigs: Record<AbuseRoute, RouteConfig> = {
   session: { windowMs: 60_000, maxHits: 8, shadowWindowMs: 10 * 60_000, shadowThreshold: 40 },
-  validate: { windowMs: 60_000, maxHits: 150, shadowWindowMs: 10 * 60_000, shadowThreshold: 900 },
   "validate-l1": {
     windowMs: 60_000,
     maxHits: 150,
@@ -60,7 +55,6 @@ const routeConfigs: Record<AbuseRoute, RouteConfig> = {
     shadowWindowMs: 10 * 60_000,
     shadowThreshold: 300,
   },
-  finish: { windowMs: 60_000, maxHits: 20, shadowWindowMs: 10 * 60_000, shadowThreshold: 80 },
   "finish-l1": { windowMs: 60_000, maxHits: 20, shadowWindowMs: 10 * 60_000, shadowThreshold: 80 },
   "finish-l2": { windowMs: 60_000, maxHits: 20, shadowWindowMs: 10 * 60_000, shadowThreshold: 80 },
   "finish-l3": { windowMs: 60_000, maxHits: 20, shadowWindowMs: 10 * 60_000, shadowThreshold: 80 },
@@ -72,12 +66,10 @@ export function getRouteConfig(route: AbuseRoute): RouteConfig {
 
 export const API_ROUTE_TO_ABUSE_ROUTE: Record<string, AbuseRoute> = {
   "/api/session": "session",
-  "/api/validate": "validate",
   "/api/validate-l1": "validate-l1",
   "/api/validate-batch": "validate-batch",
   "/api/validate-l2": "validate-l2",
   "/api/validate-l3": "validate-l3",
-  "/api/finish": "finish",
   "/api/finish-l1": "finish-l1",
   "/api/finish-l2": "finish-l2",
   "/api/finish-l3": "finish-l3",
@@ -86,83 +78,6 @@ export const API_ROUTE_TO_ABUSE_ROUTE: Record<string, AbuseRoute> = {
 const eventsByKey = new Map<string, number[]>();
 const shadowBans = new Map<string, number>();
 let lastSweepAt = 0;
-
-function hashIdentity(raw: string): string {
-  // Edge-safe non-cryptographic hash (FNV-1a variant) for key anonymization.
-  let h1 = 0x811c9dc5;
-  let h2 = 0x811c9dc5;
-  for (let i = 0; i < raw.length; i++) {
-    const c = raw.charCodeAt(i);
-    h1 ^= c;
-    h1 = Math.imul(h1, 0x01000193);
-    h2 ^= c ^ 0x9e3779b9;
-    h2 = Math.imul(h2, 0x01000193);
-  }
-  const a = (h1 >>> 0).toString(16).padStart(8, "0");
-  const b = (h2 >>> 0).toString(16).padStart(8, "0");
-  return `${a}${b}`;
-}
-
-function normalizeIpCandidate(raw: string): string | null {
-  const trimmed = raw.trim().replace(/^"|"$/g, "");
-  if (!trimmed) return null;
-
-  if (trimmed.startsWith("[") && trimmed.includes("]")) {
-    const end = trimmed.indexOf("]");
-    return trimmed.slice(1, end);
-  }
-
-  const maybeIpv4Port = trimmed.match(/^(\d{1,3}(?:\.\d{1,3}){3}):\d+$/);
-  if (maybeIpv4Port?.[1]) return maybeIpv4Port[1];
-
-  return trimmed;
-}
-
-function pickValidIp(candidates: string[]): string | null {
-  for (const candidate of candidates) {
-    const normalized = normalizeIpCandidate(candidate);
-    if (!normalized) continue;
-    if (isIP(normalized)) {
-      return normalized;
-    }
-  }
-  return null;
-}
-
-function extractIpAddress(request: Request): string {
-  const xff = request.headers.get("x-forwarded-for");
-  if (xff) {
-    const chain = xff
-      .split(",")
-      .map((part) => part.trim())
-      .filter(Boolean);
-    const trustedIp = pickValidIp([...chain].reverse());
-    if (trustedIp) return trustedIp;
-  }
-  const cfIp = request.headers.get("cf-connecting-ip")?.trim();
-  if (cfIp) {
-    const trustedIp = pickValidIp([cfIp]);
-    if (trustedIp) return trustedIp;
-  }
-  const realIp = request.headers.get("x-real-ip")?.trim();
-  if (realIp) {
-    const trustedIp = pickValidIp([realIp]);
-    if (trustedIp) return trustedIp;
-  }
-  return DEFAULT_IDENTITY;
-}
-
-function getIdentityKeys(request: Request): string[] {
-  const ip = extractIpAddress(request);
-  const fingerprint = request.headers.get(TRUSTED_FINGERPRINT_HEADER)?.trim() || DEFAULT_IDENTITY;
-
-  const keys = new Set<string>();
-  keys.add(`ip:${hashIdentity(ip)}`);
-  if (fingerprint && fingerprint !== DEFAULT_IDENTITY) {
-    keys.add(`fp:${hashIdentity(fingerprint)}`);
-  }
-  return [...keys];
-}
 
 function sweepExpired(now: number): void {
   if (now - lastSweepAt < SWEEP_INTERVAL_MS) return;

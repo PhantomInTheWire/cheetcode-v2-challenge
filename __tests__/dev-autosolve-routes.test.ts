@@ -15,12 +15,12 @@ vi.mock("../server/level3/autoSolve", () => ({
 }));
 
 describe("dev auto-solve routes", () => {
-  it("/api/dev/auto-solve returns solutions for requested level1 IDs", async () => {
-    const { POST } = await import("../src/app/api/dev/auto-solve/route");
+  it("/api/dev/auto-solve-l1 returns solutions for requested level1 IDs", async () => {
+    const { POST } = await import("../src/app/api/dev/auto-solve-l1/route");
     const first = PROBLEM_BANK[0];
     expect(first).toBeTruthy();
 
-    const req = new Request("http://localhost/api/dev/auto-solve", {
+    const req = new Request("http://localhost/api/dev/auto-solve-l1", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ problemIds: [first.id] }),

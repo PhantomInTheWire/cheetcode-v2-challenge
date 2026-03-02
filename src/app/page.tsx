@@ -112,7 +112,7 @@ export default function Home() {
   // Inline validation error messages
   const [emailError, setEmailError] = useState("");
   const [xHandleError, setXHandleError] = useState("");
-  // Worker removed — validation runs through /api/validate for parity with server
+  // Worker removed — validation runs through /api/validate-l1 for parity with server
   const canAutoSolve = isClientDevMode();
   const isMobile = useIsMobile();
 
@@ -144,7 +144,7 @@ export default function Home() {
   } | null>(null);
 
   // No worker — local validation uses the same QuickJS sandbox as final scoring
-  // via /api/validate to guarantee parity between local and server checks
+  // via /api/validate-l1 to guarantee parity between local and server checks
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 100);
@@ -266,7 +266,7 @@ export default function Home() {
     }
   }
 
-  // Uses /api/validate (QuickJS WASM) so local checks match server scoring exactly
+  // Uses /api/validate-l1 (QuickJS WASM) so local checks match server scoring exactly
   async function runLocalCheck(problem: GameProblem) {
     setLocalPass((cur) => ({ ...cur, [problem.id]: null }));
     try {

@@ -65,6 +65,7 @@ export function Level3Game({
   const [compileError, setCompileError] = useState<string | null>(null);
   const [localCorrect, setLocalCorrect] = useState<Record<string, boolean | null>>({});
   const lockedTimeElapsedMsRef = useRef<number | null>(null);
+  const autoSubmittedRef = useRef(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 100);
@@ -76,6 +77,7 @@ export function Level3Game({
     setLocalCorrect({});
     setCompileError(null);
     lockedTimeElapsedMsRef.current = null;
+    autoSubmittedRef.current = false;
   }, [challenge.id, challenge.starterCode]);
 
   const timeLeftMs = useMemo(() => Math.max(0, expiresAt - now), [expiresAt, now]);
@@ -183,7 +185,10 @@ export function Level3Game({
   }, [sessionId, github, timeLeftMs, isSubmitting, onFinishAction, code]);
 
   useEffect(() => {
-    if (timeUp) void finishGame();
+    if (timeUp && !autoSubmittedRef.current) {
+      autoSubmittedRef.current = true;
+      void finishGame();
+    }
   }, [timeUp, finishGame]);
 
   const timerBg = secondsLeft <= 20 ? "#dc2626" : secondsLeft <= 45 ? "#fa5d19" : "#1a9338";
