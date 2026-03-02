@@ -14,32 +14,36 @@ type RequestBody = {
 };
 
 export async function POST(request: Request) {
-  return withAuthenticatedSession<RequestBody>(request, 2, async ({ github, session, convex, body }) => {
-    const { sessionId, answers, timeElapsed } = body;
+  return withAuthenticatedSession<RequestBody>(
+    request,
+    2,
+    async ({ github, session, convex, body }) => {
+      const { sessionId, answers, timeElapsed } = body;
 
-    if (!answers || typeof answers !== "object" || typeof timeElapsed !== "number") {
-      return NextResponse.json({ error: "invalid request" }, { status: 400 });
-    }
+      if (!answers || typeof answers !== "object" || typeof timeElapsed !== "number") {
+        return NextResponse.json({ error: "invalid request" }, { status: 400 });
+      }
 
-    const clientElapsedMs = clampElapsed(timeElapsed, session.expiresAt - session.startedAt);
+      const clientElapsedMs = clampElapsed(timeElapsed, session.expiresAt - session.startedAt);
 
-    if (request.headers.get(SHADOW_BAN_HEADER) === "1") {
-      return shadowBanResponse(session.expiresAt - session.startedAt, clientElapsedMs);
-    }
+      if (request.headers.get(SHADOW_BAN_HEADER) === "1") {
+        return shadowBanResponse(session.expiresAt - session.startedAt, clientElapsedMs);
+      }
 
-    const validated = validateLevel2Answers(answers);
-    const solvedProblemIds = validated.filter((r) => r.correct).map((r) => r.problemId);
+      const validated = validateLevel2Answers(answers);
+      const solvedProblemIds = validated.filter((r) => r.correct).map((r) => r.problemId);
 
-    // Record results via authenticated Convex action
-    const result = await convex.action(api.submissions.recordResults, {
-      secret: ENV.CONVEX_MUTATION_SECRET,
-      sessionId: sessionId as Id<"sessions">,
-      github,
-      solvedProblemIds,
-      timeElapsedMs: clientElapsedMs,
-      exploitBonus: 0,
-    });
+      // Record results via authenticated Convex action
+      const result = await convex.action(api.submissions.recordResults, {
+        secret: ENV.CONVEX_MUTATION_SECRET,
+        sessionId: sessionId as Id<"sessions">,
+        github,
+        solvedProblemIds,
+        timeElapsedMs: clientElapsedMs,
+        exploitBonus: 0,
+      });
 
-    return NextResponse.json(result);
-  });
+      return NextResponse.json(result);
+    },
+  );
 }

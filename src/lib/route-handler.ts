@@ -2,6 +2,15 @@ import { NextResponse } from "next/server";
 import { requireAuthenticatedGithub } from "./request-auth";
 import { requireOwnedSession } from "./session-auth";
 import { getJsonBody } from "./api-route";
+import { ConvexHttpClient } from "convex/browser";
+
+type OwnedSession = {
+  github: string;
+  problemIds: string[];
+  startedAt: number;
+  expiresAt: number;
+  level?: number;
+};
 
 /**
  * Common orchestration for "finish" routes:
@@ -15,10 +24,10 @@ export async function withAuthenticatedSession<TBody extends { sessionId: string
   expectedLevel: 1 | 2 | 3,
   handler: (ctx: {
     github: string;
-    session: any; // OwnedSession
-    convex: any; // ConvexHttpClient
+    session: OwnedSession;
+    convex: ConvexHttpClient;
     body: TBody;
-  }) => Promise<NextResponse>
+  }) => Promise<NextResponse>,
 ) {
   try {
     const body = await getJsonBody<TBody>(request);
@@ -39,7 +48,7 @@ export async function withAuthenticatedSession<TBody extends { sessionId: string
     console.error(`Route handler error (Level ${expectedLevel}):`, err);
     return NextResponse.json(
       { error: "internal server error", elo: 0, solved: 0, rank: 0, timeRemaining: 0 },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

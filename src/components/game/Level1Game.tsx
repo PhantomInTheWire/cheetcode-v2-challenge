@@ -34,7 +34,9 @@ type Level1GameProps = {
   problems: GameProblem[];
   localPass: Record<string, boolean | null>;
   codes: Record<string, string>;
-  setCodes: (v: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) => void;
+  setCodes: (
+    v: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>),
+  ) => void;
   runLocalCheck: (problem: GameProblem) => void;
 };
 
@@ -87,9 +89,7 @@ export function Level1Game({
           <span style={{ fontSize: 13, fontWeight: 800, color: "#fa5d19", letterSpacing: -0.5 }}>
             FIRECRAWL CTF
           </span>
-          <span style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", marginLeft: 4 }}>
-            @{github}
-          </span>
+          <span style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", marginLeft: 4 }}>@{github}</span>
           {canAutoSolve && (
             <button
               onClick={autoSolve}
@@ -377,11 +377,7 @@ export function Level1Game({
                         ? "not-allowed"
                         : "pointer",
                     background:
-                      status === "passed"
-                        ? "rgba(26,147,56,0.1)"
-                        : timeUp
-                          ? "#e5e5e5"
-                          : "#fa5d19",
+                      status === "passed" ? "rgba(26,147,56,0.1)" : timeUp ? "#e5e5e5" : "#fa5d19",
                     color: status === "passed" ? "#1a9338" : timeUp ? "rgba(0,0,0,0.3)" : "#fff",
                     transition: "all 150ms",
                   }}
@@ -431,7 +427,11 @@ export function Level1Game({
                 margin: 0,
               }}
             >
-              {isSubmitting ? "SUBMITTING..." : solvedLocal === PROBLEMS_PER_SESSION ? "ALL CLEAR 🔥" : "TIME'S UP"}
+              {isSubmitting
+                ? "SUBMITTING..."
+                : solvedLocal === PROBLEMS_PER_SESSION
+                  ? "ALL CLEAR 🔥"
+                  : "TIME'S UP"}
             </p>
             <p style={{ fontSize: 22, color: "rgba(0,0,0,0.45)", margin: "8px 0 0" }}>
               {solvedLocal}/{PROBLEMS_PER_SESSION} solved locally

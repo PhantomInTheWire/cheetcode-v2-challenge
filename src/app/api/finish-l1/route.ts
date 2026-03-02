@@ -48,7 +48,7 @@ function validateSubmission(
   qjs: QuickJSWASMModule,
   code: string,
   testCases: TestCase[],
-  problemId?: string
+  problemId?: string,
 ): boolean {
   const vm = qjs.newContext();
   try {
@@ -56,7 +56,7 @@ function validateSubmission(
       vm,
       `globalThis.console={log(){},warn(){},error(){},info(){}};` +
         `globalThis.__FIRECRAWL__="${SANDBOX_FLAG}";`,
-      QUICKJS_SETUP_TIMEOUT_MS
+      QUICKJS_SETUP_TIMEOUT_MS,
     );
     if ("error" in setup) {
       setup.error.dispose();
@@ -96,77 +96,81 @@ function validateSubmission(
 }
 
 export async function POST(request: Request) {
-  return withAuthenticatedSession<RequestBody>(request, 1, async ({ github, session, convex, body }) => {
-    const { sessionId, submissions, timeElapsed } = body;
+  return withAuthenticatedSession<RequestBody>(
+    request,
+    1,
+    async ({ github, session, convex, body }) => {
+      const { sessionId, submissions, timeElapsed } = body;
 
-    if (!Array.isArray(submissions) || typeof timeElapsed !== "number") {
-      return NextResponse.json({ error: "invalid request" }, { status: 400 });
-    }
-
-    const sessionProblemIds = new Set(session.problemIds);
-
-    // Load QuickJS WASM once, reuse for all problems
-    const qjs = await getQJS();
-
-    const solvedProblemIds: string[] = [];
-    let extraSubmissions = 0;
-    for (const sub of submissions) {
-      const problem = PROBLEM_BANK.find((p) => p.id === sub.problemId);
-      if (!problem || !sub.code.trim()) continue;
-
-      if (!sessionProblemIds.has(sub.problemId)) {
-        extraSubmissions++;
-        continue;
+      if (!Array.isArray(submissions) || typeof timeElapsed !== "number") {
+        return NextResponse.json({ error: "invalid request" }, { status: 400 });
       }
 
-      const codeResult = validateCode(sub.code);
-      if (codeResult.ok === false) continue;
+      const sessionProblemIds = new Set(session.problemIds);
 
-      const passed = validateSubmission(qjs, codeResult.value, problem.testCases, problem.id);
-      if (passed) solvedProblemIds.push(sub.problemId);
-    }
+      // Load QuickJS WASM once, reuse for all problems
+      const qjs = await getQJS();
 
-    const hasHackHeader = request.headers.get("x-firecrawl-hack") === "true";
-    const exploits = detectExploits({
-      timeElapsedMs: timeElapsed,
-      solvedCount: solvedProblemIds.length,
-      flag: body.flag,
-      hasHackHeader,
-      extraSubmissions,
-    });
-    const clientElapsedMs = clampElapsed(timeElapsed, ROUND_DURATION_MS);
-    const exploitBonus = totalExploitBonus(exploits);
+      const solvedProblemIds: string[] = [];
+      let extraSubmissions = 0;
+      for (const sub of submissions) {
+        const problem = PROBLEM_BANK.find((p) => p.id === sub.problemId);
+        if (!problem || !sub.code.trim()) continue;
 
-    const hasInjectionEchoHeader = request.headers.has(INJECTION_ECHO_HEADER);
-    const landmines = detectLandmines({
-      submittedCodes: submissions.map((s) => s.code),
-      hasInjectionEchoHeader,
-    });
-    const landminePenalty = totalLandminePenalty(landmines);
+        if (!sessionProblemIds.has(sub.problemId)) {
+          extraSubmissions++;
+          continue;
+        }
 
-    const clampedTimeElapsedMs = clientElapsedMs;
-    const scoreModifier = exploitBonus + landminePenalty;
+        const codeResult = validateCode(sub.code);
+        if (codeResult.ok === false) continue;
 
-    if (request.headers.get(SHADOW_BAN_HEADER) === "1") {
-      return shadowBanResponse(ROUND_DURATION_MS, clampedTimeElapsedMs, {
+        const passed = validateSubmission(qjs, codeResult.value, problem.testCases, problem.id);
+        if (passed) solvedProblemIds.push(sub.problemId);
+      }
+
+      const hasHackHeader = request.headers.get("x-firecrawl-hack") === "true";
+      const exploits = detectExploits({
+        timeElapsedMs: timeElapsed,
+        solvedCount: solvedProblemIds.length,
+        flag: body.flag,
+        hasHackHeader,
+        extraSubmissions,
+      });
+      const clientElapsedMs = clampElapsed(timeElapsed, ROUND_DURATION_MS);
+      const exploitBonus = totalExploitBonus(exploits);
+
+      const hasInjectionEchoHeader = request.headers.has(INJECTION_ECHO_HEADER);
+      const landmines = detectLandmines({
+        submittedCodes: submissions.map((s) => s.code),
+        hasInjectionEchoHeader,
+      });
+      const landminePenalty = totalLandminePenalty(landmines);
+
+      const clampedTimeElapsedMs = clientElapsedMs;
+      const scoreModifier = exploitBonus + landminePenalty;
+
+      if (request.headers.get(SHADOW_BAN_HEADER) === "1") {
+        return shadowBanResponse(ROUND_DURATION_MS, clampedTimeElapsedMs, {
+          exploits: exploits.map((e) => ({ id: e.id, bonus: e.bonus, message: e.message })),
+          landmines: landmines.map((l) => ({ id: l.id, penalty: l.penalty, message: l.message })),
+        });
+      }
+
+      const result = await convex.action(api.submissions.recordResults, {
+        secret: ENV.CONVEX_MUTATION_SECRET,
+        sessionId: sessionId as Id<"sessions">,
+        github,
+        solvedProblemIds,
+        timeElapsedMs: clampedTimeElapsedMs,
+        exploitBonus: scoreModifier,
+      });
+
+      return NextResponse.json({
+        ...result,
         exploits: exploits.map((e) => ({ id: e.id, bonus: e.bonus, message: e.message })),
         landmines: landmines.map((l) => ({ id: l.id, penalty: l.penalty, message: l.message })),
       });
-    }
-
-    const result = await convex.action(api.submissions.recordResults, {
-      secret: ENV.CONVEX_MUTATION_SECRET,
-      sessionId: sessionId as Id<"sessions">,
-      github,
-      solvedProblemIds,
-      timeElapsedMs: clampedTimeElapsedMs,
-      exploitBonus: scoreModifier,
-    });
-
-    return NextResponse.json({
-      ...result,
-      exploits: exploits.map((e) => ({ id: e.id, bonus: e.bonus, message: e.message })),
-      landmines: landmines.map((l) => ({ id: l.id, penalty: l.penalty, message: l.message })),
-    });
-  });
+    },
+  );
 }

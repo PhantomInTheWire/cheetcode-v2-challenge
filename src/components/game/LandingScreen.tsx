@@ -4,23 +4,19 @@ import { signIn, signOut } from "next-auth/react";
 import Image from "next/image";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
 import { COLORS } from "@/lib/theme";
-import {
-  ROUND_DURATION_SECONDS,
-  PROBLEMS_PER_SESSION,
-  SITE_URL,
-} from "@/lib/constants";
+import { ROUND_DURATION_SECONDS, PROBLEMS_PER_SESSION, SITE_URL } from "@/lib/constants";
 
 type LandingScreenProps = {
   isAuthenticated: boolean;
   github: string;
   authStatus: "loading" | "authenticated" | "unauthenticated";
-  authSession: any;
+  authSession: { user?: { image?: string | null } } | null;
   showLeaderboard: boolean;
   setShowLeaderboard: (v: boolean | ((prev: boolean) => boolean)) => void;
   unlockedLevel: number;
   isLocalDev: boolean;
   startGame: (level?: number) => void;
-  leaderboard: any[];
+  leaderboard: Array<{ github: string; elo: number; solved: number; timeSecs: number }>;
   TOTAL_SOLVE_TARGET: number;
   displayedSolveTarget: number;
   submitError: string | null;
@@ -239,7 +235,9 @@ export function LandingScreen({
                     />
                   )}
                   <div>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: COLORS.TEXT_DARK, margin: 0 }}>
+                    <p
+                      style={{ fontSize: 14, fontWeight: 600, color: COLORS.TEXT_DARK, margin: 0 }}
+                    >
                       @{github}
                     </p>
                     <p style={{ fontSize: 11, color: COLORS.TEXT_MUTED, margin: 0 }}>
