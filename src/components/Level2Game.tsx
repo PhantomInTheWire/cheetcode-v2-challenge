@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type { Id } from "../../convex/_generated/dataModel";
+import { isClientDevMode } from "../lib/myEnv";
 
 const ROUND_DURATION_L2_MS = 45_000;
 
@@ -20,16 +21,21 @@ type Level2GameProps = {
 };
 
 export function Level2Game({ sessionId, github, problems, expiresAt, onFinish, onReset }: Level2GameProps) {
+  const canAutoSolve = isClientDevMode();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [now, setNow] = useState(Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [localCorrect, setLocalCorrect] = useState<Record<string, boolean | null>>({});
+  const lockedTimeElapsedMsRef = useRef<number | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 100);
     return () => clearInterval(id);
   }, []);
+  useEffect(() => {
+    lockedTimeElapsedMsRef.current = null;
+  }, [sessionId]);
 
   const timeLeftMs = useMemo(() => Math.max(0, expiresAt - now), [expiresAt, now]);
   const secondsLeft = Math.ceil(timeLeftMs / 1000);
@@ -42,6 +48,10 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinish, o
 
   const finishGame = useCallback(async () => {
     if (!sessionId || isSubmitting) return;
+    if (lockedTimeElapsedMsRef.current === null) {
+      lockedTimeElapsedMsRef.current = ROUND_DURATION_L2_MS - timeLeftMs;
+    }
+    const lockedTimeElapsedMs = lockedTimeElapsedMsRef.current;
     setIsSubmitting(true);
     setSubmitError(null);
     try {
@@ -67,7 +77,7 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinish, o
         body: JSON.stringify({
           sessionId,
           github,
-          timeElapsed: ROUND_DURATION_L2_MS - timeLeftMs,
+          timeElapsed: lockedTimeElapsedMs,
           solvedProblemIds: correctIds,
         }),
       });
@@ -110,6 +120,25 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinish, o
     }
   }
 
+  async function autoSolve() {
+    if (!canAutoSolve) return;
+    try {
+      const res = await fetch("/api/dev/auto-solve-l2", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ problemIds: problems.map((p) => p.id) }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { answers: Record<string, string> };
+      setAnswers((cur) => ({ ...cur, ...data.answers }));
+      const nextCorrect: Record<string, boolean> = {};
+      for (const id of Object.keys(data.answers)) nextCorrect[id] = true;
+      setLocalCorrect((cur) => ({ ...cur, ...nextCorrect }));
+    } catch {
+      // no-op in dev helper
+    }
+  }
+
   const timerBg = secondsLeft <= 10 ? "#dc2626" : secondsLeft <= 20 ? "#fa5d19" : "#1a9338";
   const timerFg = secondsLeft <= 10 ? "#dc2626" : secondsLeft <= 20 ? "#fa5d19" : "#1a9338";
 
@@ -143,6 +172,25 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinish, o
             FIRECRAWL CTF
           </span>
           <span style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", marginLeft: 4 }}>@{github}</span>
+          {canAutoSolve && (
+            <button
+              onClick={() => void autoSolve()}
+              style={{
+                marginLeft: 8,
+                padding: "2px 10px",
+                fontSize: 10,
+                fontWeight: 600,
+                background: "#f3f3f3",
+                color: "rgba(0,0,0,0.5)",
+                border: "1px solid #e5e5e5",
+                borderRadius: 4,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              ⚡ Auto Solve
+            </button>
+          )}
           <span
             style={{
               fontSize: 10,
@@ -198,7 +246,7 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinish, o
           {/* Submit button */}
           <button
             onClick={() => void finishGame()}
-            disabled={isSubmitting || timeUp}
+            disabled={isSubmitting}
             className="btn-heat"
             style={{
               height: 32,
@@ -208,7 +256,7 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinish, o
               fontWeight: 800,
               fontFamily: "inherit",
               letterSpacing: 1,
-              cursor: isSubmitting || timeUp ? "not-allowed" : "pointer",
+              cursor: isSubmitting ? "not-allowed" : "pointer",
               opacity: isSubmitting ? 0.7 : 1,
               whiteSpace: "nowrap",
             }}

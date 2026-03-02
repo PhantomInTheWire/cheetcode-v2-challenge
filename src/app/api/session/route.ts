@@ -3,6 +3,19 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import { resolveGitHubFromHeader } from "../../../lib/github-auth";
 import { auth } from "../../../../auth";
+import { warmLevel3Runtime } from "../../../../server/level3/validation";
+import { isServerDevMode } from "../../../lib/myEnv";
+import { normalizeTestCasesWithArgs } from "../../../lib/testcaseArgs";
+
+type SessionLevel1Problem = {
+  id: string;
+  title: string;
+  tier: "easy" | "medium" | "hard" | "competitive";
+  description: string;
+  signature: string;
+  starterCode: string;
+  testCases: Array<{ input: Record<string, unknown>; expected: unknown; args?: unknown[] }>;
+};
 
 /**
  * POST /api/session
@@ -50,13 +63,28 @@ export async function POST(request: Request) {
 
     const convex = new ConvexHttpClient(convexUrl);
     // In dev mode, allow any level to be played (for testing Level 2)
-    const isDev = process.env.NODE_ENV === "development";
+    const isDev = isServerDevMode();
     const result = await convex.action(api.sessions.create, {
       secret: process.env.CONVEX_MUTATION_SECRET!,
       github,
       requestedLevel,
       isDev,
     });
+
+    if (result.level === 1 && Array.isArray(result.problems)) {
+      const normalizedProblems = (result.problems as SessionLevel1Problem[]).map((problem) => ({
+        ...problem,
+        testCases: normalizeTestCasesWithArgs(problem.signature, problem.testCases),
+      }));
+      result.problems = normalizedProblems as typeof result.problems;
+    }
+
+    if (result.level === 3) {
+      const challenge = (result.problems?.[0] ?? {}) as { language?: string };
+      if (challenge.language) {
+        void warmLevel3Runtime(challenge.language);
+      }
+    }
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to create session";

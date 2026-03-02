@@ -5,7 +5,7 @@ import { PROBLEM_BANK } from "../server/problems";
 import { computeElo, getDifficultyBonus } from "../src/lib/scoring";
 import { ROUND_DURATION_MS, ROUND_DURATION_SECONDS } from "./constants";
 import { sortByEloAndAttempts, calculateRank } from "./helpers";
-import { ROUND_DURATION_L2_MS } from "./sessions";
+import { ROUND_DURATION_L2_MS, ROUND_DURATION_L3_MS } from "./sessions";
 
 const EXPLOIT_BONUS_CAP = 1000;
 
@@ -36,7 +36,8 @@ export const recordResultsInternal = internalMutation({
     );
 
     const level = session.level ?? 1;
-    const maxTime = level === 2 ? ROUND_DURATION_L2_MS : ROUND_DURATION_MS;
+    const maxTime =
+      level === 2 ? ROUND_DURATION_L2_MS : level === 3 ? ROUND_DURATION_L3_MS : ROUND_DURATION_MS;
     const clampedTime = Math.max(0, Math.min(maxTime, args.timeElapsedMs));
 
     const solvedCount = validSolvedIds.length;
@@ -66,6 +67,11 @@ export const recordResultsInternal = internalMutation({
       const baseElo = solvedCount * 150;
       const timeBonus = solvedCount > 0 ? timeRemainingSecs * 5 : 0;
       elo = baseElo + timeBonus + cappedExploitBonus;
+    } else if (level === 3) {
+      // Level 3 scoring: higher value per solved checkpoint
+      const baseElo = solvedCount * 300;
+      const timeBonus = solvedCount > 0 ? timeRemainingSecs * 2 : 0;
+      elo = baseElo + timeBonus + cappedExploitBonus;
     }
 
     const existing = await ctx.db
@@ -81,6 +87,9 @@ export const recordResultsInternal = internalMutation({
     let currentL1Elo = existing?.level1BestElo ?? 0;
     let currentL2Solved = existing?.level2BestSolved ?? 0;
     let currentL2Elo = existing?.level2BestElo ?? 0;
+    const existingAny = existing as Record<string, unknown> | null;
+    let currentL3Solved = (existingAny?.level3BestSolved as number | undefined) ?? 0;
+    let currentL3Elo = (existingAny?.level3BestElo as number | undefined) ?? 0;
     let unlockedLevel = existing?.unlockedLevel ?? 1;
 
     let shouldUpdateBests = false;
@@ -101,10 +110,20 @@ export const recordResultsInternal = internalMutation({
         currentL2Solved = solvedCount;
         shouldUpdateBests = true;
       }
+      if (solvedCount === 10) {
+        unlockedLevel = Math.max(unlockedLevel, 3);
+        shouldUpdateBests = true;
+      }
+    } else if (level === 3) {
+      if (elo > currentL3Elo) {
+        currentL3Elo = elo;
+        currentL3Solved = solvedCount;
+        shouldUpdateBests = true;
+      }
     }
 
-    const totalSolved = currentL1Solved + currentL2Solved;
-    const totalElo = currentL1Elo + currentL2Elo;
+    const totalSolved = currentL1Solved + currentL2Solved + currentL3Solved;
+    const totalElo = currentL1Elo + currentL2Elo + currentL3Elo;
 
     if (!existing) {
       if (solvedCount > 0 || elo > 0) {
@@ -120,6 +139,8 @@ export const recordResultsInternal = internalMutation({
           level1BestElo: currentL1Elo,
           level2BestSolved: currentL2Solved,
           level2BestElo: currentL2Elo,
+          level3BestSolved: currentL3Solved,
+          level3BestElo: currentL3Elo,
         });
       }
     } else {
@@ -140,6 +161,8 @@ export const recordResultsInternal = internalMutation({
           level1BestElo: currentL1Elo,
           level2BestSolved: currentL2Solved,
           level2BestElo: currentL2Elo,
+          level3BestSolved: currentL3Solved,
+          level3BestElo: currentL3Elo,
         });
       } else if (unlockedLevel > (existing.unlockedLevel ?? 1)) {
          updates.unlockedLevel = unlockedLevel;

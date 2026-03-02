@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { PROBLEM_BANK } from "../../../../../server/problems";
+import { LEVEL2_PROBLEMS } from "../../../../../server/level2/problems";
 import { isServerDevMode } from "../../../../lib/myEnv";
 
 export async function POST(request: Request) {
-  // Dev-only — returns solutions for given problem IDs
   if (!isServerDevMode()) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
@@ -14,16 +13,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "problemIds required" }, { status: 400 });
     }
 
-    const byId = new Map(PROBLEM_BANK.map((p) => [p.id, p]));
-    const solutions: Record<string, string> = {};
+    const answers: Record<string, string> = {};
     for (const id of body.problemIds) {
-      const problem = byId.get(id);
-      if (problem) {
-        solutions[id] = problem.solution;
-      }
+      const problem = LEVEL2_PROBLEMS.find((p) => p.id === id);
+      if (problem) answers[id] = problem.answer;
     }
 
-    return NextResponse.json({ solutions });
+    return NextResponse.json({ answers });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "auto solve failed" },
