@@ -3,10 +3,7 @@ import { sortByEloAndAttempts, calculateRank } from "../convex/helpers";
 import type { Doc } from "../convex/_generated/dataModel";
 
 // Minimal mock matching the Doc<"leaderboard"> shape used by helpers
-function makeEntry(
-  elo: number,
-  attempts: number | undefined = undefined,
-): Doc<"leaderboard"> {
+function makeEntry(elo: number, attempts: number | undefined = undefined): Doc<"leaderboard"> {
   return {
     _id: "" as Doc<"leaderboard">["_id"],
     _creationTime: 0,

@@ -1,14 +1,7 @@
 "use client";
 
 import React from "react";
-import {
-  TOTAL_SOLVE_TARGET,
-  PROBLEMS_PER_SESSION,
-  LEVEL2_TOTAL,
-  SITE_URL,
-} from "@/lib/constants";
-
-const ORIGINAL_TWEET_URL = "https://x.com/CalebPeffer/status/2024167056372097131";
+import { TOTAL_SOLVE_TARGET, PROBLEMS_PER_SESSION, LEVEL2_TOTAL } from "@/lib/constants";
 
 type ResultsData = {
   elo: number;
@@ -208,8 +201,8 @@ export function ResultsScreen({
           >
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
               <span style={{ color: "rgba(0,0,0,0.5)" }}>
-                Base score ({results.solved}/{displayedSolveTarget} solved,{" "}
-                {results.timeRemaining}s remaining)
+                Base score ({results.solved}/{displayedSolveTarget} solved, {results.timeRemaining}s
+                remaining)
               </span>
               <span style={{ fontWeight: 700, color: "#262626" }}>
                 {results.elo -
@@ -267,9 +260,7 @@ export function ResultsScreen({
                   <span style={{ fontSize: 11, color: "#262626", flex: 1, lineHeight: 1.5 }}>
                     {e.message}
                   </span>
-                  <span
-                    style={{ fontSize: 12, fontWeight: 700, color: "#1a9338", flexShrink: 0 }}
-                  >
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#1a9338", flexShrink: 0 }}>
                     +{e.bonus}
                   </span>
                 </div>
@@ -325,9 +316,7 @@ export function ResultsScreen({
                   <span style={{ fontSize: 11, color: "#262626", flex: 1, lineHeight: 1.5 }}>
                     {l.message}
                   </span>
-                  <span
-                    style={{ fontSize: 12, fontWeight: 700, color: "#dc2626", flexShrink: 0 }}
-                  >
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#dc2626", flexShrink: 0 }}>
                     {l.penalty}
                   </span>
                 </div>
@@ -420,9 +409,7 @@ export function ResultsScreen({
                       </div>
                     )}
                     {failedCount > 0 && (
-                      <div
-                        style={{ padding: "10px 18px", fontSize: 12, color: "rgba(0,0,0,0.7)" }}
-                      >
+                      <div style={{ padding: "10px 18px", fontSize: 12, color: "rgba(0,0,0,0.7)" }}>
                         {failedCount} check{failedCount === 1 ? "" : "s"} failed.
                       </div>
                     )}
@@ -487,12 +474,8 @@ export function ResultsScreen({
                   flex: 1,
                   borderColor: xHandleError ? "#dc2626" : "#e5e5e5",
                 }}
-                onFocus={(e) =>
-                  (e.target.style.borderColor = xHandleError ? "#dc2626" : "#fa5d19")
-                }
-                onBlur={(e) =>
-                  (e.target.style.borderColor = xHandleError ? "#dc2626" : "#e5e5e5")
-                }
+                onFocus={(e) => (e.target.style.borderColor = xHandleError ? "#dc2626" : "#fa5d19")}
+                onBlur={(e) => (e.target.style.borderColor = xHandleError ? "#dc2626" : "#e5e5e5")}
               />
               <input
                 value={flag}

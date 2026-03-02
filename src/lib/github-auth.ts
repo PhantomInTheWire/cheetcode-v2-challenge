@@ -8,7 +8,6 @@
 
 // Brief cache to avoid hammering GitHub API on rapid successive calls
 const tokenCache = new Map<string, { username: string; expiresAt: number }>();
-const CACHE_TTL_MS = 60_000; // 1 minute
 const GITHUB_API_URL = "https://api.github.com/user";
 
 type GitHubUser = {

@@ -1,9 +1,5 @@
 import { Redis } from "@upstash/redis";
-import {
-  type AbuseDecision,
-  type AbuseRoute,
-  getRouteConfig,
-} from "./guard";
+import { type AbuseDecision, type AbuseRoute, getRouteConfig } from "./guard";
 import { getIdentityKeys } from "./identity";
 
 const SHADOW_BAN_DURATION_SECONDS = 24 * 60 * 60;

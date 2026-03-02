@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSession, signIn, signOut } from "next-auth/react";
-import Image from "next/image";
+import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -12,12 +11,7 @@ import { LandingScreen } from "@/components/game/LandingScreen";
 import { Level1Game } from "@/components/game/Level1Game";
 import { ResultsScreen } from "@/components/game/ResultsScreen";
 import { validateEmail, validateXHandle } from "@/lib/validation";
-import {
-  ROUND_DURATION_MS,
-  ROUND_DURATION_SECONDS,
-  PROBLEMS_PER_SESSION,
-  SITE_URL,
-} from "@/lib/constants";
+import { ROUND_DURATION_MS, ROUND_DURATION_SECONDS, PROBLEMS_PER_SESSION } from "@/lib/constants";
 import { isClientDevMode } from "@/lib/myEnv";
 import { clientFetch } from "@/lib/client-identity";
 
@@ -199,7 +193,7 @@ export default function Home() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [sessionId, results, isSubmitting, github, timeLeftMs, problems, codes]);
+  }, [sessionId, results, isSubmitting, github, timeLeftMs, problems, codes, flag]);
 
   // Auto-submit when timer expires — manual SUBMIT button handles early finish
   useEffect(() => {
@@ -269,7 +263,9 @@ export default function Home() {
       setScreen("playing");
     } catch (err) {
       console.error("createSession failed:", err);
-      setSubmitError(err instanceof Error ? err.message : "Failed to start game. Please try again.");
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to start game. Please try again.",
+      );
     }
   }
 
@@ -323,7 +319,9 @@ export default function Home() {
       setSubmittedLead(true);
     } catch (err) {
       console.error("submitLead failed:", err);
-      setSubmitError(err instanceof Error ? err.message : "Failed to submit form. Please try again.");
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to submit form. Please try again.",
+      );
     }
   }
 
