@@ -65,14 +65,20 @@ export async function POST(request: Request) {
       );
     }
     const solvedProblemIds = validation.results.filter((r) => r.correct).map((r) => r.problemId);
-    const clientElapsedMs = Math.max(0, Math.min(session.expiresAt - session.startedAt, timeElapsed));
+    const clientElapsedMs = Math.max(
+      0,
+      Math.min(session.expiresAt - session.startedAt, timeElapsed),
+    );
 
     if (request.headers.get(SHADOW_BAN_HEADER) === "1") {
       return NextResponse.json({
         elo: 0,
         solved: 0,
         rank: 9999,
-        timeRemaining: Math.max(0, Math.floor((session.expiresAt - session.startedAt - clientElapsedMs) / 1000)),
+        timeRemaining: Math.max(
+          0,
+          Math.floor((session.expiresAt - session.startedAt - clientElapsedMs) / 1000),
+        ),
         validation,
       });
     }

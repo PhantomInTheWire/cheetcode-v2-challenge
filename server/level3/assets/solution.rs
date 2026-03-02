@@ -169,16 +169,19 @@ pub extern "C" fn cpu_assemble(src: *const i8, src_len: i32, out_words: *mut u16
             }
             0x0C | 0x0D | 0x0E | 0x0F => {
                 let addr = match parts.get(1).and_then(|t| resolve_value(t, &labels)) { Some(v) => v, None => return -9 };
+                if !(0..=0x07FF).contains(&addr) { return -16; }
                 out.push(enc_j(op, addr as u16));
             }
             0x01 => {
                 let rd = match parts.get(1).and_then(|t| parse_reg(t)) { Some(v) => v, None => return -10 };
                 let imm = match parts.get(2).and_then(|t| resolve_value(t, &labels)) { Some(v) => v, None => return -11 };
+                if !(-32768..=65535).contains(&imm) { return -17; }
                 out.push(enc_x(op, rd));
                 out.push(imm as u16);
             }
             0x14 => {
                 let addr = match parts.get(1).and_then(|t| resolve_value(t, &labels)) { Some(v) => v, None => return -12 };
+                if !(0..=0xFFFF).contains(&addr) { return -18; }
                 out.push(enc_x(op, 0));
                 out.push(addr as u16);
             }

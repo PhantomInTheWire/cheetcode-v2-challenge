@@ -13,12 +13,27 @@ declare global {
 const FP_STORAGE_KEY = "ctf:fp:visitor-id";
 let fpPromise: Promise<string> | null = null;
 
+function safeReadStoredFingerprint(): string | null {
+  try {
+    return window.localStorage.getItem(FP_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function safeWriteStoredFingerprint(value: string): void {
+  try {
+    window.localStorage.setItem(FP_STORAGE_KEY, value);
+  } catch {
+    // Ignore storage failures (private mode, strict settings, quota issues).
+  }
+}
+
 function fallbackFingerprint(): string {
-  const existing = window.localStorage.getItem(FP_STORAGE_KEY);
+  const existing = safeReadStoredFingerprint();
   if (existing) return existing;
-  const generated =
-    `fallback-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-  window.localStorage.setItem(FP_STORAGE_KEY, generated);
+  const generated = `fallback-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  safeWriteStoredFingerprint(generated);
   return generated;
 }
 
@@ -32,7 +47,7 @@ export async function getClientFingerprint(): Promise<string> {
         const agent = await fpjs.load();
         const { visitorId } = await agent.get();
         if (!visitorId) return fallbackFingerprint();
-        window.localStorage.setItem(FP_STORAGE_KEY, visitorId);
+        safeWriteStoredFingerprint(visitorId);
         return visitorId;
       } catch {
         return fallbackFingerprint();

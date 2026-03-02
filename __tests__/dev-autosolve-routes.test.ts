@@ -3,7 +3,7 @@ import { PROBLEM_BANK } from "../server/problems";
 import { LEVEL2_PROBLEMS } from "../server/level2/problems";
 
 vi.mock("../src/lib/myEnv", () => ({
-  isServerDevRouteEnabled: vi.fn(() => true),
+  isServerDevMode: vi.fn(() => true),
 }));
 vi.mock("../server/level3/problems", () => ({
   getLevel3ChallengeFromId: vi.fn((id: string) =>

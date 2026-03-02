@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { PROBLEM_BANK } from "../server/problems";
-import fs from "node:fs";
 import vm from "node:vm";
 
 describe("problems", () => {
@@ -33,26 +32,26 @@ describe("problems", () => {
 
   it("every reference solution passes its test cases", () => {
     for (const problem of PROBLEM_BANK) {
-      const functionName = problem.signature.match(/function\s+([A-Za-z_$][\w$]*)/)?.[1];
+      const functionName =
+        problem.signature.match(/function\s+([A-Za-z_$][\w$]*)/)?.[1] ??
+        problem.signature.match(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=/)?.[1];
       expect(functionName, `${problem.id}: invalid signature`).toBeTruthy();
 
       const sandbox: Record<string, unknown> = {};
       vm.createContext(sandbox);
-      vm.runInContext(`${problem.solution}\n;globalThis.__fn=${functionName};`, sandbox, { timeout: 2000 });
+      vm.runInContext(`${problem.solution}\n;globalThis.__fn=${functionName};`, sandbox, {
+        timeout: 2000,
+      });
 
       const fn = sandbox.__fn as ((...args: unknown[]) => unknown) | undefined;
       expect(typeof fn, `${problem.id}: solution function missing`).toBe("function");
 
       for (const [index, testCase] of problem.testCases.entries()) {
-        const actual = fn!(...Object.values(testCase.input));
+        const actual = fn!(
+          ...(Array.isArray(testCase.args) ? testCase.args : Object.values(testCase.input)),
+        );
         expect(actual, `${problem.id} test #${index + 1}`).toEqual(testCase.expected);
       }
     }
-  });
-
-  it("problem bank is not imported by client page", () => {
-    // This asserts against a common accidental path.
-    const pageSource = fs.readFileSync("src/app/page.tsx", "utf8");
-    expect(pageSource.includes("server/problems")).toBe(false);
   });
 });

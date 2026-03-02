@@ -35,7 +35,9 @@ describe.skipIf(!hasNativeToolchain)("level3 autosolve native harness", () => {
       const languageKey = language === "C" ? "c" : language === "C++" ? "cpp" : "rust";
       const challenge = getLevel3ChallengeFromId(`l3:cpu-16bit-emulator:${languageKey}`);
       expect(challenge).not.toBeNull();
-      const expectedKeys = new Set((challenge?.checks ?? []).map((c) => c.id.split(":").pop() ?? ""));
+      const expectedKeys = new Set(
+        (challenge?.checks ?? []).map((c) => c.id.split(":").pop() ?? ""),
+      );
       const actualKeys = new Set(Object.keys(result.harness));
       expect(actualKeys).toEqual(expectedKeys);
       expect(actualKeys.size, `${language} expected check count mismatch`).toBe(20);
@@ -48,7 +50,10 @@ describe.skipIf(!hasNativeToolchain)("level3 autosolve native harness", () => {
       const match = benchmarkMessage.match(
         /throughput=([0-9.]+)s<=([0-9.]+)s halt=([0-9.]+)s<=([0-9.]+)s/,
       );
-      expect(match, `${language} benchmark message format changed: ${benchmarkMessage}`).not.toBeNull();
+      expect(
+        match,
+        `${language} benchmark message format changed: ${benchmarkMessage}`,
+      ).not.toBeNull();
       const throughputElapsed = Number(match?.[1] ?? "NaN");
       const throughputBudget = Number(match?.[2] ?? "NaN");
       const haltElapsed = Number(match?.[3] ?? "NaN");

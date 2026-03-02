@@ -1035,44 +1035,24 @@
       "testCases": [
         {
           "input": {
-            "juniors": [
-              1,
-              2,
-              3
-            ],
-            "seniors": [
-              3,
-              4,
-              5
-            ],
+            "juniors": [1, 2, 3],
+            "seniors": [3, 4, 5],
             "maxDiff": 2
           },
           "expected": 3
         },
         {
           "input": {
-            "juniors": [
-              1,
-              5,
-              10
-            ],
-            "seniors": [
-              8,
-              12,
-              15
-            ],
+            "juniors": [1, 5, 10],
+            "seniors": [8, 12, 15],
             "maxDiff": 3
           },
           "expected": 2
         },
         {
           "input": {
-            "juniors": [
-              10
-            ],
-            "seniors": [
-              1
-            ],
+            "juniors": [10],
+            "seniors": [1],
             "maxDiff": 5
           },
           "expected": 0
@@ -1090,12 +1070,7 @@
       "testCases": [
         {
           "input": {
-            "ingredients": [
-              "fire",
-              "ice",
-              "fire",
-              "ice"
-            ],
+            "ingredients": ["fire", "ice", "fire", "ice"],
             "pairs": {
               "fire": "ice",
               "ice": "fire"
@@ -1105,11 +1080,7 @@
         },
         {
           "input": {
-            "ingredients": [
-              "light",
-              "dark",
-              "light"
-            ],
+            "ingredients": ["light", "dark", "light"],
             "pairs": {
               "light": "dark",
               "dark": "light"
@@ -1137,13 +1108,7 @@
       "testCases": [
         {
           "input": {
-            "packets": [
-              100,
-              200,
-              300,
-              250,
-              150
-            ],
+            "packets": [100, 200, 300, 250, 150],
             "windowSize": 3,
             "threshold": 200
           },
@@ -1151,11 +1116,7 @@
         },
         {
           "input": {
-            "packets": [
-              500,
-              500,
-              500
-            ],
+            "packets": [500, 500, 500],
             "windowSize": 2,
             "threshold": 400
           },
@@ -1163,11 +1124,7 @@
         },
         {
           "input": {
-            "packets": [
-              50,
-              60,
-              70
-            ],
+            "packets": [50, 60, 70],
             "windowSize": 2,
             "threshold": 100
           },
@@ -1186,14 +1143,7 @@
       "testCases": [
         {
           "input": {
-            "temps": [
-              70,
-              72,
-              71,
-              75,
-              80,
-              79
-            ],
+            "temps": [70, 72, 71, 75, 80, 79],
             "threshold": 5,
             "minDays": 3
           },
@@ -1201,12 +1151,7 @@
         },
         {
           "input": {
-            "temps": [
-              50,
-              60,
-              70,
-              80
-            ],
+            "temps": [50, 60, 70, 80],
             "threshold": 10,
             "minDays": 2
           },
@@ -1214,12 +1159,7 @@
         },
         {
           "input": {
-            "temps": [
-              65,
-              66,
-              67,
-              68
-            ],
+            "temps": [65, 66, 67, 68],
             "threshold": 5,
             "minDays": 2
           },
@@ -1238,37 +1178,21 @@
       "testCases": [
         {
           "input": {
-            "sales": [
-              100,
-              110,
-              120,
-              115,
-              130,
-              140
-            ],
+            "sales": [100, 110, 120, 115, 130, 140],
             "minDays": 3
           },
           "expected": 2
         },
         {
           "input": {
-            "sales": [
-              50,
-              40,
-              30
-            ],
+            "sales": [50, 40, 30],
             "minDays": 2
           },
           "expected": 0
         },
         {
           "input": {
-            "sales": [
-              10,
-              20,
-              30,
-              40
-            ],
+            "sales": [10, 20, 30, 40],
             "minDays": 2
           },
           "expected": 6
@@ -1286,15 +1210,7 @@
       "testCases": [
         {
           "input": {
-            "manaLevels": [
-              50,
-              80,
-              90,
-              85,
-              95,
-              60,
-              70
-            ],
+            "manaLevels": [50, 80, 90, 85, 95, 60, 70],
             "threshold": 75,
             "minDuration": 2
           },
@@ -1302,13 +1218,7 @@
         },
         {
           "input": {
-            "manaLevels": [
-              100,
-              100,
-              50,
-              100,
-              100
-            ],
+            "manaLevels": [100, 100, 50, 100, 100],
             "threshold": 90,
             "minDuration": 2
           },
@@ -1316,11 +1226,7 @@
         },
         {
           "input": {
-            "manaLevels": [
-              60,
-              70,
-              80
-            ],
+            "manaLevels": [60, 70, 80],
             "threshold": 100,
             "minDuration": 1
           },
@@ -1339,18 +1245,8 @@
       "testCases": [
         {
           "input": {
-            "distances": [
-              0,
-              100,
-              200,
-              300
-            ],
-            "prices": [
-              0,
-              2,
-              1,
-              3
-            ],
+            "distances": [0, 100, 200, 300],
+            "prices": [0, 2, 1, 3],
             "capacity": 150,
             "target": 300
           },
@@ -1358,16 +1254,8 @@
         },
         {
           "input": {
-            "distances": [
-              0,
-              50,
-              100
-            ],
-            "prices": [
-              0,
-              1,
-              2
-            ],
+            "distances": [0, 50, 100],
+            "prices": [0, 1, 2],
             "capacity": 100,
             "target": 100
           },
@@ -1375,14 +1263,8 @@
         },
         {
           "input": {
-            "distances": [
-              0,
-              200
-            ],
-            "prices": [
-              0,
-              1
-            ],
+            "distances": [0, 200],
+            "prices": [0, 1],
             "capacity": 100,
             "target": 200
           },
@@ -1457,55 +1339,19 @@
       "testCases": [
         {
           "input": {
-            "honeycomb": [
-              [
-                3
-              ],
-              [
-                7,
-                4
-              ],
-              [
-                2,
-                4,
-                6
-              ],
-              [
-                8,
-                5,
-                9,
-                3
-              ]
-            ]
+            "honeycomb": [[3], [7, 4], [2, 4, 6], [8, 5, 9, 3]]
           },
           "expected": 23
         },
         {
           "input": {
-            "honeycomb": [
-              [
-                1
-              ],
-              [
-                2,
-                3
-              ],
-              [
-                4,
-                5,
-                6
-              ]
-            ]
+            "honeycomb": [[1], [2, 3], [4, 5, 6]]
           },
           "expected": 10
         },
         {
           "input": {
-            "honeycomb": [
-              [
-                5
-              ]
-            ]
+            "honeycomb": [[5]]
           },
           "expected": 5
         }
@@ -1582,21 +1428,9 @@
         {
           "input": {
             "dungeon": [
-              [
-                10,
-                -5,
-                20
-              ],
-              [
-                -10,
-                30,
-                -5
-              ],
-              [
-                5,
-                -10,
-                40
-              ]
+              [10, -5, 20],
+              [-10, 30, -5],
+              [5, -10, 40]
             ],
             "startHealth": 20
           },
@@ -1605,14 +1439,8 @@
         {
           "input": {
             "dungeon": [
-              [
-                -5,
-                -10
-              ],
-              [
-                -3,
-                100
-              ]
+              [-5, -10],
+              [-3, 100]
             ],
             "startHealth": 10
           },
@@ -1620,11 +1448,7 @@
         },
         {
           "input": {
-            "dungeon": [
-              [
-                -20
-              ]
-            ],
+            "dungeon": [[-20]],
             "startHealth": 10
           },
           "expected": 0
@@ -1802,29 +1626,19 @@
       "testCases": [
         {
           "input": {
-            "selectors": [
-              "#main .content p",
-              "div#app .title",
-              ".nav ul li"
-            ]
+            "selectors": ["#main .content p", "div#app .title", ".nav ul li"]
           },
           "expected": "#main .content p"
         },
         {
           "input": {
-            "selectors": [
-              "body",
-              "html body"
-            ]
+            "selectors": ["body", "html body"]
           },
           "expected": "html body"
         },
         {
           "input": {
-            "selectors": [
-              "#id",
-              ".class"
-            ]
+            "selectors": ["#id", ".class"]
           },
           "expected": "#id"
         }
@@ -1934,15 +1748,11 @@
             "events": [
               {
                 "id": "A",
-                "before": [
-                  "B"
-                ]
+                "before": ["B"]
               },
               {
                 "id": "B",
-                "before": [
-                  "C"
-                ]
+                "before": ["C"]
               },
               {
                 "id": "C",
@@ -1957,15 +1767,11 @@
             "events": [
               {
                 "id": "X",
-                "before": [
-                  "Y"
-                ]
+                "before": ["Y"]
               },
               {
                 "id": "Y",
-                "before": [
-                  "X"
-                ]
+                "before": ["X"]
               }
             ]
           },
@@ -1995,15 +1801,7 @@
       "testCases": [
         {
           "input": {
-            "readings": [
-              10,
-              20,
-              30,
-              20,
-              10,
-              50,
-              40
-            ],
+            "readings": [10, 20, 30, 20, 10, 50, 40],
             "windowSize": 3,
             "threshold": 8
           },
@@ -2011,12 +1809,7 @@
         },
         {
           "input": {
-            "readings": [
-              5,
-              5,
-              5,
-              5
-            ],
+            "readings": [5, 5, 5, 5],
             "windowSize": 2,
             "threshold": 1
           },
@@ -2024,12 +1817,7 @@
         },
         {
           "input": {
-            "readings": [
-              1,
-              100,
-              1,
-              100
-            ],
+            "readings": [1, 100, 1, 100],
             "windowSize": 2,
             "threshold": 49
           },
@@ -2048,15 +1836,7 @@
       "testCases": [
         {
           "input": {
-            "engagement": [
-              100,
-              150,
-              200,
-              180,
-              120,
-              250,
-              300
-            ],
+            "engagement": [100, 150, 200, 180, 120, 250, 300],
             "baseline": 150,
             "minDuration": 2
           },
@@ -2064,11 +1844,7 @@
         },
         {
           "input": {
-            "engagement": [
-              50,
-              60,
-              70
-            ],
+            "engagement": [50, 60, 70],
             "baseline": 100,
             "minDuration": 1
           },
@@ -2076,11 +1852,7 @@
         },
         {
           "input": {
-            "engagement": [
-              200,
-              200,
-              200
-            ],
+            "engagement": [200, 200, 200],
             "baseline": 100,
             "minDuration": 3
           },
@@ -2099,14 +1871,7 @@
       "testCases": [
         {
           "input": {
-            "prices": [
-              100,
-              110,
-              105,
-              120,
-              130,
-              125
-            ],
+            "prices": [100, 110, 105, 120, 130, 125],
             "windowSize": 3,
             "threshold": 5
           },
@@ -2114,11 +1879,7 @@
         },
         {
           "input": {
-            "prices": [
-              100,
-              101,
-              102
-            ],
+            "prices": [100, 101, 102],
             "windowSize": 2,
             "threshold": 10
           },
@@ -2126,11 +1887,7 @@
         },
         {
           "input": {
-            "prices": [
-              100,
-              120,
-              140
-            ],
+            "prices": [100, 120, 140],
             "windowSize": 2,
             "threshold": 15
           },
@@ -2149,13 +1906,7 @@
       "testCases": [
         {
           "input": {
-            "prices": [
-              100,
-              110,
-              95,
-              105,
-              120
-            ],
+            "prices": [100, 110, 95, 105, 120],
             "windowSize": 3,
             "threshold": 15
           },
@@ -2163,11 +1914,7 @@
         },
         {
           "input": {
-            "prices": [
-              50,
-              51,
-              52
-            ],
+            "prices": [50, 51, 52],
             "windowSize": 2,
             "threshold": 5
           },
@@ -2175,12 +1922,7 @@
         },
         {
           "input": {
-            "prices": [
-              100,
-              150,
-              80,
-              130
-            ],
+            "prices": [100, 150, 80, 130],
             "windowSize": 2,
             "threshold": 40
           },
@@ -2269,34 +2011,21 @@
       "testCases": [
         {
           "input": {
-            "paintings": [
-              30,
-              50,
-              20,
-              40,
-              25
-            ],
+            "paintings": [30, 50, 20, 40, 25],
             "maxHeight": 100
           },
           "expected": 3
         },
         {
           "input": {
-            "paintings": [
-              60,
-              60,
-              60
-            ],
+            "paintings": [60, 60, 60],
             "maxHeight": 120
           },
           "expected": 2
         },
         {
           "input": {
-            "paintings": [
-              100,
-              50
-            ],
+            "paintings": [100, 50],
             "maxHeight": 80
           },
           "expected": 1
@@ -2314,37 +2043,21 @@
       "testCases": [
         {
           "input": {
-            "heights": [
-              10,
-              5,
-              6,
-              12,
-              3,
-              2,
-              1,
-              9
-            ],
+            "heights": [10, 5, 6, 12, 3, 2, 1, 9],
             "minHeight": 8
           },
           "expected": 3
         },
         {
           "input": {
-            "heights": [
-              15,
-              16
-            ],
+            "heights": [15, 16],
             "minHeight": 10
           },
           "expected": 0
         },
         {
           "input": {
-            "heights": [
-              4,
-              4,
-              4
-            ],
+            "heights": [4, 4, 4],
             "minHeight": 5
           },
           "expected": 3
@@ -2362,35 +2075,21 @@
       "testCases": [
         {
           "input": {
-            "powers": [
-              1,
-              5,
-              7,
-              1
-            ],
+            "powers": [1, 5, 7, 1],
             "target": 6
           },
           "expected": 2
         },
         {
           "input": {
-            "powers": [
-              3,
-              3,
-              3
-            ],
+            "powers": [3, 3, 3],
             "target": 6
           },
           "expected": 3
         },
         {
           "input": {
-            "powers": [
-              2,
-              4,
-              6,
-              8
-            ],
+            "powers": [2, 4, 6, 8],
             "target": 10
           },
           "expected": 2
@@ -2419,21 +2118,9 @@
               }
             ],
             "routes": [
-              [
-                0,
-                2,
-                80
-              ],
-              [
-                1,
-                2,
-                120
-              ],
-              [
-                0,
-                1,
-                50
-              ]
+              [0, 2, 80],
+              [1, 2, 120],
+              [0, 1, 50]
             ],
             "habitat": 2
           },
@@ -2447,13 +2134,7 @@
                 "capacity": 50
               }
             ],
-            "routes": [
-              [
-                0,
-                1,
-                30
-              ]
-            ],
+            "routes": [[0, 1, 30]],
             "habitat": 1
           },
           "expected": 30
@@ -2471,16 +2152,8 @@
               }
             ],
             "routes": [
-              [
-                0,
-                2,
-                50
-              ],
-              [
-                1,
-                2,
-                50
-              ]
+              [0, 2, 50],
+              [1, 2, 50]
             ],
             "habitat": 2
           },
@@ -2516,31 +2189,11 @@
               }
             ],
             "routes": [
-              [
-                0,
-                3,
-                500
-              ],
-              [
-                1,
-                3,
-                500
-              ],
-              [
-                2,
-                3,
-                500
-              ],
-              [
-                0,
-                1,
-                300
-              ],
-              [
-                1,
-                2,
-                300
-              ]
+              [0, 3, 500],
+              [1, 3, 500],
+              [2, 3, 500],
+              [0, 1, 300],
+              [1, 2, 300]
             ],
             "habitat": 3
           },
@@ -2579,10 +2232,7 @@
             ],
             "k": 3,
             "maxMana": 40,
-            "requiredElements": [
-              "fire",
-              "water"
-            ]
+            "requiredElements": ["fire", "water"]
           },
           "expected": 37
         },
@@ -2600,9 +2250,7 @@
             ],
             "k": 2,
             "maxMana": 20,
-            "requiredElements": [
-              "fire"
-            ]
+            "requiredElements": ["fire"]
           },
           "expected": -1
         },
@@ -2624,11 +2272,7 @@
             ],
             "k": 3,
             "maxMana": 30,
-            "requiredElements": [
-              "air",
-              "earth",
-              "fire"
-            ]
+            "requiredElements": ["air", "earth", "fire"]
           },
           "expected": 21
         },
@@ -2642,9 +2286,7 @@
             ],
             "k": 1,
             "maxMana": 50,
-            "requiredElements": [
-              "void"
-            ]
+            "requiredElements": ["void"]
           },
           "expected": -1
         },
@@ -2672,31 +2314,11 @@
           "input": {
             "network": {
               "A": [
-                [
-                  "B",
-                  5,
-                  1
-                ],
-                [
-                  "C",
-                  10,
-                  2
-                ]
+                ["B", 5, 1],
+                ["C", 10, 2]
               ],
-              "B": [
-                [
-                  "D",
-                  5,
-                  1
-                ]
-              ],
-              "C": [
-                [
-                  "D",
-                  3,
-                  2
-                ]
-              ],
+              "B": [["D", 5, 1]],
+              "C": [["D", 3, 2]],
               "D": []
             },
             "start": "A",
@@ -2709,27 +2331,13 @@
         {
           "input": {
             "network": {
-              "A": [
-                [
-                  "B",
-                  5,
-                  1
-                ]
-              ],
-              "B": [
-                [
-                  "C",
-                  5,
-                  2
-                ]
-              ],
+              "A": [["B", 5, 1]],
+              "B": [["C", 5, 2]],
               "C": []
             },
             "start": "A",
             "destination": "C",
-            "blacklist": [
-              "B"
-            ],
+            "blacklist": ["B"],
             "transferPenalty": 10
           },
           "expected": -1
@@ -2737,32 +2345,12 @@
         {
           "input": {
             "network": {
-              "A": [
-                [
-                  "B",
-                  3,
-                  1
-                ]
-              ],
+              "A": [["B", 3, 1]],
               "B": [
-                [
-                  "C",
-                  3,
-                  1
-                ],
-                [
-                  "D",
-                  2,
-                  2
-                ]
+                ["C", 3, 1],
+                ["D", 2, 2]
               ],
-              "C": [
-                [
-                  "D",
-                  1,
-                  1
-                ]
-              ],
+              "C": [["D", 1, 1]],
               "D": []
             },
             "start": "A",
@@ -2775,20 +2363,8 @@
         {
           "input": {
             "network": {
-              "S": [
-                [
-                  "M",
-                  10,
-                  1
-                ]
-              ],
-              "M": [
-                [
-                  "E",
-                  10,
-                  1
-                ]
-              ],
+              "S": [["M", 10, 1]],
+              "M": [["E", 10, 1]],
               "E": []
             },
             "start": "S",
@@ -2824,21 +2400,9 @@
         {
           "input": {
             "graph": [
-              [
-                0,
-                5,
-                10
-              ],
-              [
-                5,
-                0,
-                3
-              ],
-              [
-                10,
-                3,
-                0
-              ]
+              [0, 5, 10],
+              [5, 0, 3],
+              [10, 3, 0]
             ],
             "foodSources": [
               {
@@ -2858,14 +2422,8 @@
         {
           "input": {
             "graph": [
-              [
-                0,
-                100
-              ],
-              [
-                100,
-                0
-              ]
+              [0, 100],
+              [100, 0]
             ],
             "foodSources": [
               {
@@ -2881,21 +2439,9 @@
         {
           "input": {
             "graph": [
-              [
-                0,
-                2,
-                5
-              ],
-              [
-                2,
-                0,
-                2
-              ],
-              [
-                5,
-                2,
-                0
-              ]
+              [0, 2, 5],
+              [2, 0, 2],
+              [5, 2, 0]
             ],
             "foodSources": [
               {
@@ -2915,21 +2461,9 @@
         {
           "input": {
             "graph": [
-              [
-                0,
-                1,
-                1
-              ],
-              [
-                1,
-                0,
-                1
-              ],
-              [
-                1,
-                1,
-                0
-              ]
+              [0, 1, 1],
+              [1, 0, 1],
+              [1, 1, 0]
             ],
             "foodSources": [
               {
@@ -2944,11 +2478,7 @@
         },
         {
           "input": {
-            "graph": [
-              [
-                0
-              ]
-            ],
+            "graph": [[0]],
             "foodSources": [],
             "startNode": 0,
             "timeLimit": 10
@@ -2982,12 +2512,7 @@
                 "fragile": true
               }
             ],
-            "dependencies": [
-              [
-                1,
-                0
-              ]
-            ],
+            "dependencies": [[1, 0]],
             "timeBudget": 8
           },
           "expected": 18
@@ -3030,14 +2555,8 @@
               }
             ],
             "dependencies": [
-              [
-                2,
-                0
-              ],
-              [
-                2,
-                1
-              ]
+              [2, 0],
+              [2, 1]
             ],
             "timeBudget": 10
           },
@@ -3079,64 +2598,35 @@
       "testCases": [
         {
           "input": {
-            "shards": [
-              7,
-              2,
-              5,
-              10,
-              8
-            ],
+            "shards": [7, 2, 5, 10, 8],
             "servers": 2
           },
           "expected": 18
         },
         {
           "input": {
-            "shards": [
-              1,
-              2,
-              3,
-              4,
-              5
-            ],
+            "shards": [1, 2, 3, 4, 5],
             "servers": 2
           },
           "expected": 9
         },
         {
           "input": {
-            "shards": [
-              10,
-              10,
-              10
-            ],
+            "shards": [10, 10, 10],
             "servers": 3
           },
           "expected": 10
         },
         {
           "input": {
-            "shards": [
-              5,
-              1,
-              1,
-              1,
-              5
-            ],
+            "shards": [5, 1, 1, 1, 5],
             "servers": 2
           },
           "expected": 7
         },
         {
           "input": {
-            "shards": [
-              2,
-              3,
-              1,
-              2,
-              4,
-              3
-            ],
+            "shards": [2, 3, 1, 2, 4, 3],
             "servers": 5
           },
           "expected": 4
@@ -3154,15 +2644,7 @@
       "testCases": [
         {
           "input": {
-            "revenues": [
-              3,
-              -2,
-              5,
-              -1,
-              6,
-              -3,
-              2
-            ],
+            "revenues": [3, -2, 5, -1, 6, -3, 2],
             "minLen": 2,
             "maxLen": 4
           },
@@ -3170,12 +2652,7 @@
         },
         {
           "input": {
-            "revenues": [
-              -5,
-              -2,
-              -3,
-              -4
-            ],
+            "revenues": [-5, -2, -3, -4],
             "minLen": 1,
             "maxLen": 3
           },
@@ -3183,14 +2660,7 @@
         },
         {
           "input": {
-            "revenues": [
-              10,
-              -1,
-              2,
-              3,
-              -4,
-              7
-            ],
+            "revenues": [10, -1, 2, 3, -4, 7],
             "minLen": 2,
             "maxLen": 5
           },
@@ -3198,13 +2668,7 @@
         },
         {
           "input": {
-            "revenues": [
-              1,
-              2,
-              3,
-              4,
-              5
-            ],
+            "revenues": [1, 2, 3, 4, 5],
             "minLen": 3,
             "maxLen": 3
           },
@@ -3212,13 +2676,7 @@
         },
         {
           "input": {
-            "revenues": [
-              5,
-              -2,
-              5,
-              -2,
-              5
-            ],
+            "revenues": [5, -2, 5, -2, 5],
             "minLen": 1,
             "maxLen": 2
           },
@@ -3279,18 +2737,9 @@
         {
           "input": {
             "routes": [
-              [
-                0,
-                10
-              ],
-              [
-                5,
-                15
-              ],
-              [
-                20,
-                25
-              ]
+              [0, 10],
+              [5, 15],
+              [20, 25]
             ]
           },
           "expected": 2
@@ -3298,18 +2747,9 @@
         {
           "input": {
             "routes": [
-              [
-                1,
-                4
-              ],
-              [
-                2,
-                3
-              ],
-              [
-                3,
-                5
-              ]
+              [1, 4],
+              [2, 3],
+              [3, 5]
             ]
           },
           "expected": 2
@@ -3317,18 +2757,9 @@
         {
           "input": {
             "routes": [
-              [
-                0,
-                5
-              ],
-              [
-                5,
-                10
-              ],
-              [
-                10,
-                15
-              ]
+              [0, 5],
+              [5, 10],
+              [10, 15]
             ]
           },
           "expected": 1
@@ -3336,22 +2767,10 @@
         {
           "input": {
             "routes": [
-              [
-                2,
-                7
-              ],
-              [
-                1,
-                8
-              ],
-              [
-                3,
-                9
-              ],
-              [
-                10,
-                11
-              ]
+              [2, 7],
+              [1, 8],
+              [3, 9],
+              [10, 11]
             ]
           },
           "expected": 3
@@ -3359,22 +2778,10 @@
         {
           "input": {
             "routes": [
-              [
-                5,
-                6
-              ],
-              [
-                5,
-                6
-              ],
-              [
-                5,
-                6
-              ],
-              [
-                5,
-                6
-              ]
+              [5, 6],
+              [5, 6],
+              [5, 6],
+              [5, 6]
             ]
           },
           "expected": 4
@@ -3454,66 +2861,31 @@
       "testCases": [
         {
           "input": {
-            "heights": [
-              0,
-              1,
-              0,
-              2,
-              1,
-              0,
-              1,
-              3,
-              2,
-              1,
-              2,
-              1
-            ]
+            "heights": [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1]
           },
           "expected": 6
         },
         {
           "input": {
-            "heights": [
-              4,
-              2,
-              0,
-              3,
-              2,
-              5
-            ]
+            "heights": [4, 2, 0, 3, 2, 5]
           },
           "expected": 9
         },
         {
           "input": {
-            "heights": [
-              2,
-              2,
-              2
-            ]
+            "heights": [2, 2, 2]
           },
           "expected": 0
         },
         {
           "input": {
-            "heights": [
-              5,
-              4,
-              1,
-              2
-            ]
+            "heights": [5, 4, 1, 2]
           },
           "expected": 1
         },
         {
           "input": {
-            "heights": [
-              3,
-              0,
-              2,
-              0,
-              4
-            ]
+            "heights": [3, 0, 2, 0, 4]
           },
           "expected": 7
         }
@@ -3640,52 +3012,31 @@
       "testCases": [
         {
           "input": {
-            "grid": [
-              "S.#",
-              ".A.",
-              ".#A",
-              "..E"
-            ]
+            "grid": ["S.#", ".A.", ".#A", "..E"]
           },
           "expected": 3
         },
         {
           "input": {
-            "grid": [
-              "S#.",
-              "###",
-              ".#E"
-            ]
+            "grid": ["S#.", "###", ".#E"]
           },
           "expected": -1
         },
         {
           "input": {
-            "grid": [
-              "S.A",
-              ".#.",
-              "A.E"
-            ]
+            "grid": ["S.A", ".#.", "A.E"]
           },
           "expected": 4
         },
         {
           "input": {
-            "grid": [
-              "S..",
-              ".#E",
-              "..."
-            ]
+            "grid": ["S..", ".#E", "..."]
           },
           "expected": 3
         },
         {
           "input": {
-            "grid": [
-              "S.B",
-              "###",
-              "B.E"
-            ]
+            "grid": ["S.B", "###", "B.E"]
           },
           "expected": 4
         }
@@ -3702,108 +3053,49 @@
       "testCases": [
         {
           "input": {
-            "tasks": [
-              "A",
-              "B",
-              "C"
-            ],
-            "dependencies": [
-              [
-                "A",
-                "B"
-              ]
-            ]
+            "tasks": ["A", "B", "C"],
+            "dependencies": [["A", "B"]]
           },
           "expected": 3
         },
         {
           "input": {
-            "tasks": [
-              "A",
-              "B",
-              "C"
-            ],
+            "tasks": ["A", "B", "C"],
             "dependencies": [
-              [
-                "A",
-                "B"
-              ],
-              [
-                "A",
-                "C"
-              ]
+              ["A", "B"],
+              ["A", "C"]
             ]
           },
           "expected": 2
         },
         {
           "input": {
-            "tasks": [
-              "A",
-              "B",
-              "C",
-              "D"
-            ],
+            "tasks": ["A", "B", "C", "D"],
             "dependencies": [
-              [
-                "A",
-                "B"
-              ],
-              [
-                "C",
-                "D"
-              ]
+              ["A", "B"],
+              ["C", "D"]
             ]
           },
           "expected": 6
         },
         {
           "input": {
-            "tasks": [
-              "A",
-              "B",
-              "C",
-              "D"
-            ],
+            "tasks": ["A", "B", "C", "D"],
             "dependencies": [
-              [
-                "A",
-                "B"
-              ],
-              [
-                "B",
-                "C"
-              ],
-              [
-                "C",
-                "D"
-              ]
+              ["A", "B"],
+              ["B", "C"],
+              ["C", "D"]
             ]
           },
           "expected": 1
         },
         {
           "input": {
-            "tasks": [
-              "A",
-              "B",
-              "C",
-              "D",
-              "E"
-            ],
+            "tasks": ["A", "B", "C", "D", "E"],
             "dependencies": [
-              [
-                "A",
-                "C"
-              ],
-              [
-                "B",
-                "C"
-              ],
-              [
-                "C",
-                "D"
-              ]
+              ["A", "C"],
+              ["B", "C"],
+              ["C", "D"]
             ]
           },
           "expected": 10
@@ -3822,30 +3114,9 @@
         {
           "input": {
             "heightMap": [
-              [
-                1,
-                4,
-                3,
-                1,
-                3,
-                2
-              ],
-              [
-                3,
-                2,
-                1,
-                3,
-                2,
-                4
-              ],
-              [
-                2,
-                3,
-                3,
-                2,
-                3,
-                1
-              ]
+              [1, 4, 3, 1, 3, 2],
+              [3, 2, 1, 3, 2, 4],
+              [2, 3, 3, 2, 3, 1]
             ]
           },
           "expected": 4
@@ -3853,21 +3124,9 @@
         {
           "input": {
             "heightMap": [
-              [
-                3,
-                3,
-                3
-              ],
-              [
-                3,
-                3,
-                3
-              ],
-              [
-                3,
-                3,
-                3
-              ]
+              [3, 3, 3],
+              [3, 3, 3],
+              [3, 3, 3]
             ]
           },
           "expected": 0
@@ -3875,30 +3134,10 @@
         {
           "input": {
             "heightMap": [
-              [
-                5,
-                5,
-                5,
-                5
-              ],
-              [
-                5,
-                1,
-                1,
-                5
-              ],
-              [
-                5,
-                1,
-                1,
-                5
-              ],
-              [
-                5,
-                5,
-                5,
-                5
-              ]
+              [5, 5, 5, 5],
+              [5, 1, 1, 5],
+              [5, 1, 1, 5],
+              [5, 5, 5, 5]
             ]
           },
           "expected": 16
@@ -3906,30 +3145,10 @@
         {
           "input": {
             "heightMap": [
-              [
-                5,
-                3,
-                5,
-                5
-              ],
-              [
-                5,
-                1,
-                2,
-                5
-              ],
-              [
-                5,
-                2,
-                1,
-                5
-              ],
-              [
-                5,
-                5,
-                5,
-                5
-              ]
+              [5, 3, 5, 5],
+              [5, 1, 2, 5],
+              [5, 2, 1, 5],
+              [5, 5, 5, 5]
             ]
           },
           "expected": 6
@@ -3937,27 +3156,9 @@
         {
           "input": {
             "heightMap": [
-              [
-                2,
-                2,
-                2,
-                2,
-                2
-              ],
-              [
-                2,
-                1,
-                2,
-                1,
-                2
-              ],
-              [
-                2,
-                2,
-                2,
-                2,
-                2
-              ]
+              [2, 2, 2, 2, 2],
+              [2, 1, 2, 1, 2],
+              [2, 2, 2, 2, 2]
             ]
           },
           "expected": 2
@@ -4070,52 +3271,31 @@
       "testCases": [
         {
           "input": {
-            "fragments": [
-              "error",
-              "rrlog",
-              "logfile"
-            ]
+            "fragments": ["error", "rrlog", "logfile"]
           },
           "expected": "errorrlogfile"
         },
         {
           "input": {
-            "fragments": [
-              "abc",
-              "bcd",
-              "cde"
-            ]
+            "fragments": ["abc", "bcd", "cde"]
           },
           "expected": "abcde"
         },
         {
           "input": {
-            "fragments": [
-              "ping",
-              "ingest",
-              "gestor"
-            ]
+            "fragments": ["ping", "ingest", "gestor"]
           },
           "expected": "pingestor"
         },
         {
           "input": {
-            "fragments": [
-              "aa",
-              "aab",
-              "ab"
-            ]
+            "fragments": ["aa", "aab", "ab"]
           },
           "expected": "aab"
         },
         {
           "input": {
-            "fragments": [
-              "cat",
-              "tiger",
-              "gerbil",
-              "at"
-            ]
+            "fragments": ["cat", "tiger", "gerbil", "at"]
           },
           "expected": "catigerbil"
         }
@@ -4285,26 +3465,10 @@
           "input": {
             "n": 4,
             "edges": [
-              [
-                0,
-                1,
-                5
-              ],
-              [
-                1,
-                3,
-                5
-              ],
-              [
-                0,
-                2,
-                10
-              ],
-              [
-                2,
-                3,
-                1
-              ]
+              [0, 1, 5],
+              [1, 3, 5],
+              [0, 2, 10],
+              [2, 3, 1]
             ],
             "k": 1,
             "start": 0,
@@ -4316,21 +3480,9 @@
           "input": {
             "n": 3,
             "edges": [
-              [
-                0,
-                1,
-                4
-              ],
-              [
-                1,
-                2,
-                4
-              ],
-              [
-                0,
-                2,
-                9
-              ]
+              [0, 1, 4],
+              [1, 2, 4],
+              [0, 2, 9]
             ],
             "k": 0,
             "start": 0,
@@ -4342,36 +3494,12 @@
           "input": {
             "n": 5,
             "edges": [
-              [
-                0,
-                1,
-                3
-              ],
-              [
-                1,
-                2,
-                3
-              ],
-              [
-                2,
-                4,
-                3
-              ],
-              [
-                0,
-                3,
-                8
-              ],
-              [
-                3,
-                4,
-                1
-              ],
-              [
-                1,
-                3,
-                2
-              ]
+              [0, 1, 3],
+              [1, 2, 3],
+              [2, 4, 3],
+              [0, 3, 8],
+              [3, 4, 1],
+              [1, 3, 2]
             ],
             "k": 2,
             "start": 0,
@@ -4383,26 +3511,10 @@
           "input": {
             "n": 4,
             "edges": [
-              [
-                0,
-                1,
-                7
-              ],
-              [
-                1,
-                2,
-                7
-              ],
-              [
-                2,
-                3,
-                7
-              ],
-              [
-                0,
-                3,
-                30
-              ]
+              [0, 1, 7],
+              [1, 2, 7],
+              [2, 3, 7],
+              [0, 3, 30]
             ],
             "k": 1,
             "start": 0,
@@ -4414,26 +3526,10 @@
           "input": {
             "n": 4,
             "edges": [
-              [
-                0,
-                1,
-                1
-              ],
-              [
-                1,
-                2,
-                1
-              ],
-              [
-                2,
-                3,
-                1
-              ],
-              [
-                0,
-                3,
-                5
-              ]
+              [0, 1, 1],
+              [1, 2, 1],
+              [2, 3, 1],
+              [0, 3, 5]
             ],
             "k": 2,
             "start": 0,

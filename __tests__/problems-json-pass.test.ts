@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getQuickJS, type QuickJSWASMModule } from "quickjs-emscripten";
 import fs from "node:fs";
+import { normalizeTestCasesWithArgs } from "../src/lib/testcaseArgs";
 
 type TestCase = {
   input: Record<string, unknown>;
@@ -9,6 +10,7 @@ type TestCase = {
 
 type Problem = {
   id: string;
+  signature: string;
   solution: string;
   testCases: TestCase[];
 };
@@ -56,9 +58,7 @@ describe("problems.json reference solutions", () => {
     for (const problem of parsed.problems) {
       const vm = qjs.newContext();
       try {
-        const setup = vm.evalCode(
-          `globalThis.console={log(){},warn(){},error(){},info(){}};`,
-        );
+        const setup = vm.evalCode(`globalThis.console={log(){},warn(){},error(){},info(){}};`);
         if ("error" in setup) {
           setup.error.dispose();
           failures.push({ id: problem.id, reason: "setup failed" });
@@ -72,8 +72,11 @@ describe("problems.json reference solutions", () => {
         }
 
         let passedAll = true;
-        for (const testCase of problem.testCases) {
-          const args = JSON.stringify(Object.values(testCase.input));
+        const normalizedCases = normalizeTestCasesWithArgs(problem.signature, problem.testCases);
+        for (const testCase of normalizedCases) {
+          const args = JSON.stringify(
+            Array.isArray(testCase.args) ? testCase.args : Object.values(testCase.input),
+          );
           const expected = JSON.stringify(testCase.expected);
           const result = vm.evalCode(
             `JSON.stringify(__fn__(...${args})) === ${JSON.stringify(expected)};`,
@@ -102,4 +105,3 @@ describe("problems.json reference solutions", () => {
     expect(failures).toEqual([]);
   });
 });
-

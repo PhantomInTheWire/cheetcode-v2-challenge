@@ -17,7 +17,7 @@ __attribute__((visibility("default"))) void cpu_reset(void) {
 }
 
 __attribute__((visibility("default"))) void cpu_load_word(int addr, int word) {
-  if (addr < 0) return;
+  if (addr < 0 || addr > 65534) return;
   unsigned short a = (unsigned short)addr;
   unsigned short w = (unsigned short)word;
   ((unsigned char*)mem)[a] = (unsigned char)(w & 0xFF);
@@ -44,7 +44,7 @@ __attribute__((visibility("default"))) int cpu_get_flag_z(void) { return flag_z;
 __attribute__((visibility("default"))) int cpu_get_flag_n(void) { return flag_n; }
 __attribute__((visibility("default"))) int cpu_get_flag_v(void) { return flag_v; }
 __attribute__((visibility("default"))) int cpu_mem_read16(int addr) {
-  if (addr < 0) return 0;
+  if (addr < 0 || addr > 65534) return 0;
   unsigned short a = (unsigned short)addr;
   unsigned short lo = (unsigned short)((unsigned char*)mem)[a];
   unsigned short hi = (unsigned short)((unsigned char*)mem)[(unsigned short)(a + 1)];

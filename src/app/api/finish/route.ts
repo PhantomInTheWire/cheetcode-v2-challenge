@@ -6,14 +6,17 @@ import { PROBLEM_BANK } from "../../../../server/problems";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { validateCode } from "../../../lib/validation";
 import {
-  detectExploits, totalExploitBonus,
-  detectLandmines, totalLandminePenalty,
+  detectExploits,
+  totalExploitBonus,
+  detectLandmines,
+  totalLandminePenalty,
   INJECTION_ECHO_HEADER,
 } from "../../../lib/scoring";
 import { ROUND_DURATION_MS } from "../../../lib/constants";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import { evalWithDeadline } from "../../../lib/quickjsTimeout";
 import { SHADOW_BAN_HEADER } from "../../../lib/abuse-guard";
+import { resolveSubmittedFunction } from "../../../lib/quickjsResolve";
 
 /**
  * POST /api/finish
@@ -58,41 +61,6 @@ async function getQJS(): Promise<QuickJSWASMModule> {
   return _qjs;
 }
 
-function resolveSubmittedFunction(vm: ReturnType<QuickJSWASMModule["newContext"]>, code: string): boolean {
-  const expressionAttempt = evalWithDeadline(
-    vm,
-    `const __fn__ = (${code}); typeof __fn__ === "function";`,
-    QUICKJS_SETUP_TIMEOUT_MS,
-  );
-  if (!("error" in expressionAttempt)) {
-    const ok = vm.dump(expressionAttempt.value) === true;
-    expressionAttempt.value.dispose();
-    if (ok) return true;
-  } else {
-    expressionAttempt.error.dispose();
-  }
-
-  const nameMatch = code.match(
-    /\bfunction\s+([A-Za-z_$][\w$]*)\s*\(|\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=/,
-  );
-  const symbol = (nameMatch?.[1] || nameMatch?.[2] || "").trim();
-  if (!symbol) return false;
-
-  const scriptAttempt = evalWithDeadline(
-    vm,
-    `${code}\n;globalThis.__fn__ = (typeof ${symbol} === "function") ? ${symbol} : undefined;\n` +
-      `typeof globalThis.__fn__ === "function";`,
-    QUICKJS_SETUP_TIMEOUT_MS,
-  );
-  if ("error" in scriptAttempt) {
-    scriptAttempt.error.dispose();
-    return false;
-  }
-  const ok = vm.dump(scriptAttempt.value) === true;
-  scriptAttempt.value.dispose();
-  return ok;
-}
-
 /**
  * Validate all test cases for one problem in a single VM context.
  * One VM per problem — fast, isolated, no cross-problem state leaks.
@@ -109,13 +77,17 @@ function validateSubmission(
     const setup = evalWithDeadline(
       vm,
       `globalThis.console={log(){},warn(){},error(){},info(){}};` +
-      `globalThis.__FIRECRAWL__="${FLAG}";`,
+        `globalThis.__FIRECRAWL__="${FLAG}";`,
       QUICKJS_SETUP_TIMEOUT_MS,
     );
-    if ("error" in setup) { setup.error.dispose(); return false; }
+    if ("error" in setup) {
+      setup.error.dispose();
+      return false;
+    }
     setup.value.dispose();
 
-    if (!resolveSubmittedFunction(vm, code)) return false;
+    if (!resolveSubmittedFunction(vm, code, QUICKJS_SETUP_TIMEOUT_MS, evalWithDeadline))
+      return false;
 
     // Run each test case against the already-defined function
     for (const tc of testCases) {
@@ -131,7 +103,10 @@ function validateSubmission(
       const testScript = `JSON.stringify(__fn__(...${args})) === ${JSON.stringify(expected)};`;
 
       const result = evalWithDeadline(vm, testScript, QUICKJS_TEST_TIMEOUT_MS);
-      if ("error" in result) { result.error.dispose(); return false; }
+      if ("error" in result) {
+        result.error.dispose();
+        return false;
+      }
       const passed = vm.dump(result.value) === true;
       result.value.dispose();
       if (!passed) return false;
@@ -250,7 +225,15 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("/api/finish error:", err);
     return NextResponse.json(
-      { error: "submission failed", elo: 0, solved: 0, rank: 0, timeRemaining: 0, exploits: [], landmines: [] },
+      {
+        error: "submission failed",
+        elo: 0,
+        solved: 0,
+        rank: 0,
+        timeRemaining: 0,
+        exploits: [],
+        landmines: [],
+      },
       { status: 500 },
     );
   }

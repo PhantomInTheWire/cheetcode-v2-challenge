@@ -22,16 +22,34 @@ type AbuseDecision = {
 };
 
 export const SHADOW_BAN_HEADER = "x-ctf-shadow-banned";
+export const TRUSTED_FINGERPRINT_HEADER = "x-ctf-fingerprint";
 
 const DEFAULT_IDENTITY = "anon";
 const SHADOW_BAN_DURATION_MS = 24 * 60 * 60 * 1000;
+const MAX_KEYS = 20_000;
+const SWEEP_INTERVAL_MS = 60_000;
 
 const routeConfigs: Record<AbuseRoute, RouteConfig> = {
   session: { windowMs: 60_000, maxHits: 8, shadowWindowMs: 10 * 60_000, shadowThreshold: 40 },
   validate: { windowMs: 60_000, maxHits: 150, shadowWindowMs: 10 * 60_000, shadowThreshold: 900 },
-  "validate-batch": { windowMs: 60_000, maxHits: 80, shadowWindowMs: 10 * 60_000, shadowThreshold: 450 },
-  "validate-l2": { windowMs: 60_000, maxHits: 120, shadowWindowMs: 10 * 60_000, shadowThreshold: 700 },
-  "validate-l3": { windowMs: 60_000, maxHits: 60, shadowWindowMs: 10 * 60_000, shadowThreshold: 300 },
+  "validate-batch": {
+    windowMs: 60_000,
+    maxHits: 80,
+    shadowWindowMs: 10 * 60_000,
+    shadowThreshold: 450,
+  },
+  "validate-l2": {
+    windowMs: 60_000,
+    maxHits: 120,
+    shadowWindowMs: 10 * 60_000,
+    shadowThreshold: 700,
+  },
+  "validate-l3": {
+    windowMs: 60_000,
+    maxHits: 60,
+    shadowWindowMs: 10 * 60_000,
+    shadowThreshold: 300,
+  },
   finish: { windowMs: 60_000, maxHits: 20, shadowWindowMs: 10 * 60_000, shadowThreshold: 80 },
   "finish-l2": { windowMs: 60_000, maxHits: 20, shadowWindowMs: 10 * 60_000, shadowThreshold: 80 },
   "finish-l3": { windowMs: 60_000, maxHits: 20, shadowWindowMs: 10 * 60_000, shadowThreshold: 80 },
@@ -50,6 +68,7 @@ export const API_ROUTE_TO_ABUSE_ROUTE: Record<string, AbuseRoute> = {
 
 const eventsByKey = new Map<string, number[]>();
 const shadowBans = new Map<string, number>();
+let lastSweepAt = 0;
 
 function hashIdentity(raw: string): string {
   // Edge-safe non-cryptographic hash (FNV-1a variant) for key anonymization.
@@ -80,7 +99,7 @@ function extractIpAddress(request: Request): string {
 
 function getIdentityKeys(request: Request): string[] {
   const ip = extractIpAddress(request);
-  const fingerprint = request.headers.get("x-client-fingerprint")?.trim() || DEFAULT_IDENTITY;
+  const fingerprint = request.headers.get(TRUSTED_FINGERPRINT_HEADER)?.trim() || DEFAULT_IDENTITY;
 
   const keys = new Set<string>();
   keys.add(`ip:${hashIdentity(ip)}`);
@@ -88,6 +107,34 @@ function getIdentityKeys(request: Request): string[] {
     keys.add(`fp:${hashIdentity(fingerprint)}`);
   }
   return [...keys];
+}
+
+function sweepExpired(now: number): void {
+  if (now - lastSweepAt < SWEEP_INTERVAL_MS) return;
+  lastSweepAt = now;
+
+  for (const [key, events] of eventsByKey) {
+    const pruned = prune(events, now - 10 * 60_000);
+    if (pruned.length === 0) {
+      eventsByKey.delete(key);
+    } else if (pruned !== events) {
+      eventsByKey.set(key, pruned);
+    }
+  }
+
+  for (const [key, expiresAt] of shadowBans) {
+    if (expiresAt <= now) shadowBans.delete(key);
+  }
+
+  if (eventsByKey.size > MAX_KEYS) {
+    const overflow = eventsByKey.size - MAX_KEYS;
+    let removed = 0;
+    for (const key of eventsByKey.keys()) {
+      eventsByKey.delete(key);
+      removed++;
+      if (removed >= overflow) break;
+    }
+  }
 }
 
 function prune(events: number[], cutoff: number): number[] {
@@ -103,6 +150,7 @@ export function checkAndTrackAbuse(request: Request, route: AbuseRoute): AbuseDe
 
   const config = routeConfigs[route];
   const now = Date.now();
+  sweepExpired(now);
   const keys = getIdentityKeys(request);
 
   let shadowBanned = false;
@@ -137,7 +185,7 @@ export function checkAndTrackAbuse(request: Request, route: AbuseRoute): AbuseDe
   }
 
   const overflow = Math.max(0, maxObservedHits - config.maxHits);
-  const retryAfterSeconds = Math.min(60, Math.max(1, overflow));
+  const retryAfterSeconds = limited ? Math.min(60, Math.max(1, overflow)) : 0;
 
   return {
     limited,

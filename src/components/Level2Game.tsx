@@ -17,10 +17,21 @@ type Level2GameProps = {
   github: string;
   problems: Level2Problem[];
   expiresAt: number;
-  onFinishAction: (results: { elo: number; solved: number; rank: number; timeRemaining: number }) => void;
+  onFinishAction: (results: {
+    elo: number;
+    solved: number;
+    rank: number;
+    timeRemaining: number;
+  }) => void;
 };
 
-export function Level2Game({ sessionId, github, problems, expiresAt, onFinishAction }: Level2GameProps) {
+export function Level2Game({
+  sessionId,
+  github,
+  problems,
+  expiresAt,
+  onFinishAction,
+}: Level2GameProps) {
   const canAutoSolve = isClientDevMode();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [now, setNow] = useState(Date.now());
@@ -42,7 +53,7 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinishAct
   const progress = Math.max(0, Math.min(100, (timeLeftMs / ROUND_DURATION_L2_MS) * 100));
   const solvedLocal = useMemo(
     () => Object.values(localCorrect).filter((v) => v === true).length,
-    [localCorrect]
+    [localCorrect],
   );
   const timeUp = timeLeftMs === 0;
 
@@ -61,10 +72,10 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinishAct
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ answers }),
       });
-      
+
       if (!validateRes.ok) throw new Error(`validation failed: ${validateRes.status}`);
       const validateData = await validateRes.json();
-      
+
       // Count correct answers
       const correctIds = validateData.results
         .filter((r: { correct: boolean }) => r.correct)
@@ -81,7 +92,7 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinishAct
           solvedProblemIds: correctIds,
         }),
       });
-      
+
       if (!finishRes.ok) {
         const errorData = await finishRes.json().catch(() => ({}));
         throw new Error(errorData.error || `finish failed: ${finishRes.status}`);
@@ -104,7 +115,7 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinishAct
   async function checkAnswer(problemId: string) {
     const answer = answers[problemId] || "";
     if (!answer.trim()) return;
-    
+
     setLocalCorrect((cur) => ({ ...cur, [problemId]: null }));
     try {
       const res = await clientFetch("/api/validate-l2", {
@@ -112,8 +123,14 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinishAct
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ answers: { [problemId]: answer } }),
       });
+      if (!res.ok) {
+        setLocalCorrect((cur) => ({ ...cur, [problemId]: false }));
+        return;
+      }
       const data = await res.json();
-      const isCorrect = data.results.find((r: { problemId: string; correct: boolean }) => r.problemId === problemId)?.correct || false;
+      const isCorrect =
+        data.results.find((r: { problemId: string; correct: boolean }) => r.problemId === problemId)
+          ?.correct || false;
       setLocalCorrect((cur) => ({ ...cur, [problemId]: isCorrect }));
     } catch {
       setLocalCorrect((cur) => ({ ...cur, [problemId]: false }));
@@ -209,16 +226,38 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinishAct
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           {/* Solved */}
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(0,0,0,0.35)", textTransform: "uppercase" }}>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                color: "rgba(0,0,0,0.35)",
+                textTransform: "uppercase",
+              }}
+            >
               Solved
             </span>
-            <span style={{ fontSize: 16, fontWeight: 800, color: solvedLocal === 10 ? "#1a9338" : "#262626" }}>
-              {solvedLocal}<span style={{ color: "rgba(0,0,0,0.25)" }}>/10</span>
+            <span
+              style={{
+                fontSize: 16,
+                fontWeight: 800,
+                color: solvedLocal === 10 ? "#1a9338" : "#262626",
+              }}
+            >
+              {solvedLocal}
+              <span style={{ color: "rgba(0,0,0,0.25)" }}>/10</span>
             </span>
           </div>
           {/* Timer */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 140, height: 5, background: "#e5e5e5", borderRadius: 4, overflow: "hidden" }}>
+            <div
+              style={{
+                width: 140,
+                height: 5,
+                background: "#e5e5e5",
+                borderRadius: 4,
+                overflow: "hidden",
+              }}
+            >
               <div
                 style={{
                   width: `${progress}%`,
@@ -237,7 +276,9 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinishAct
                 minWidth: 48,
                 textAlign: "right",
                 transition: "color 500ms",
-                ...(secondsLeft <= 10 ? { animation: "timer-pulse 0.6s ease-in-out infinite" } : {}),
+                ...(secondsLeft <= 10
+                  ? { animation: "timer-pulse 0.6s ease-in-out infinite" }
+                  : {}),
               }}
             >
               {timeUp ? "TIME" : `0:${String(secondsLeft).padStart(2, "0")}`}
@@ -294,7 +335,8 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinishAct
 
           {problems.map((problem, idx) => {
             const status = localCorrect[problem.id];
-            const borderColor = status === true ? "#22c55e" : status === false ? "#ef4444" : "#e5e5e5";
+            const borderColor =
+              status === true ? "#22c55e" : status === false ? "#ef4444" : "#e5e5e5";
             const bgColor = status === true ? "#f0fdf4" : status === false ? "#fef2f2" : "#ffffff";
 
             return (
@@ -321,7 +363,14 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinishAct
                     #{idx + 1}
                   </span>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, color: "#262626", margin: "0 0 12px", lineHeight: 1.5 }}>
+                    <p
+                      style={{
+                        fontSize: 13,
+                        color: "#262626",
+                        margin: "0 0 12px",
+                        lineHeight: 1.5,
+                      }}
+                    >
                       {problem.question}
                     </p>
                     <div style={{ display: "flex", gap: 8 }}>
@@ -436,9 +485,7 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinishAct
             )}
             {submitError && (
               <div style={{ marginTop: 20 }}>
-                <p style={{ fontSize: 14, color: "#dc2626", margin: "0 0 12px" }}>
-                  {submitError}
-                </p>
+                <p style={{ fontSize: 14, color: "#dc2626", margin: "0 0 12px" }}>{submitError}</p>
                 <button
                   onClick={() => setSubmitError(null)}
                   style={{

@@ -26,9 +26,7 @@ export const recordResultsInternal = internalMutation({
     }
 
     const sessionProblemSet = new Set(session.problemIds);
-    const validSolvedIds = args.solvedProblemIds.filter((id) =>
-      sessionProblemSet.has(id),
-    );
+    const validSolvedIds = args.solvedProblemIds.filter((id) => sessionProblemSet.has(id));
 
     const cappedExploitBonus = Math.max(
       -EXPLOIT_BONUS_CAP,
@@ -41,13 +39,10 @@ export const recordResultsInternal = internalMutation({
     const clampedTime = Math.max(0, Math.min(maxTime, args.timeElapsedMs));
 
     const solvedCount = validSolvedIds.length;
-    const timeRemainingSecs = Math.max(
-      0,
-      Math.floor((maxTime - clampedTime) / 1000),
-    );
+    const timeRemainingSecs = Math.max(0, Math.floor((maxTime - clampedTime) / 1000));
 
     let elo = 0;
-    
+
     if (level === 1) {
       const solvedSet = new Set(validSolvedIds);
       const difficultyBonus = getDifficultyBonus(
@@ -87,9 +82,8 @@ export const recordResultsInternal = internalMutation({
     let currentL1Elo = existing?.level1BestElo ?? 0;
     let currentL2Solved = existing?.level2BestSolved ?? 0;
     let currentL2Elo = existing?.level2BestElo ?? 0;
-    const existingAny = existing as Record<string, unknown> | null;
-    let currentL3Solved = (existingAny?.level3BestSolved as number | undefined) ?? 0;
-    let currentL3Elo = (existingAny?.level3BestElo as number | undefined) ?? 0;
+    let currentL3Solved = existing?.level3BestSolved ?? 0;
+    let currentL3Elo = existing?.level3BestElo ?? 0;
     let unlockedLevel = existing?.unlockedLevel ?? 1;
 
     let shouldUpdateBests = false;
@@ -101,7 +95,7 @@ export const recordResultsInternal = internalMutation({
         shouldUpdateBests = true;
       }
       if (solvedCount === 25) {
-        unlockedLevel = 2;
+        unlockedLevel = Math.max(unlockedLevel, 2);
         shouldUpdateBests = true;
       }
     } else if (level === 2) {
@@ -165,7 +159,7 @@ export const recordResultsInternal = internalMutation({
           level3BestElo: currentL3Elo,
         });
       } else if (unlockedLevel > (existing.unlockedLevel ?? 1)) {
-         updates.unlockedLevel = unlockedLevel;
+        updates.unlockedLevel = unlockedLevel;
       }
 
       if (Object.keys(updates).length > 0) {
@@ -173,11 +167,7 @@ export const recordResultsInternal = internalMutation({
       }
     }
 
-    const top = await ctx.db
-      .query("leaderboard")
-      .withIndex("by_elo")
-      .order("desc")
-      .take(100);
+    const top = await ctx.db.query("leaderboard").withIndex("by_elo").order("desc").take(100);
     const sorted = sortByEloAndAttempts(top);
     const userAttempts = (existing?.attempts ?? 0) + 1;
     // calculateRank needs to check the totalElo against sorted list
@@ -204,11 +194,13 @@ export const recordResults = action({
     if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
       throw new Error("unauthorized");
     }
-    const { secret: _, ...mutationArgs } = args;
-    return await ctx.runMutation(
-      internal.submissions.recordResultsInternal,
-      mutationArgs,
-    );
+    return await ctx.runMutation(internal.submissions.recordResultsInternal, {
+      sessionId: args.sessionId,
+      github: args.github,
+      solvedProblemIds: args.solvedProblemIds,
+      timeElapsedMs: args.timeElapsedMs,
+      exploitBonus: args.exploitBonus,
+    });
   },
 });
 

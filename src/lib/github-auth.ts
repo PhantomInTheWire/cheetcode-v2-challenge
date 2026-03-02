@@ -44,9 +44,7 @@ async function verifyGitHubToken(token: string): Promise<string | null> {
  * Extract the GitHub username from a request.
  * Checks Authorization header (PAT) first, returns null if not present/invalid.
  */
-export async function resolveGitHubFromHeader(
-  request: Request,
-): Promise<string | null> {
+export async function resolveGitHubFromHeader(request: Request): Promise<string | null> {
   const authHeader = request.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.slice(7).trim();
