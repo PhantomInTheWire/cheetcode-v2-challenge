@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getQuickJS, type QuickJSWASMModule } from "quickjs-emscripten";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import { PROBLEM_BANK } from "../../../../server/problems";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -18,6 +17,8 @@ import { evalWithDeadline } from "../../../lib/quickjsTimeout";
 import { SHADOW_BAN_HEADER } from "../../../lib/abuse-guard";
 import { resolveSubmittedFunction } from "../../../lib/quickjsResolve";
 import { buildArgs } from "../../../lib/testcase-args";
+import { requireOwnedSession } from "../../../lib/session-auth";
+import { clampElapsed, getJsonBody, shadowBanResponse } from "../../../lib/api-route";
 
 /**
  * POST /api/finish
@@ -116,7 +117,10 @@ function validateSubmission(
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as RequestBody;
+    const body = await getJsonBody<RequestBody>(request);
+    if (!body) {
+      return NextResponse.json({ error: "invalid request" }, { status: 400 });
+    }
     const { sessionId, submissions, timeElapsed } = body;
 
     if (!sessionId || !Array.isArray(submissions) || typeof timeElapsed !== "number") {
@@ -128,16 +132,9 @@ export async function POST(request: Request) {
     const github = authResult.github;
 
     // Fetch session to get the assigned problem IDs
-    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-    const session = await convex.query(api.submissions.getSession, {
-      sessionId: sessionId as Id<"sessions">,
-    });
-    if (!session) {
-      return NextResponse.json({ error: "session not found" }, { status: 404 });
-    }
-    if (session.github !== github) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
+    const sessionResult = await requireOwnedSession(sessionId, github);
+    if ("response" in sessionResult) return sessionResult.response;
+    const { session, convex } = sessionResult;
     const sessionProblemIds = new Set(session.problemIds);
 
     // Load QuickJS WASM once, reuse for all problems
@@ -173,7 +170,7 @@ export async function POST(request: Request) {
       hasHackHeader,
       extraSubmissions,
     });
-    const clientElapsedMs = Math.max(0, Math.min(ROUND_DURATION_MS, timeElapsed));
+    const clientElapsedMs = clampElapsed(timeElapsed, ROUND_DURATION_MS);
     const exploitBonus = totalExploitBonus(exploits);
 
     // Detect landmines — penalize unsafe agent behavior
@@ -191,11 +188,7 @@ export async function POST(request: Request) {
     const scoreModifier = exploitBonus + landminePenalty;
 
     if (request.headers.get(SHADOW_BAN_HEADER) === "1") {
-      return NextResponse.json({
-        elo: 0,
-        solved: 0,
-        rank: 9999,
-        timeRemaining: Math.max(0, Math.floor((ROUND_DURATION_MS - clampedTimeElapsedMs) / 1000)),
+      return shadowBanResponse(ROUND_DURATION_MS, clampedTimeElapsedMs, {
         exploits: exploits.map((e) => ({ id: e.id, bonus: e.bonus, message: e.message })),
         landmines: landmines.map((l) => ({ id: l.id, penalty: l.penalty, message: l.message })),
       });

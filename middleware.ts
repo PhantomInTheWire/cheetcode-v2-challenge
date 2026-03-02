@@ -50,6 +50,7 @@ export async function middleware(request: NextRequest) {
   const fingerprint = fingerprintCookie || normalizedClientFingerprint || crypto.randomUUID();
 
   const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete(SHADOW_BAN_HEADER);
   requestHeaders.set(TRUSTED_FINGERPRINT_HEADER, fingerprint);
 
   const kvAbuse = await checkAndTrackAbuseInKv(

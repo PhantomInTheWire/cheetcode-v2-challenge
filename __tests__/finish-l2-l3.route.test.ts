@@ -79,6 +79,31 @@ describe("finish l2/l3 routes", () => {
     expect(actionCall?.solvedProblemIds).toEqual(["l2_1"]);
   });
 
+  it("/api/finish-l2 rejects non-level-2 sessions", async () => {
+    const { POST } = await import("../src/app/api/finish-l2/route");
+    hoisted.queryMock.mockResolvedValueOnce({
+      github: "tester",
+      level: 1,
+      startedAt: 1_000,
+      expiresAt: 61_000,
+      problemIds: ["easy:two-sum"],
+    });
+
+    const req = new Request("http://localhost/api/finish-l2", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        sessionId: "s1",
+        answers: { l2_1: "kOperationAborted" },
+        timeElapsed: 3000,
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    expect(hoisted.actionMock).not.toHaveBeenCalled();
+  });
+
   it("/api/finish-l3 validates and records all 20 solved checks for full L3 scoring input", async () => {
     const { POST } = await import("../src/app/api/finish-l3/route");
     const req = new Request("http://localhost/api/finish-l3", {

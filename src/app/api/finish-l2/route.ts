@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import { SHADOW_BAN_HEADER } from "../../../lib/abuse-guard";
 import { validateLevel2Answers } from "../../../lib/level2-validation";
+import { requireOwnedSession } from "../../../lib/session-auth";
+import { clampElapsed, getJsonBody, shadowBanResponse } from "../../../lib/api-route";
 
 /**
  * POST /api/finish-l2
@@ -21,7 +22,10 @@ type RequestBody = {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as RequestBody;
+    const body = await getJsonBody<RequestBody>(request);
+    if (!body) {
+      return NextResponse.json({ error: "invalid request" }, { status: 400 });
+    }
     const { sessionId, answers, timeElapsed } = body;
 
     if (!sessionId || !answers || typeof answers !== "object" || typeof timeElapsed !== "number") {
@@ -32,34 +36,13 @@ export async function POST(request: Request) {
     if ("response" in authResult) return authResult.response;
     const github = authResult.github;
 
-    // Fetch session to validate
-    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-    const session = await convex.query(api.submissions.getSession, {
-      sessionId: sessionId as Id<"sessions">,
-    });
-    if (!session) {
-      return NextResponse.json({ error: "session not found" }, { status: 404 });
-    }
-
-    // Security: Verify session ownership
-    if (session.github !== github) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-    const clientElapsedMs = Math.max(
-      0,
-      Math.min(session.expiresAt - session.startedAt, timeElapsed),
-    );
+    const sessionResult = await requireOwnedSession(sessionId, github, 2);
+    if ("response" in sessionResult) return sessionResult.response;
+    const { session, convex } = sessionResult;
+    const clientElapsedMs = clampElapsed(timeElapsed, session.expiresAt - session.startedAt);
 
     if (request.headers.get(SHADOW_BAN_HEADER) === "1") {
-      return NextResponse.json({
-        elo: 0,
-        solved: 0,
-        rank: 9999,
-        timeRemaining: Math.max(
-          0,
-          Math.floor((session.expiresAt - session.startedAt - clientElapsedMs) / 1000),
-        ),
-      });
+      return shadowBanResponse(session.expiresAt - session.startedAt, clientElapsedMs);
     }
 
     const validated = validateLevel2Answers(answers);
