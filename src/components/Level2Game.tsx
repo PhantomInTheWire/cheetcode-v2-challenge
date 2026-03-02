@@ -39,6 +39,7 @@ export function Level2Game({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [localCorrect, setLocalCorrect] = useState<Record<string, boolean | null>>({});
   const lockedTimeElapsedMsRef = useRef<number | null>(null);
+  const autoSubmittedRef = useRef(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 100);
@@ -46,6 +47,7 @@ export function Level2Game({
   }, []);
   useEffect(() => {
     lockedTimeElapsedMsRef.current = null;
+    autoSubmittedRef.current = false;
   }, [sessionId]);
 
   const timeLeftMs = useMemo(() => Math.max(0, expiresAt - now), [expiresAt, now]);
@@ -94,7 +96,10 @@ export function Level2Game({
 
   // Auto-submit when timer expires
   useEffect(() => {
-    if (timeUp) void finishGame();
+    if (timeUp && !autoSubmittedRef.current) {
+      autoSubmittedRef.current = true;
+      void finishGame();
+    }
   }, [timeUp, finishGame]);
 
   async function checkAnswer(problemId: string) {

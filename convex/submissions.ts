@@ -26,7 +26,8 @@ export const recordResultsInternal = internalMutation({
     }
 
     const sessionProblemSet = new Set(session.problemIds);
-    const validSolvedIds = args.solvedProblemIds.filter((id) => sessionProblemSet.has(id));
+    const uniqueSolvedIds = new Set(args.solvedProblemIds);
+    const validSolvedIds = [...uniqueSolvedIds].filter((id) => sessionProblemSet.has(id));
 
     const cappedExploitBonus = Math.max(
       -EXPLOIT_BONUS_CAP,

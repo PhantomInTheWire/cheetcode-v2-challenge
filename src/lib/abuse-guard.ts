@@ -1,3 +1,5 @@
+import { isIP } from "is-ip";
+
 export type AbuseRoute =
   | "session"
   | "validate"
@@ -90,14 +92,52 @@ function hashIdentity(raw: string): string {
   return `${a}${b}`;
 }
 
+function normalizeIpCandidate(raw: string): string | null {
+  const trimmed = raw.trim().replace(/^"|"$/g, "");
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith("[") && trimmed.includes("]")) {
+    const end = trimmed.indexOf("]");
+    return trimmed.slice(1, end);
+  }
+
+  const maybeIpv4Port = trimmed.match(/^(\d{1,3}(?:\.\d{1,3}){3}):\d+$/);
+  if (maybeIpv4Port?.[1]) return maybeIpv4Port[1];
+
+  return trimmed;
+}
+
+function pickValidIp(candidates: string[]): string | null {
+  for (const candidate of candidates) {
+    const normalized = normalizeIpCandidate(candidate);
+    if (!normalized) continue;
+    if (isIP(normalized)) {
+      return normalized;
+    }
+  }
+  return null;
+}
+
 function extractIpAddress(request: Request): string {
   const xff = request.headers.get("x-forwarded-for");
   if (xff) {
-    const first = xff.split(",")[0]?.trim();
-    if (first) return first;
+    const chain = xff
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const trustedIp = pickValidIp([...chain].reverse());
+    if (trustedIp) return trustedIp;
+  }
+  const cfIp = request.headers.get("cf-connecting-ip")?.trim();
+  if (cfIp) {
+    const trustedIp = pickValidIp([cfIp]);
+    if (trustedIp) return trustedIp;
   }
   const realIp = request.headers.get("x-real-ip")?.trim();
-  if (realIp) return realIp;
+  if (realIp) {
+    const trustedIp = pickValidIp([realIp]);
+    if (trustedIp) return trustedIp;
+  }
   return DEFAULT_IDENTITY;
 }
 
