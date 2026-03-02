@@ -4488,7 +4488,7 @@
     {
       "id": "ecna-2020-2021-scholarslawn",
       "tier": "competitive",
-      "title": "Unknown",
+      "title": "Scholar's Lawn",
       "description": "{Scholar's Lawn}\n\nFamously at Cambridge, and often copied at other schools, is the tradition of the ``Scholar's Lawn'' -- an area of grass where Fellows of the school, or other distinguished entities, can walk, but regular students cannot.\n\nSo, if a student spies a Fellow walking across campus, and wishes to ambush , er, meet up with them, the student is restricted to walking along a set of narrow paved walkways laid out in various places within the grassy areas, hoping to reach the Fellow's path at the same time or before the Fellow arrives. At the end of the Fellow's path is the Sacred Grove of Academe, off-limits to students, so if the Fellow reaches it before the student, the student is out of luck.\n\nFor instance, Figure  shows an area of lawn together with the fixed set of paved walkways (solid lines) and the path taken by a Fellow of the university (dotted line);  and  denote the initial positions of the Fellow and student, respectively. If both travel at the same speed (say, one meter per second), then after  seconds the Fellow will find the student waiting to have a chat at location  (marked by the small open circle ``{ $n1  n  500n4(x,y)x_sy_sv_s(x_s,y_s)v_s0 < v_s  1\\,000(x_s,y_s)n54x_{1f}y_{1f}x_{2f}y_{2f}-10\\,000  x_{1f}, y_{1f},x_{2f},y_{2f}  10\\,000(x_{1f}, y_{1f})(x_{2f}, y_{2f})v_f0 < v_f  1\\,000t10^{-6}$.",
       "signature": "function scholarslawn(input)",
       "starterCode": "function scholarslawn(input) {\n}",

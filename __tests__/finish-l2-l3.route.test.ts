@@ -1,14 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => {
+  const l3CheckIds = Array.from({ length: 20 }, (_, i) => `l3:cpu-16bit-emulator:c:check_${i + 1}`);
   return {
     queryMock: vi.fn(),
     actionMock: vi.fn(),
     requireAuthMock: vi.fn(async () => ({ ok: true, github: "tester" })),
+    l3CheckIds,
     validateL3Mock: vi.fn(async () => ({
       compiled: true,
       error: "",
-      results: [{ problemId: "c1", correct: true, message: "ok" }],
+      results: l3CheckIds.map((id) => ({ problemId: id, correct: true, message: "ok" })),
     })),
   };
 });
@@ -38,7 +40,7 @@ describe("finish l2/l3 routes", () => {
       level: 3,
       startedAt: 1_000,
       expiresAt: 121_000,
-      problemIds: ["cpu:task:lang:check1"],
+      problemIds: hoisted.l3CheckIds,
     });
     hoisted.actionMock.mockResolvedValue({
       elo: 123,
@@ -73,7 +75,7 @@ describe("finish l2/l3 routes", () => {
     expect(hoisted.actionMock).toHaveBeenCalled();
   });
 
-  it("/api/finish-l3 validates and records solved checks", async () => {
+  it("/api/finish-l3 validates and records all 20 solved checks for full L3 scoring input", async () => {
     const { POST } = await import("../src/app/api/finish-l3/route");
     const req = new Request("http://localhost/api/finish-l3", {
       method: "POST",
@@ -91,5 +93,46 @@ describe("finish l2/l3 routes", () => {
     expect(body.validation.compiled).toBe(true);
     expect(hoisted.validateL3Mock).toHaveBeenCalled();
     expect(hoisted.actionMock).toHaveBeenCalled();
+
+    const actionCall = hoisted.actionMock.mock.calls[0]?.[1] as { solvedProblemIds: string[] } | undefined;
+    expect(actionCall).toBeTruthy();
+    expect(actionCall?.solvedProblemIds).toHaveLength(20);
+    expect(new Set(actionCall?.solvedProblemIds).size).toBe(20);
+    expect(actionCall?.solvedProblemIds).toEqual(hoisted.l3CheckIds);
+  });
+
+  it("each individual L3 check affects scoring input (20/20 sensitivity)", async () => {
+    const { POST } = await import("../src/app/api/finish-l3/route");
+
+    for (const missedId of hoisted.l3CheckIds) {
+      hoisted.actionMock.mockClear();
+      hoisted.validateL3Mock.mockResolvedValueOnce({
+        compiled: true,
+        error: "",
+        results: hoisted.l3CheckIds.map((id: string) => ({
+          problemId: id,
+          correct: id !== missedId,
+          message: id !== missedId ? "ok" : "fail",
+        })),
+      });
+
+      const req = new Request("http://localhost/api/finish-l3", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          sessionId: "s3",
+          code: "int main(){return 0;}",
+          timeElapsed: 5000,
+        }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(200);
+
+      const actionCall = hoisted.actionMock.mock.calls[0]?.[1] as { solvedProblemIds: string[] } | undefined;
+      expect(actionCall).toBeTruthy();
+      expect(actionCall?.solvedProblemIds).toHaveLength(19);
+      expect(actionCall?.solvedProblemIds.includes(missedId)).toBe(false);
+    }
   });
 });
