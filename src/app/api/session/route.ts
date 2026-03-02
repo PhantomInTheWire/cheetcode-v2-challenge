@@ -4,6 +4,7 @@ import { api } from "../../../../convex/_generated/api";
 import { resolveGitHubFromHeader } from "../../../lib/github-auth";
 import { auth } from "../../../../auth";
 import { warmLevel3Runtime } from "../../../../server/level3/validation";
+import { getLevel3ChallengeFromId } from "../../../../server/level3/problems";
 import { isServerDevMode } from "../../../lib/myEnv";
 import { normalizeTestCasesWithArgs } from "../../../lib/testcaseArgs";
 
@@ -80,9 +81,22 @@ export async function POST(request: Request) {
     }
 
     if (result.level === 3) {
-      const challenge = (result.problems?.[0] ?? {}) as { language?: string };
-      if (challenge.language) {
-        void warmLevel3Runtime(challenge.language);
+      const challengeMeta = (result.problems?.[0] ?? {}) as { id?: string; language?: string };
+      const fullChallenge = challengeMeta.id ? getLevel3ChallengeFromId(challengeMeta.id) : null;
+      if (fullChallenge && Array.isArray(result.problems) && result.problems.length > 0) {
+        result.problems[0] = {
+          id: fullChallenge.id,
+          title: fullChallenge.title,
+          taskId: fullChallenge.taskId,
+          taskName: fullChallenge.taskName,
+          language: fullChallenge.language,
+          spec: fullChallenge.spec,
+          starterCode: fullChallenge.starterCode,
+          checks: fullChallenge.checks.map((c) => ({ id: c.id, name: c.name })),
+        } as (typeof result.problems)[number];
+      }
+      if (challengeMeta.language) {
+        void warmLevel3Runtime(challengeMeta.language);
       }
     }
     return NextResponse.json(result);

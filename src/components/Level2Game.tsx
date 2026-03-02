@@ -66,21 +66,6 @@ export function Level2Game({
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      // Validate all answers via API
-      const validateRes = await clientFetch("/api/validate-l2", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ answers }),
-      });
-
-      if (!validateRes.ok) throw new Error(`validation failed: ${validateRes.status}`);
-      const validateData = await validateRes.json();
-
-      // Count correct answers
-      const correctIds = validateData.results
-        .filter((r: { correct: boolean }) => r.correct)
-        .map((r: { problemId: string }) => r.problemId);
-
       // Submit results
       const finishRes = await clientFetch("/api/finish-l2", {
         method: "POST",
@@ -89,7 +74,7 @@ export function Level2Game({
           sessionId,
           github,
           timeElapsed: lockedTimeElapsedMs,
-          solvedProblemIds: correctIds,
+          answers,
         }),
       });
 

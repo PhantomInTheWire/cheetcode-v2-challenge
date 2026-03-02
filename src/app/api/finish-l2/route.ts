@@ -4,6 +4,7 @@ import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import { SHADOW_BAN_HEADER } from "../../../lib/abuse-guard";
+import { validateLevel2Answers } from "../../../lib/level2-validation";
 
 /**
  * POST /api/finish-l2
@@ -14,16 +15,16 @@ import { SHADOW_BAN_HEADER } from "../../../lib/abuse-guard";
 
 type RequestBody = {
   sessionId: string;
-  solvedProblemIds: string[];
+  answers: Record<string, string>;
   timeElapsed: number;
 };
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as RequestBody;
-    const { sessionId, solvedProblemIds, timeElapsed } = body;
+    const { sessionId, answers, timeElapsed } = body;
 
-    if (!sessionId || !Array.isArray(solvedProblemIds) || typeof timeElapsed !== "number") {
+    if (!sessionId || !answers || typeof answers !== "object" || typeof timeElapsed !== "number") {
       return NextResponse.json({ error: "invalid request" }, { status: 400 });
     }
 
@@ -60,6 +61,9 @@ export async function POST(request: Request) {
         ),
       });
     }
+
+    const validated = validateLevel2Answers(answers);
+    const solvedProblemIds = validated.filter((r) => r.correct).map((r) => r.problemId);
 
     // Record results via authenticated Convex action
     const result = await convex.action(api.submissions.recordResults, {
