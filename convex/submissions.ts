@@ -3,7 +3,7 @@ import { internalMutation, query, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { PROBLEM_BANK } from "../server/problems";
 import { computeElo, getDifficultyBonus } from "../src/lib/scoring";
-import { ROUND_DURATION_MS } from "./constants";
+import { ROUND_DURATION_MS } from "../src/lib/constants";
 import { sortByEloAndAttempts, calculateRank } from "./helpers";
 import { ROUND_DURATION_L2_MS, ROUND_DURATION_L3_MS } from "./sessions";
 
@@ -40,6 +40,7 @@ export const recordResultsInternal = internalMutation({
 
     const solvedCount = validSolvedIds.length;
     const timeRemainingSecs = Math.max(0, Math.floor((maxTime - clampedTime) / 1000));
+    const runTimeSecs = Math.floor(clampedTime / 1000);
 
     let elo = 0;
 
@@ -124,7 +125,7 @@ export const recordResultsInternal = internalMutation({
         await ctx.db.insert("leaderboard", {
           github: args.github,
           solved: totalSolved,
-          timeSecs: Math.floor(clampedTime / 1000),
+          timeSecs: runTimeSecs,
           elo: totalElo,
           sessionId: args.sessionId,
           attempts: 1,
@@ -147,7 +148,7 @@ export const recordResultsInternal = internalMutation({
       if (shouldUpdateBests) {
         Object.assign(updates, {
           solved: totalSolved,
-          timeSecs: Math.floor(clampedTime / 1000), // Time of their most recent best-improving run
+          timeSecs: Math.min(existing.timeSecs ?? runTimeSecs, runTimeSecs),
           elo: totalElo,
           sessionId: args.sessionId,
           unlockedLevel,

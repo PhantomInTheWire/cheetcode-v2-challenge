@@ -8,14 +8,14 @@ export type AbuseRoute =
   | "finish-l2"
   | "finish-l3";
 
-type RouteConfig = {
+export type RouteConfig = {
   windowMs: number;
   maxHits: number;
   shadowWindowMs: number;
   shadowThreshold: number;
 };
 
-type AbuseDecision = {
+export type AbuseDecision = {
   limited: boolean;
   retryAfterSeconds: number;
   shadowBanned: boolean;
@@ -54,6 +54,10 @@ const routeConfigs: Record<AbuseRoute, RouteConfig> = {
   "finish-l2": { windowMs: 60_000, maxHits: 20, shadowWindowMs: 10 * 60_000, shadowThreshold: 80 },
   "finish-l3": { windowMs: 60_000, maxHits: 20, shadowWindowMs: 10 * 60_000, shadowThreshold: 80 },
 };
+
+export function getRouteConfig(route: AbuseRoute): RouteConfig {
+  return routeConfigs[route];
+}
 
 export const API_ROUTE_TO_ABUSE_ROUTE: Record<string, AbuseRoute> = {
   "/api/session": "session",

@@ -139,4 +139,27 @@ describe("finish l2/l3 routes", () => {
       expect(actionCall?.solvedProblemIds.includes(missedId)).toBe(false);
     }
   });
+
+  it("/api/finish-l3 short-circuits when shadow banned", async () => {
+    const { POST } = await import("../src/app/api/finish-l3/route");
+    const req = new Request("http://localhost/api/finish-l3", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-ctf-shadow-banned": "1",
+      },
+      body: JSON.stringify({
+        sessionId: "s3",
+        code: "int main(){return 0;}",
+        timeElapsed: 5000,
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { rank: number };
+    expect(body.rank).toBe(9999);
+    expect(hoisted.validateL3Mock).not.toHaveBeenCalled();
+    expect(hoisted.actionMock).not.toHaveBeenCalled();
+  });
 });

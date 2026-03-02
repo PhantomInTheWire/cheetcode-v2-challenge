@@ -3,6 +3,8 @@ import { getQuickJS, type QuickJSWASMModule } from "quickjs-emscripten";
 import { isServerDevMode } from "../../../lib/myEnv";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import { evalWithDeadline } from "../../../lib/quickjsTimeout";
+import { resolveSubmittedFunction } from "../../../lib/quickjsResolve";
+import { buildArgs } from "../../../lib/testcase-args";
 
 type TestCase = {
   input: Record<string, unknown>;
@@ -33,11 +35,6 @@ type ValidationResult = {
   debug?: ValidationDebug;
 };
 
-function buildArgs(testCase: TestCase): unknown[] | null {
-  if (Array.isArray(testCase.args)) return testCase.args;
-  return null;
-}
-
 const FLAG = "🔥{you_found_the_fire}";
 const QUICKJS_TEST_TIMEOUT_MS = 1_000;
 const QUICKJS_SETUP_TIMEOUT_MS = 250;
@@ -46,47 +43,6 @@ let _qjs: QuickJSWASMModule | null = null;
 async function getQJS(): Promise<QuickJSWASMModule> {
   if (!_qjs) _qjs = await getQuickJS();
   return _qjs;
-}
-
-function resolveSubmittedFunction(
-  vm: ReturnType<QuickJSWASMModule["newContext"]>,
-  code: string,
-): boolean {
-  const expressionAttempt = evalWithDeadline(
-    vm,
-    `globalThis.__fn__ = (${code}); typeof globalThis.__fn__ === "function";`,
-    QUICKJS_SETUP_TIMEOUT_MS,
-  );
-  if (!("error" in expressionAttempt)) {
-    const ok = vm.dump(expressionAttempt.value) === true;
-    expressionAttempt.value.dispose();
-    if (ok) return true;
-  } else {
-    expressionAttempt.error.dispose();
-  }
-
-  const nameMatch = code.match(
-    /\bfunction\s+([A-Za-z_$][\w$]*)\s*\(|\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=/,
-  );
-  const symbol = (nameMatch?.[1] || nameMatch?.[2] || "").trim();
-  if (!symbol) return false;
-
-  const scriptAttempt = evalWithDeadline(
-    vm,
-    `globalThis.__fn__ = (() => {` +
-      `${code}\n` +
-      `return (typeof ${symbol} === "function") ? ${symbol} : undefined;` +
-      `})();\n` +
-      `typeof globalThis.__fn__ === "function";`,
-    QUICKJS_SETUP_TIMEOUT_MS,
-  );
-  if ("error" in scriptAttempt) {
-    scriptAttempt.error.dispose();
-    return false;
-  }
-  const ok = vm.dump(scriptAttempt.value) === true;
-  scriptAttempt.value.dispose();
-  return ok;
 }
 
 function runValidationInContext(
@@ -101,7 +57,7 @@ function runValidationInContext(
   }
   reset.value.dispose();
 
-  if (!resolveSubmittedFunction(vm, code)) {
+  if (!resolveSubmittedFunction(vm, code, QUICKJS_SETUP_TIMEOUT_MS, evalWithDeadline)) {
     return { passed: false, error: "Syntax error in submitted code", debug: { stage: "resolve" } };
   }
 

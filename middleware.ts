@@ -5,6 +5,7 @@ import {
   TRUSTED_FINGERPRINT_HEADER,
   checkAndTrackAbuse,
 } from "./src/lib/abuse-guard";
+import { checkAndTrackAbuseInKv } from "./src/lib/abuse-guard-kv";
 
 const FINGERPRINT_COOKIE = "ctf_fp";
 
@@ -34,7 +35,7 @@ function rateLimitBody(pathname: string): Record<string, unknown> {
   return { error: "rate limited" };
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   if (request.method !== "POST") return NextResponse.next();
 
   const route = API_ROUTE_TO_ABUSE_ROUTE[request.nextUrl.pathname];
@@ -51,14 +52,24 @@ export function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(TRUSTED_FINGERPRINT_HEADER, fingerprint);
 
-  const abuse = checkAndTrackAbuse(
+  const kvAbuse = await checkAndTrackAbuseInKv(
     new Request(request.url, { method: request.method, headers: requestHeaders }),
     route,
   );
-  if (abuse.limited) {
+  const abuse =
+    kvAbuse ??
+    checkAndTrackAbuse(
+      new Request(request.url, { method: request.method, headers: requestHeaders }),
+      route,
+    );
+
+  const limited = abuse.limited;
+  const shadowBanned = abuse.shadowBanned;
+  const retryAfterSeconds = abuse.retryAfterSeconds;
+  if (limited) {
     const response = NextResponse.json(rateLimitBody(request.nextUrl.pathname), {
       status: 429,
-      headers: { "retry-after": String(abuse.retryAfterSeconds || 1) },
+      headers: { "retry-after": String(retryAfterSeconds || 1) },
     });
     if (!fingerprintCookie) {
       response.cookies.set(FINGERPRINT_COOKIE, fingerprint, {
@@ -73,7 +84,7 @@ export function middleware(request: NextRequest) {
   }
 
   const responseHeaders = new Headers(requestHeaders);
-  if (abuse.shadowBanned && route.startsWith("finish")) {
+  if (shadowBanned && route.startsWith("finish")) {
     responseHeaders.set(SHADOW_BAN_HEADER, "1");
   }
 

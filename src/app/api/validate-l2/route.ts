@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { LEVEL2_PROBLEMS } from "../../../../server/level2/problems";
+import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 
 /**
  * POST /api/validate-l2
@@ -9,6 +10,9 @@ import { LEVEL2_PROBLEMS } from "../../../../server/level2/problems";
  */
 export async function POST(request: Request) {
   try {
+    const authResult = await requireAuthenticatedGithub(request);
+    if ("response" in authResult) return authResult.response;
+
     const body = await request.json();
     const { answers } = body;
 
