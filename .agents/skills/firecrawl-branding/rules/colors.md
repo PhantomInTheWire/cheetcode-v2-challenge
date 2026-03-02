@@ -7,6 +7,7 @@ Heat Orange: #fa5d19
 ```
 
 This is the signature Firecrawl color. Always use it for:
+
 - Primary CTAs and buttons
 - Active/selected states
 - Accent highlights
@@ -20,18 +21,18 @@ This is the signature Firecrawl color. Always use it for:
 --heat-8: rgba(250, 93, 25, 0.08);
 --heat-12: rgba(250, 93, 25, 0.12);
 --heat-16: rgba(250, 93, 25, 0.16);
---heat-20: rgba(250, 93, 25, 0.20);
+--heat-20: rgba(250, 93, 25, 0.2);
 --heat-100: #fa5d19;
 ```
 
 ## Accent Colors
 
 ```css
---amethyst: #9061ff;  /* Purple - special features */
---bluetron: #2a6dfb;  /* Blue - links, info */
---crimson: #eb3424;   /* Red - errors, destructive */
---forest: #42c366;    /* Green - success */
---honey: #ecb730;     /* Yellow - warnings */
+--amethyst: #9061ff; /* Purple - special features */
+--bluetron: #2a6dfb; /* Blue - links, info */
+--crimson: #eb3424; /* Red - errors, destructive */
+--forest: #42c366; /* Green - success */
+--honey: #ecb730; /* Yellow - warnings */
 ```
 
 ## Semantic Colors
@@ -52,36 +53,36 @@ This is the signature Firecrawl color. Always use it for:
 
 ```css
 /* Page background */
---bg-base: #f9f9f9;       /* light */
---bg-base: #0a0a0a;       /* dark */
+--bg-base: #f9f9f9; /* light */
+--bg-base: #0a0a0a; /* dark */
 
 /* Card/surface background */
---bg-surface: #ffffff;    /* light */
---bg-surface: #171717;    /* dark */
+--bg-surface: #ffffff; /* light */
+--bg-surface: #171717; /* dark */
 
 /* Elevated surface */
---bg-surface-raised: #ffffff;  /* light */
---bg-surface-raised: #262626;  /* dark */
+--bg-surface-raised: #ffffff; /* light */
+--bg-surface-raised: #262626; /* dark */
 
 /* Subtle background */
---bg-lighter: #fafafa;    /* light */
---bg-lighter: #0f0f0f;    /* dark */
+--bg-lighter: #fafafa; /* light */
+--bg-lighter: #0f0f0f; /* dark */
 ```
 
 ### Border Colors
 
 ```css
 /* Subtle borders */
---border-faint: #f0f0f0;  /* light */
---border-faint: #262626;  /* dark */
+--border-faint: #f0f0f0; /* light */
+--border-faint: #262626; /* dark */
 
 /* Standard borders */
---border-muted: #e8e8e8;  /* light */
---border-muted: #333333;  /* dark */
+--border-muted: #e8e8e8; /* light */
+--border-muted: #333333; /* dark */
 
 /* Prominent borders */
---border-loud: #d1d1d1;   /* light */
---border-loud: #525252;   /* dark */
+--border-loud: #d1d1d1; /* light */
+--border-loud: #525252; /* dark */
 ```
 
 ## Alpha Scales
@@ -95,11 +96,11 @@ This is the signature Firecrawl color. Always use it for:
 --black-alpha-6: rgba(0, 0, 0, 0.06);
 --black-alpha-7: rgba(0, 0, 0, 0.07);
 --black-alpha-8: rgba(0, 0, 0, 0.08);
---black-alpha-10: rgba(0, 0, 0, 0.10);
+--black-alpha-10: rgba(0, 0, 0, 0.1);
 --black-alpha-12: rgba(0, 0, 0, 0.12);
---black-alpha-20: rgba(0, 0, 0, 0.20);
---black-alpha-50: rgba(0, 0, 0, 0.50);
---black-alpha-80: rgba(0, 0, 0, 0.80);
+--black-alpha-20: rgba(0, 0, 0, 0.2);
+--black-alpha-50: rgba(0, 0, 0, 0.5);
+--black-alpha-80: rgba(0, 0, 0, 0.8);
 ```
 
 ### White Alpha (Dark Mode)

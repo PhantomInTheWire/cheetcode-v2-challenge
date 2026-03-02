@@ -6,7 +6,8 @@ The signature Firecrawl button with multi-layer shadows:
 
 ```tsx
 // React/Tailwind
-<button className="
+<button
+  className="
   bg-heat-100
   text-accent-white
   px-16 py-8
@@ -16,7 +17,8 @@ The signature Firecrawl button with multi-layer shadows:
   hover:shadow-lg
   active:scale-[0.995]
   disabled:opacity-50 disabled:cursor-not-allowed
-">
+"
+>
   Get Started
 </button>
 ```
@@ -43,14 +45,12 @@ The signature Firecrawl button with multi-layer shadows:
   box-shadow:
     /* Inner glow */
     inset 0px -6px 12px 0px rgba(255, 0, 0, 0.2),
-    /* Outer layers for depth */
-    0px 0.6px 0.8px 0px rgba(255, 139, 0, 0.22),
+    /* Outer layers for depth */ 0px 0.6px 0.8px 0px rgba(255, 139, 0, 0.22),
     0px 1.3px 1.7px 0px rgba(255, 139, 0, 0.19),
     0px 2.5px 3.1px 0px rgba(255, 139, 0, 0.16),
     0px 4.4px 5.5px 0px rgba(255, 139, 0, 0.13),
     0px 8.3px 10.3px 0px rgba(255, 139, 0, 0.1),
-    /* Main shadow */
-    0px 2px 4px 0px rgba(250, 93, 25, 0.3);
+    /* Main shadow */ 0px 2px 4px 0px rgba(250, 93, 25, 0.3);
 }
 
 .btn-primary:hover {
@@ -191,11 +191,11 @@ For dangerous/irreversible actions:
 
 ## Button Sizes
 
-| Size | Height | Padding | Font Size |
-|------|--------|---------|-----------|
-| sm | 32px | 8px 12px | 13px |
-| md | 40px | 8px 16px | 14px |
-| lg | 48px | 12px 24px | 16px |
+| Size | Height | Padding   | Font Size |
+| ---- | ------ | --------- | --------- |
+| sm   | 32px   | 8px 12px  | 13px      |
+| md   | 40px   | 8px 16px  | 14px      |
+| lg   | 48px   | 12px 24px | 16px      |
 
 ```css
 .btn-sm {
@@ -241,11 +241,7 @@ With icon left or right:
 
 ```tsx
 const Button = ({ loading, children, ...props }) => (
-  <button
-    disabled={loading}
-    aria-busy={loading}
-    {...props}
-  >
+  <button disabled={loading} aria-busy={loading} {...props}>
     {loading ? (
       <span className="flex items-center gap-8">
         <BrailleSpinner />
