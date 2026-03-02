@@ -4,6 +4,12 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { isClientDevMode } from "../lib/myEnv";
 import { clientFetch } from "../lib/client-identity";
+import { COLORS } from "../lib/theme";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import CodeMirror from "@uiw/react-codemirror";
+import { cpp } from "@codemirror/lang-cpp";
+import { rust } from "@codemirror/lang-rust";
 
 const ROUND_DURATION_L3_MS = 120_000;
 
@@ -49,6 +55,11 @@ function extensionForLanguage(language: string): string {
   return "txt";
 }
 
+function editorExtensionFor(language: string) {
+  if (language === "Rust") return rust();
+  return cpp();
+}
+
 export function Level3Game({
   sessionId,
   github,
@@ -64,8 +75,12 @@ export function Level3Game({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [compileError, setCompileError] = useState<string | null>(null);
   const [localCorrect, setLocalCorrect] = useState<Record<string, boolean | null>>({});
+  const [leftPaneWidth, setLeftPaneWidth] = useState(48);
+  const [editorHeightRatio, setEditorHeightRatio] = useState(0.75);
   const lockedTimeElapsedMsRef = useRef<number | null>(null);
   const autoSubmittedRef = useRef(false);
+  const dragStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const verticalDragStateRef = useRef<{ startY: number; startRatio: number } | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 100);
@@ -89,6 +104,10 @@ export function Level3Game({
   );
   const totalChecks = challenge.checks.length;
   const timeUp = timeLeftMs === 0;
+  const editorExtensions = useMemo(
+    () => [editorExtensionFor(challenge.language)],
+    [challenge.language],
+  );
 
   async function runChecks() {
     setIsChecking(true);
@@ -191,6 +210,35 @@ export function Level3Game({
       void finishGame();
     }
   }, [timeUp, finishGame]);
+
+  useEffect(() => {
+    function onMove(event: MouseEvent) {
+      if (dragStateRef.current) {
+        const deltaX = event.clientX - dragStateRef.current.startX;
+        const nextWidth = dragStateRef.current.startWidth + (deltaX / window.innerWidth) * 100;
+        setLeftPaneWidth(Math.max(30, Math.min(70, nextWidth)));
+      }
+      if (verticalDragStateRef.current) {
+        const deltaY = event.clientY - verticalDragStateRef.current.startY;
+        const nextRatio = verticalDragStateRef.current.startRatio + deltaY / window.innerHeight;
+        setEditorHeightRatio(Math.max(0.45, Math.min(0.85, nextRatio)));
+      }
+    }
+
+    function onUp() {
+      dragStateRef.current = null;
+      verticalDragStateRef.current = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    }
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, []);
 
   const timerBg = secondsLeft <= 20 ? "#dc2626" : secondsLeft <= 45 ? "#fa5d19" : "#1a9338";
   const timerFg = secondsLeft <= 20 ? "#dc2626" : secondsLeft <= 45 ? "#fa5d19" : "#1a9338";
@@ -361,13 +409,13 @@ export function Level3Game({
         <div
           style={{
             height: "100%",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 12,
+            display: "flex",
+            gap: 0,
           }}
         >
           <div
             style={{
+              width: `${leftPaneWidth}%`,
               background: "#fff",
               border: "1px solid #e5e5e5",
               borderRadius: 12,
@@ -383,21 +431,183 @@ export function Level3Game({
               Assigned language: <strong>{challenge.language}</strong> • submit one flat file
             </p>
 
-            <pre
+            <div
+              className="l3-spec-markdown"
               style={{
-                marginTop: 12,
-                whiteSpace: "pre-wrap",
-                fontSize: 12,
-                lineHeight: 1.55,
-                color: "#262626",
+                marginTop: 14,
+                fontSize: 14,
+                lineHeight: 1.72,
+                color: COLORS.TEXT_DARK,
               }}
             >
-              {challenge.spec}
-            </pre>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  h1: ({ ...props }) => (
+                    <h1
+                      style={{
+                        fontSize: 28,
+                        fontWeight: 800,
+                        letterSpacing: -0.8,
+                        margin: "0 0 14px",
+                        color: COLORS.TEXT_DARK,
+                      }}
+                      {...props}
+                    />
+                  ),
+                  h2: ({ ...props }) => (
+                    <h2
+                      style={{
+                        fontSize: 20,
+                        fontWeight: 800,
+                        margin: "24px 0 10px",
+                        color: COLORS.PRIMARY,
+                        letterSpacing: -0.4,
+                      }}
+                      {...props}
+                    />
+                  ),
+                  h3: ({ ...props }) => (
+                    <h3
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        margin: "18px 0 8px",
+                        color: COLORS.TEXT_DARK,
+                      }}
+                      {...props}
+                    />
+                  ),
+                  p: ({ ...props }) => (
+                    <p style={{ margin: "0 0 14px", color: "rgba(0,0,0,0.72)" }} {...props} />
+                  ),
+                  ul: ({ ...props }) => (
+                    <ul style={{ margin: "0 0 14px", paddingLeft: 22 }} {...props} />
+                  ),
+                  ol: ({ ...props }) => (
+                    <ol style={{ margin: "0 0 14px", paddingLeft: 22 }} {...props} />
+                  ),
+                  li: ({ ...props }) => (
+                    <li style={{ margin: "0 0 6px", color: "rgba(0,0,0,0.72)" }} {...props} />
+                  ),
+                  strong: ({ ...props }) => (
+                    <strong style={{ color: COLORS.TEXT_DARK }} {...props} />
+                  ),
+                  code: ({ className, children, ...props }) => {
+                    const inline = !className;
+                    if (inline) {
+                      return (
+                        <code
+                          style={{
+                            background: "rgba(250, 93, 25, 0.08)",
+                            border: "1px solid rgba(250, 93, 25, 0.16)",
+                            borderRadius: 6,
+                            padding: "2px 6px",
+                            color: COLORS.PRIMARY,
+                            fontSize: "0.92em",
+                          }}
+                          {...props}
+                        >
+                          {children}
+                        </code>
+                      );
+                    }
+                    return (
+                      <code
+                        style={{
+                          display: "block",
+                          background: "linear-gradient(180deg, #fffaf7 0%, #fff 100%)",
+                          border: "1px solid rgba(250, 93, 25, 0.18)",
+                          borderRadius: 12,
+                          padding: 14,
+                          whiteSpace: "pre-wrap",
+                          overflowX: "auto",
+                          color: COLORS.TEXT_DARK,
+                          fontSize: 13,
+                          lineHeight: 1.6,
+                        }}
+                        className={className}
+                        {...props}
+                      >
+                        {children}
+                      </code>
+                    );
+                  },
+                  pre: ({ ...props }) => <pre style={{ margin: "0 0 14px" }} {...props} />,
+                  table: ({ ...props }) => (
+                    <table
+                      style={{
+                        width: "100%",
+                        borderCollapse: "collapse",
+                        marginBottom: 14,
+                        background: "#fff",
+                        border: "1px solid #f2d3c5",
+                        borderRadius: 10,
+                        overflow: "hidden",
+                      }}
+                      {...props}
+                    />
+                  ),
+                  th: ({ ...props }) => (
+                    <th
+                      style={{
+                        border: "1px solid #f2d3c5",
+                        padding: "9px 10px",
+                        textAlign: "left",
+                        background: "#fff7f2",
+                        color: COLORS.TEXT_DARK,
+                        fontWeight: 700,
+                      }}
+                      {...props}
+                    />
+                  ),
+                  td: ({ ...props }) => (
+                    <td
+                      style={{
+                        border: "1px solid #f2d3c5",
+                        padding: "9px 10px",
+                        textAlign: "left",
+                        color: "rgba(0,0,0,0.72)",
+                      }}
+                      {...props}
+                    />
+                  ),
+                }}
+              >
+                {challenge.spec}
+              </ReactMarkdown>
+            </div>
+          </div>
+
+          <div
+            onMouseDown={(event) => {
+              dragStateRef.current = { startX: event.clientX, startWidth: leftPaneWidth };
+              document.body.style.cursor = "col-resize";
+              document.body.style.userSelect = "none";
+            }}
+            style={{
+              width: 14,
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "col-resize",
+            }}
+          >
+            <div
+              style={{
+                width: 4,
+                height: 64,
+                borderRadius: 999,
+                background:
+                  "linear-gradient(180deg, rgba(250,93,25,0.1) 0%, rgba(250,93,25,0.45) 50%, rgba(250,93,25,0.1) 100%)",
+              }}
+            />
           </div>
 
           <div
             style={{
+              width: `${100 - leftPaneWidth}%`,
               background: "#fff",
               border: "1px solid #e5e5e5",
               borderRadius: 12,
@@ -405,90 +615,155 @@ export function Level3Game({
               minHeight: 0,
               display: "flex",
               flexDirection: "column",
-              gap: 10,
+              gap: 8,
             }}
           >
             <p style={{ fontSize: 12, color: "rgba(0,0,0,0.5)", margin: 0 }}>
               Paste code for <strong>main.{extensionForLanguage(challenge.language)}</strong>
             </p>
 
-            <textarea
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              spellCheck={false}
-              disabled={timeUp || isSubmitting}
-              style={{
-                flex: 1,
-                minHeight: 260,
-                width: "100%",
-                resize: "none",
-                background: "#fafafa",
-                color: "#262626",
-                border: "1px solid #e5e5e5",
-                borderRadius: 8,
-                padding: 10,
-                fontSize: 12,
-                lineHeight: 1.45,
-                fontFamily: "inherit",
-                outline: "none",
-              }}
-            />
-
-            {compileError && (
-              <p style={{ fontSize: 12, color: "#dc2626", margin: 0 }}>
-                Compile error: {compileError}
-              </p>
-            )}
-            {submitError && (
-              <p style={{ fontSize: 12, color: "#dc2626", margin: 0 }}>{submitError}</p>
-            )}
-
             <div
               style={{
-                border: "1px solid #e5e5e5",
-                borderRadius: 8,
-                overflow: "hidden",
+                flex: 1,
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
               }}
             >
-              {challenge.checks.map((check) => {
-                const status = localCorrect[check.id];
-                return (
-                  <div
-                    key={check.id}
-                    style={{
-                      padding: "8px 10px",
-                      borderBottom: "1px solid #f0f0f0",
-                      fontSize: 12,
-                      background: "#ffffff",
-                    }}
-                  >
+              <div
+                style={{
+                  flex: editorHeightRatio,
+                  minHeight: 0,
+                  border: "1px solid rgba(250, 93, 25, 0.16)",
+                  borderRadius: 10,
+                  overflow: "hidden",
+                  background: "#fffaf7",
+                }}
+              >
+                <div
+                  style={{
+                    height: 34,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0 12px",
+                    borderBottom: "1px solid rgba(250, 93, 25, 0.16)",
+                    background: "linear-gradient(180deg, #fff3eb 0%, #fffaf7 100%)",
+                    color: "rgba(0,0,0,0.62)",
+                    fontSize: 11,
+                    fontWeight: 700,
+                  }}
+                >
+                  <span>main.{extensionForLanguage(challenge.language)}</span>
+                  <span>{challenge.language}</span>
+                </div>
+                <CodeMirror
+                  className="l3-code-editor"
+                  value={code}
+                  height="100%"
+                  editable={!(timeUp || isSubmitting)}
+                  basicSetup={{
+                    lineNumbers: true,
+                    foldGutter: true,
+                    autocompletion: false,
+                    highlightActiveLine: true,
+                  }}
+                  extensions={editorExtensions}
+                  onChange={(value) => setCode(value)}
+                  style={{
+                    height: "calc(100% - 34px)",
+                    fontSize: 13,
+                  }}
+                />
+              </div>
+
+              <div
+                onMouseDown={(event) => {
+                  verticalDragStateRef.current = {
+                    startY: event.clientY,
+                    startRatio: editorHeightRatio,
+                  };
+                  document.body.style.cursor = "row-resize";
+                  document.body.style.userSelect = "none";
+                }}
+                style={{
+                  height: 12,
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "row-resize",
+                }}
+              >
+                <div
+                  style={{
+                    width: 84,
+                    height: 4,
+                    borderRadius: 999,
+                    background:
+                      "linear-gradient(90deg, rgba(250,93,25,0.1) 0%, rgba(250,93,25,0.45) 50%, rgba(250,93,25,0.1) 100%)",
+                  }}
+                />
+              </div>
+
+              <div
+                style={{
+                  flex: 1 - editorHeightRatio,
+                  minHeight: 0,
+                  border: "1px solid #e5e5e5",
+                  borderRadius: 8,
+                  overflowY: "auto",
+                }}
+              >
+                {compileError && (
+                  <p style={{ fontSize: 12, color: "#dc2626", margin: 10 }}>
+                    Compile error: {compileError}
+                  </p>
+                )}
+                {submitError && (
+                  <p style={{ fontSize: 12, color: "#dc2626", margin: 10 }}>{submitError}</p>
+                )}
+                {challenge.checks.map((check) => {
+                  const status = localCorrect[check.id];
+                  return (
                     <div
+                      key={check.id}
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 10,
+                        padding: "8px 10px",
+                        borderBottom: "1px solid #f0f0f0",
+                        fontSize: 12,
+                        background: "#ffffff",
                       }}
                     >
-                      <div style={{ color: "#262626" }}>{check.name}</div>
                       <div
                         style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color:
-                            status === true
-                              ? "#1a9338"
-                              : status === false
-                                ? "#dc2626"
-                                : "rgba(0,0,0,0.4)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 10,
                         }}
                       >
-                        {status === true ? "PASS" : status === false ? "FAIL" : "PENDING"}
+                        <div style={{ color: "#262626" }}>{check.name}</div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color:
+                              status === true
+                                ? "#1a9338"
+                                : status === false
+                                  ? "#dc2626"
+                                  : "rgba(0,0,0,0.4)",
+                          }}
+                        >
+                          {status === true ? "PASS" : status === false ? "FAIL" : "PENDING"}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

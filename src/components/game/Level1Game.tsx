@@ -60,6 +60,8 @@ export function Level1Game({
   setCodes,
   runLocalCheck,
 }: Level1GameProps) {
+  const [expandedQuestions, setExpandedQuestions] = React.useState<Record<string, boolean>>({});
+
   return (
     <div
       style={{
@@ -318,11 +320,56 @@ export function Level1Game({
 
               {/* Description */}
               <div style={{ padding: "8px 10px", flexShrink: 0 }}>
-                <p style={{ fontSize: 10, color: "rgba(0,0,0,0.5)", lineHeight: 1.4, margin: 0 }}>
-                  {problem.description.length > 520
-                    ? problem.description.slice(0, 520) + "..."
-                    : problem.description}
-                </p>
+                {expandedQuestions[problem.id] ? (
+                  <div
+                    style={{
+                      maxHeight: 180,
+                      overflowY: "auto",
+                      paddingRight: 2,
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontSize: 10,
+                        color: "rgba(0,0,0,0.5)",
+                        lineHeight: 1.4,
+                        margin: 0,
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {problem.description}
+                    </p>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: 10, color: "rgba(0,0,0,0.5)", lineHeight: 1.4, margin: 0 }}>
+                    {problem.description.length > 280
+                      ? `${problem.description.slice(0, 280)}...`
+                      : problem.description}
+                  </p>
+                )}
+                {problem.description.length > 280 && (
+                  <button
+                    onClick={() =>
+                      setExpandedQuestions((cur) => ({
+                        ...cur,
+                        [problem.id]: !cur[problem.id],
+                      }))
+                    }
+                    style={{
+                      marginTop: 6,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: "#fa5d19",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 0,
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {expandedQuestions[problem.id] ? "Collapse question" : "Expand question"}
+                  </button>
+                )}
               </div>
 
               {/* Code textarea */}

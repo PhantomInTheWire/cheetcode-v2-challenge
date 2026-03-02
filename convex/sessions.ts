@@ -6,20 +6,25 @@ import {
   stripSolution,
   injectDescriptionCanary,
 } from "../server/level1/problems";
-import { generateLevel3ChallengeMeta } from "../server/level3/catalog";
+import {
+  type Level3ChallengeMeta,
+  generateLevel3ChallengeMeta,
+  getLevel3ChallengeMetaFromId,
+} from "../server/level3/catalog";
 import { validateGithub } from "../src/lib/validation";
 import { ROUND_DURATION_MS } from "../src/lib/constants";
 import { isServerDevMode } from "../src/lib/myEnv";
 import { LEVEL2_PROBLEMS } from "../server/level2/problems";
 
 const SESSION_COOLDOWN_MS = 5_000;
-export const ROUND_DURATION_L2_MS = 45_000;
+export const ROUND_DURATION_L2_MS = 60_000;
 export const ROUND_DURATION_L3_MS = 120_000;
 
 export const createInternal = internalMutation({
   args: {
     github: v.string(),
     requestedLevel: v.optional(v.number()),
+    requestedLevel3ChallengeId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const ghResult = validateGithub(args.github);
@@ -66,7 +71,13 @@ export const createInternal = internalMutation({
       }));
     } else if (level === 3) {
       expiresAt = startedAt + ROUND_DURATION_L3_MS;
-      const challenge = generateLevel3ChallengeMeta();
+      let challenge: Level3ChallengeMeta;
+      if (args.requestedLevel3ChallengeId) {
+        const selected = getLevel3ChallengeMetaFromId(args.requestedLevel3ChallengeId);
+        challenge = selected ?? generateLevel3ChallengeMeta();
+      } else {
+        challenge = generateLevel3ChallengeMeta();
+      }
       problemIds = challenge.checks.map((c) => c.id);
       problemsToReturn = [
         {
@@ -110,6 +121,7 @@ export const create = action({
     secret: v.string(),
     github: v.string(),
     requestedLevel: v.optional(v.number()),
+    requestedLevel3ChallengeId: v.optional(v.string()),
   },
   handler: async (
     ctx,
@@ -127,6 +139,7 @@ export const create = action({
     return await ctx.runMutation(internal.sessions.createInternal, {
       github: args.github,
       requestedLevel: args.requestedLevel,
+      requestedLevel3ChallengeId: args.requestedLevel3ChallengeId,
     });
   },
 });

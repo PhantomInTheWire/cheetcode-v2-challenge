@@ -30,9 +30,11 @@ export async function POST(request: Request) {
 
   // Parse request body for level selection
   let requestedLevel: number | undefined;
+  let requestedLevel3ChallengeId: string | undefined;
   try {
     const body = await request.json().catch(() => ({}));
     requestedLevel = body.level;
+    requestedLevel3ChallengeId = body.level3ChallengeId;
   } catch {
     // Ignore parse errors, use default
   }
@@ -46,6 +48,7 @@ export async function POST(request: Request) {
       secret: mutationSecret,
       github,
       requestedLevel,
+      requestedLevel3ChallengeId,
     });
 
     if (result.level === 1 && Array.isArray(result.problems)) {

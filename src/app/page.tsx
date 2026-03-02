@@ -15,7 +15,7 @@ import { ROUND_DURATION_MS, ROUND_DURATION_SECONDS, PROBLEMS_PER_SESSION } from 
 import { isClientDevMode } from "@/lib/myEnv";
 import { clientFetch } from "@/lib/client-identity";
 
-type Screen = "landing" | "playing" | "results";
+type Screen = "landing" | "level2-prereq" | "level3-prereq" | "playing" | "results";
 type ProblemTier = "easy" | "medium" | "hard" | "competitive";
 type ProblemTestCase = {
   input: Record<string, unknown>;
@@ -91,6 +91,14 @@ export default function Home() {
   const isAuthenticated = authStatus === "authenticated" && !!github;
 
   const [screen, setScreen] = useState<Screen>("landing");
+  const [pendingLevel, setPendingLevel] = useState<number | null>(null);
+  const [level3Preview, setLevel3Preview] = useState<{
+    challengeId: string;
+    taskName: string;
+    language: string;
+  } | null>(null);
+  const [level3PreviewLoading, setLevel3PreviewLoading] = useState(false);
+  const [level3PreviewError, setLevel3PreviewError] = useState<string | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [sessionId, setSessionId] = useState<Id<"sessions"> | null>(null);
   const [expiresAt, setExpiresAt] = useState(0);
@@ -200,20 +208,22 @@ export default function Home() {
     if (screen === "playing" && currentLevel === 1 && timeLeftMs === 0) void finishGame();
   }, [timeLeftMs, screen, currentLevel, finishGame]);
 
-  async function startGame(requestedLevel?: number) {
+  async function launchLevel(level: number, level3ChallengeId?: string) {
     if (!isAuthenticated) return;
 
-    // Determine which level to play
-    const level = requestedLevel ?? 1;
-    // In local dev, allow any level. In production, enforce unlockedLevel.
-    if (!isLocalDev && level > unlockedLevel) return;
+    // In local dev, allow any level. In production, allow freshly earned progression
+    // even if unlockedLevel query is briefly stale after finishing a round.
+    const canPlayFromFreshResult =
+      (level === 2 && currentLevel === 1 && !!results) ||
+      (level === 3 && currentLevel === 2 && !!results);
+    if (!isLocalDev && level > unlockedLevel && !canPlayFromFreshResult) return;
 
     setSubmitError(null);
     try {
       const res = await clientFetch("/api/session", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ level, isDev: isLocalDev }),
+        body: JSON.stringify({ level, isDev: isLocalDev, level3ChallengeId }),
       });
       if (!res.ok) throw new Error(`session creation failed: ${res.status}`);
       const d = await res.json();
@@ -268,6 +278,58 @@ export default function Home() {
       );
     }
   }
+
+  async function startGame(requestedLevel?: number) {
+    const level = requestedLevel ?? 1;
+    if (level === 2) {
+      setPendingLevel(2);
+      setScreen("level2-prereq");
+      return;
+    }
+    if (level === 3) {
+      setPendingLevel(3);
+      setLevel3Preview(null);
+      setLevel3PreviewError(null);
+      setScreen("level3-prereq");
+      return;
+    }
+    await launchLevel(level);
+  }
+
+  useEffect(() => {
+    if (screen !== "level3-prereq") return;
+    let cancelled = false;
+
+    async function loadLevel3Preview() {
+      setLevel3PreviewLoading(true);
+      setLevel3PreviewError(null);
+      try {
+        const res = await clientFetch("/api/level3-preview", { method: "GET" });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to load Level 3 preview");
+        }
+        if (cancelled) return;
+        setLevel3Preview({
+          challengeId: data.challengeId,
+          taskName: data.taskName,
+          language: data.language,
+        });
+      } catch (err) {
+        if (cancelled) return;
+        setLevel3PreviewError(
+          err instanceof Error ? err.message : "Failed to load Level 3 preview",
+        );
+      } finally {
+        if (!cancelled) setLevel3PreviewLoading(false);
+      }
+    }
+
+    void loadLevel3Preview();
+    return () => {
+      cancelled = true;
+    };
+  }, [screen]);
 
   // Uses /api/validate-l1 (QuickJS WASM) so local checks match server scoring exactly
   async function runLocalCheck(problem: GameProblem) {
@@ -327,6 +389,9 @@ export default function Home() {
 
   function resetAll() {
     setScreen("landing");
+    setPendingLevel(null);
+    setLevel3Preview(null);
+    setLevel3PreviewError(null);
     setSessionId(null);
     setExpiresAt(0);
     setProblems([]);
@@ -438,6 +503,14 @@ export default function Home() {
       }
     } finally {
       setIsAutoSolving(false);
+    }
+  }
+
+  async function copyToClipboard(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.error("copy failed:", err);
     }
   }
 
@@ -565,9 +638,284 @@ export default function Home() {
     );
   }
 
-  /* ═══════════════════════════════════════════════════════════
-     RESULTS
-     ═══════════════════════════════════════════════════════════ */
+  if (screen === "level2-prereq") {
+    const chromiumCloneCommand = `git clone https://github.com/chromium/chromium.git
+cd chromium
+git checkout 69c7c0a024efdc5bec0a9075e306e180b51e4278`;
+    const firecrawlCommand = "npx -y firecrawl-cli@latest init --all --browser";
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "linear-gradient(140deg, #fff7f2 0%, #fff 100%)",
+          padding: 24,
+          fontFamily: "'SF Mono', 'Fira Code', var(--font-geist-mono), monospace",
+        }}
+      >
+        <div
+          style={{
+            width: "min(880px, 100%)",
+            background: "#fff",
+            border: "1px solid #ffd5c0",
+            borderRadius: 16,
+            padding: 24,
+            boxShadow: "0 12px 30px rgba(250, 93, 25, 0.08)",
+          }}
+        >
+          <h2 style={{ margin: 0, color: "#fa5d19", fontSize: 24, fontWeight: 800 }}>
+            Before Level 2: Setup Chromium Access
+          </h2>
+          <p style={{ margin: "10px 0 0", fontSize: 13, color: "rgba(0,0,0,0.7)" }}>
+            Level 2 expects your agent to reason over Chromium source code. Choose one setup path
+            (Option A or Option B):
+          </p>
+          <ol style={{ margin: "14px 0 0", paddingLeft: 20, fontSize: 13, color: "#262626" }}>
+            <li>
+              <strong>Option A:</strong> Clone Chromium locally so your agent can search the
+              codebase directly.
+            </li>
+            <li>
+              <strong>Option B:</strong> Use Firecrawl tooling with source.chromium.org for
+              web-based exploration.
+            </li>
+          </ol>
+          <div
+            style={{
+              marginTop: 14,
+              background: "#fff7f2",
+              border: "1px solid #ffd5c0",
+              borderRadius: 12,
+              padding: 12,
+            }}
+          >
+            <p style={{ margin: 0, fontSize: 12, color: "rgba(0,0,0,0.7)" }}>
+              If you choose Option A, run:
+            </p>
+            <pre
+              style={{
+                margin: "8px 0 0",
+                fontSize: 12,
+                color: "#262626",
+                whiteSpace: "pre-wrap",
+                background: "#fff",
+                border: "1px solid #ffd5c0",
+                borderRadius: 8,
+                padding: "10px 12px",
+                overflowX: "auto",
+                position: "relative",
+              }}
+            >
+              <button
+                onClick={() => void copyToClipboard(chromiumCloneCommand)}
+                className="btn-ghost"
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  height: 24,
+                  padding: "0 8px",
+                  borderRadius: 6,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  fontFamily: "inherit",
+                }}
+              >
+                Copy
+              </button>
+              <code>{chromiumCloneCommand}</code>
+            </pre>
+            <p style={{ margin: 0, fontSize: 12, color: "rgba(0,0,0,0.7)" }}>
+              If you choose Option B, run:
+            </p>
+            <pre
+              style={{
+                margin: "8px 0 0",
+                fontSize: 12,
+                color: "#262626",
+                whiteSpace: "pre-wrap",
+                background: "#fff",
+                border: "1px solid #ffd5c0",
+                borderRadius: 8,
+                padding: "10px 12px",
+                overflowX: "auto",
+                position: "relative",
+              }}
+            >
+              <button
+                onClick={() => void copyToClipboard(firecrawlCommand)}
+                className="btn-ghost"
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  height: 24,
+                  padding: "0 8px",
+                  borderRadius: 6,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  fontFamily: "inherit",
+                }}
+              >
+                Copy
+              </button>
+              <code>{firecrawlCommand}</code>
+            </pre>
+            <p style={{ margin: "8px 0 0", fontSize: 12, color: "rgba(0,0,0,0.7)" }}>
+              Then search Chromium at: https://source.chromium.org
+            </p>
+          </div>
+          <div style={{ marginTop: 20, display: "flex", gap: 10 }}>
+            <button
+              className="btn-heat"
+              onClick={() => void launchLevel(pendingLevel ?? 2)}
+              style={{ height: 36, padding: "0 16px", borderRadius: 8, fontWeight: 700 }}
+            >
+              I&apos;m Ready, Start Level 2
+            </button>
+            <button
+              className="btn-ghost"
+              onClick={() => {
+                setPendingLevel(null);
+                setScreen("landing");
+              }}
+              style={{ height: 36, padding: "0 16px", borderRadius: 8, fontWeight: 700 }}
+            >
+              Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === "level3-prereq") {
+    const level3CompilerCommand =
+      level3Preview?.language === "Rust"
+        ? "rustc --version"
+        : level3Preview?.language === "C++"
+          ? "c++ --version"
+          : level3Preview?.language === "C"
+            ? "cc --version"
+            : "cc --version\nc++ --version\nrustc --version";
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "linear-gradient(140deg, #fff7f2 0%, #fff 100%)",
+          padding: 24,
+          fontFamily: "'SF Mono', 'Fira Code', var(--font-geist-mono), monospace",
+        }}
+      >
+        <div
+          style={{
+            width: "min(760px, 100%)",
+            background: "#fff",
+            border: "1px solid #ffd5c0",
+            borderRadius: 16,
+            padding: 24,
+            boxShadow: "0 12px 30px rgba(250, 93, 25, 0.08)",
+          }}
+        >
+          <h2 style={{ margin: 0, color: "#fa5d19", fontSize: 24, fontWeight: 800 }}>
+            Before Level 3: Compiler Readiness
+          </h2>
+          <p style={{ margin: "10px 0 0", fontSize: 13, color: "rgba(0,0,0,0.7)" }}>
+            {level3PreviewLoading ? (
+              "Loading your next Level 3 challenge details..."
+            ) : level3Preview ? (
+              <>
+                Your next Level 3 challenge is <strong>{level3Preview.taskName}</strong> in{" "}
+                <strong>{level3Preview.language}</strong>. Confirm your compiler is ready.
+              </>
+            ) : (
+              <>
+                Confirm you have a <strong>C</strong>, <strong>C++</strong>, or{" "}
+                <strong>Rust</strong> compiler ready for the Level 3 systems challenge.
+              </>
+            )}
+          </p>
+          <div
+            style={{
+              marginTop: 14,
+              background: "#fff7f2",
+              border: "1px solid #ffd5c0",
+              borderRadius: 12,
+              padding: 12,
+            }}
+          >
+            <p style={{ margin: 0, fontSize: 12, color: "rgba(0,0,0,0.7)" }}>
+              Suggested local check:
+            </p>
+            <pre
+              style={{
+                margin: "8px 0 0",
+                fontSize: 12,
+                color: "#262626",
+                whiteSpace: "pre-wrap",
+                background: "#fff",
+                border: "1px solid #ffd5c0",
+                borderRadius: 8,
+                padding: "10px 12px",
+                overflowX: "auto",
+                position: "relative",
+              }}
+            >
+              <button
+                onClick={() => void copyToClipboard(level3CompilerCommand)}
+                className="btn-ghost"
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  height: 24,
+                  padding: "0 8px",
+                  borderRadius: 6,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  fontFamily: "inherit",
+                }}
+              >
+                Copy
+              </button>
+              <code>{level3CompilerCommand}</code>
+            </pre>
+          </div>
+          {level3PreviewError && (
+            <p style={{ margin: "10px 0 0", fontSize: 12, color: "#dc2626" }}>
+              {level3PreviewError}
+            </p>
+          )}
+          <div style={{ marginTop: 20, display: "flex", gap: 10 }}>
+            <button
+              className="btn-heat"
+              onClick={() => void launchLevel(pendingLevel ?? 3, level3Preview?.challengeId)}
+              disabled={level3PreviewLoading}
+              style={{ height: 36, padding: "0 16px", borderRadius: 8, fontWeight: 700 }}
+            >
+              {level3PreviewLoading ? "Loading..." : "Compiler Ready, Start Level 3"}
+            </button>
+            <button
+              className="btn-ghost"
+              onClick={() => {
+                setPendingLevel(null);
+                setScreen("landing");
+              }}
+              style={{ height: 36, padding: "0 16px", borderRadius: 8, fontWeight: 700 }}
+            >
+              Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   /* ═══════════════════════════════════════════════════════════
      RESULTS
      ═══════════════════════════════════════════════════════════ */
