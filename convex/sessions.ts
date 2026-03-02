@@ -11,11 +11,15 @@ const SESSION_COOLDOWN_MS = 5_000;
 export const ROUND_DURATION_L2_MS = 45_000;
 export const ROUND_DURATION_L3_MS = 120_000;
 
+function isConvexDevMode(): boolean {
+  const env = (process.env.MY_ENV || process.env.my_env || "").trim().toLowerCase();
+  return env === "development";
+}
+
 export const createInternal = internalMutation({
   args: {
     github: v.string(),
     requestedLevel: v.optional(v.number()),
-    isDev: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const ghResult = validateGithub(args.github);
@@ -43,8 +47,8 @@ export const createInternal = internalMutation({
       throw new Error("invalid requested level");
     }
 
-    // In dev mode (explicit flag from frontend), allow playing any level
-    if (!args.isDev && level > unlockedLevel) {
+    // In dev mode, allow playing any level for local/testing workflows.
+    if (!isConvexDevMode() && level > unlockedLevel) {
       level = unlockedLevel;
     }
 
@@ -106,7 +110,6 @@ export const create = action({
     secret: v.string(),
     github: v.string(),
     requestedLevel: v.optional(v.number()),
-    isDev: v.optional(v.boolean()),
   },
   handler: async (
     ctx,
@@ -124,7 +127,6 @@ export const create = action({
     return await ctx.runMutation(internal.sessions.createInternal, {
       github: args.github,
       requestedLevel: args.requestedLevel,
-      isDev: args.isDev,
     });
   },
 });

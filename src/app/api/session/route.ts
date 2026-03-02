@@ -5,7 +5,6 @@ import { resolveGitHubFromHeader } from "../../../lib/github-auth";
 import { auth } from "../../../../auth";
 import { warmLevel3Runtime } from "../../../../server/level3/validation";
 import { getLevel3ChallengeFromId } from "../../../../server/level3/problems";
-import { isServerDevMode } from "../../../lib/myEnv";
 import { normalizeTestCasesWithArgs } from "../../../lib/testcaseArgs";
 
 type SessionLevel1Problem = {
@@ -63,13 +62,10 @@ export async function POST(request: Request) {
     }
 
     const convex = new ConvexHttpClient(convexUrl);
-    // In dev mode, allow any level to be played (for testing Level 2)
-    const isDev = isServerDevMode();
     const result = await convex.action(api.sessions.create, {
       secret: process.env.CONVEX_MUTATION_SECRET!,
       github,
       requestedLevel,
-      isDev,
     });
 
     if (result.level === 1 && Array.isArray(result.problems)) {

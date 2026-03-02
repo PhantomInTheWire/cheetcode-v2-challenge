@@ -75,6 +75,7 @@ export const recordResultsInternal = internalMutation({
       .query("leaderboard")
       .withIndex("by_github", (q) => q.eq("github", args.github))
       .first();
+    const nextAttempts = existing?.attempts === undefined ? 1 : existing.attempts + 1;
 
     if (!existing && solvedCount === 0 && elo <= 0) {
       return { elo: 0, solved: 0, rank: 0, timeRemaining: timeRemainingSecs };
@@ -143,7 +144,7 @@ export const recordResultsInternal = internalMutation({
       const updates: Record<string, unknown> = {};
 
       if (solvedCount > 0 || elo > 0) {
-        updates.attempts = (existing.attempts ?? 1) + 1;
+        updates.attempts = nextAttempts;
       }
 
       if (shouldUpdateBests) {
@@ -171,7 +172,7 @@ export const recordResultsInternal = internalMutation({
 
     const top = await ctx.db.query("leaderboard").withIndex("by_elo").order("desc").take(100);
     const sorted = sortByEloAndAttempts(top);
-    const userAttempts = (existing?.attempts ?? 0) + 1;
+    const userAttempts = nextAttempts;
     // calculateRank needs to check the totalElo against sorted list
     const rank = calculateRank(sorted, totalElo, userAttempts);
 
