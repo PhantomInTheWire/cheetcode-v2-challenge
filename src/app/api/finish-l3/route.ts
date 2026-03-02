@@ -4,6 +4,7 @@ import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { validateLevel3Submission } from "../../../../server/level3/validation";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
+import { SHADOW_BAN_HEADER } from "../../../lib/abuse-guard";
 
 type RequestBody = {
   sessionId: string;
@@ -65,6 +66,16 @@ export async function POST(request: Request) {
     }
     const solvedProblemIds = validation.results.filter((r) => r.correct).map((r) => r.problemId);
     const clientElapsedMs = Math.max(0, Math.min(session.expiresAt - session.startedAt, timeElapsed));
+
+    if (request.headers.get(SHADOW_BAN_HEADER) === "1") {
+      return NextResponse.json({
+        elo: 0,
+        solved: 0,
+        rank: 9999,
+        timeRemaining: Math.max(0, Math.floor((session.expiresAt - session.startedAt - clientElapsedMs) / 1000)),
+        validation,
+      });
+    }
 
     const result = await convex.action(api.submissions.recordResults, {
       secret: process.env.CONVEX_MUTATION_SECRET!,

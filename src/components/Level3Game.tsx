@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { isClientDevMode } from "../lib/myEnv";
+import { clientFetch } from "../lib/client-identity";
 
 const ROUND_DURATION_L3_MS = 120_000;
 
@@ -78,7 +79,7 @@ export function Level3Game({ sessionId, github, challenge, expiresAt, onFinishAc
     setIsChecking(true);
     setCompileError(null);
     try {
-      const res = await fetch("/api/validate-l3", {
+      const res = await clientFetch("/api/validate-l3", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ challengeId: challenge.id, code }),
@@ -110,7 +111,7 @@ export function Level3Game({ sessionId, github, challenge, expiresAt, onFinishAc
   async function autoSolve() {
     if (!canAutoSolve) return;
     try {
-      const res = await fetch("/api/dev/auto-solve-l3", {
+      const res = await clientFetch("/api/dev/auto-solve-l3", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ challengeId: challenge.id }),
@@ -132,7 +133,7 @@ export function Level3Game({ sessionId, github, challenge, expiresAt, onFinishAc
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      const finishRes = await fetch("/api/finish-l3", {
+      const finishRes = await clientFetch("/api/finish-l3", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({

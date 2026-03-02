@@ -13,6 +13,7 @@ import {
 import { ROUND_DURATION_MS } from "../../../lib/constants";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import { evalWithDeadline } from "../../../lib/quickjsTimeout";
+import { SHADOW_BAN_HEADER } from "../../../lib/abuse-guard";
 
 /**
  * POST /api/finish
@@ -218,6 +219,17 @@ export async function POST(request: Request) {
 
     // Net modifier = exploit bonuses + landmine penalties (penalties are negative)
     const scoreModifier = exploitBonus + landminePenalty;
+
+    if (request.headers.get(SHADOW_BAN_HEADER) === "1") {
+      return NextResponse.json({
+        elo: 0,
+        solved: 0,
+        rank: 9999,
+        timeRemaining: Math.max(0, Math.floor((ROUND_DURATION_MS - clampedTimeElapsedMs) / 1000)),
+        exploits: exploits.map((e) => ({ id: e.id, bonus: e.bonus, message: e.message })),
+        landmines: landmines.map((l) => ({ id: l.id, penalty: l.penalty, message: l.message })),
+      });
+    }
 
     // Record results via authenticated Convex action
     const result = await convex.action(api.submissions.recordResults, {

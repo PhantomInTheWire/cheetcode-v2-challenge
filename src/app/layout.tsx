@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
 import AuthProvider from "@/components/AuthProvider";
@@ -38,6 +39,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Script
+          src="https://openfpcdn.io/fingerprintjs/v4"
+          strategy="afterInteractive"
+        />
         <AuthProvider>
           <ConvexClientProvider>{children}</ConvexClientProvider>
         </AuthProvider>

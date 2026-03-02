@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { isClientDevMode } from "../lib/myEnv";
+import { clientFetch } from "../lib/client-identity";
 
 const ROUND_DURATION_L2_MS = 45_000;
 
@@ -55,7 +56,7 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinishAct
     setSubmitError(null);
     try {
       // Validate all answers via API
-      const validateRes = await fetch("/api/validate-l2", {
+      const validateRes = await clientFetch("/api/validate-l2", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ answers }),
@@ -70,7 +71,7 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinishAct
         .map((r: { problemId: string }) => r.problemId);
 
       // Submit results
-      const finishRes = await fetch("/api/finish-l2", {
+      const finishRes = await clientFetch("/api/finish-l2", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -106,7 +107,7 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinishAct
     
     setLocalCorrect((cur) => ({ ...cur, [problemId]: null }));
     try {
-      const res = await fetch("/api/validate-l2", {
+      const res = await clientFetch("/api/validate-l2", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ answers: { [problemId]: answer } }),
@@ -122,7 +123,7 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinishAct
   async function autoSolve() {
     if (!canAutoSolve) return;
     try {
-      const res = await fetch("/api/dev/auto-solve-l2", {
+      const res = await clientFetch("/api/dev/auto-solve-l2", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ problemIds: problems.map((p) => p.id) }),

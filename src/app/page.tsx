@@ -11,6 +11,7 @@ import { Level3Game } from "@/components/Level3Game";
 import { validateEmail, validateXHandle } from "@/lib/validation";
 import { ROUND_DURATION_MS, ROUND_DURATION_SECONDS, PROBLEMS_PER_SESSION, SITE_URL } from "@/lib/constants";
 import { isClientDevMode } from "@/lib/myEnv";
+import { clientFetch } from "@/lib/client-identity";
 
 type Screen = "landing" | "playing" | "results";
 
@@ -143,7 +144,7 @@ export default function Home() {
     try {
       // Call our Next.js API route which validates with QuickJS (in-process)
       // then updates Convex leaderboard — no cross-origin issues
-      const res = await fetch("/api/finish", {
+      const res = await clientFetch("/api/finish", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -181,7 +182,7 @@ export default function Home() {
     if (!isLocalDev && level > unlockedLevel) return;
 
     try {
-      const res = await fetch("/api/session", {
+      const res = await clientFetch("/api/session", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ level, isDev: isLocalDev }),
@@ -235,7 +236,7 @@ export default function Home() {
   async function runLocalCheck(problem: GameProblem) {
     setLocalPass((cur) => ({ ...cur, [problem.id]: null }));
     try {
-      const res = await fetch("/api/validate", {
+      const res = await clientFetch("/api/validate", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -260,7 +261,7 @@ export default function Home() {
     setXHandleError("");
 
     try {
-      const res = await fetch("/api/leads", {
+      const res = await clientFetch("/api/leads", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -311,7 +312,7 @@ export default function Home() {
     setIsAutoSolving(true);
     try {
       // Auto-solve uses a local API route (dev-only) — pass problem IDs directly
-      const r = await fetch("/api/dev/auto-solve", {
+      const r = await clientFetch("/api/dev/auto-solve", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ problemIds: problems.map((p) => p.id) }),
@@ -339,7 +340,7 @@ export default function Home() {
         .filter((x) => x.code.trim().length > 0);
 
       if (items.length > 0) {
-        const vRes = await fetch("/api/validate-batch", {
+        const vRes = await clientFetch("/api/validate-batch", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ items }),
@@ -367,7 +368,7 @@ export default function Home() {
               const code = d.solutions[p.id];
               if (!code?.trim()) return [p.id, null] as const;
               try {
-                const single = await fetch("/api/validate", {
+                const single = await clientFetch("/api/validate", {
                   method: "POST",
                   headers: { "content-type": "application/json" },
                   body: JSON.stringify({ code, testCases: p.testCases }),
