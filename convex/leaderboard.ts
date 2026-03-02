@@ -6,11 +6,7 @@ export const getAll = query({
   args: {},
   handler: async (ctx) => {
     // Only return the top 100 on the leaderboard to prevent massive payload sizes
-    const records = await ctx.db
-      .query("leaderboard")
-      .withIndex("by_elo")
-      .order("desc")
-      .take(100);
+    const records = await ctx.db.query("leaderboard").withIndex("by_elo").order("desc").take(100);
 
     return sortByEloAndAttempts(records).map((r) => ({
       github: r.github,
@@ -30,5 +26,5 @@ export const getMyLevel = query({
       .withIndex("by_github", (q) => q.eq("github", args.github))
       .first();
     return record?.unlockedLevel ?? 1;
-  }
+  },
 });

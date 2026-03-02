@@ -20,7 +20,7 @@ const language = ${JSON.stringify(language)};
 const HARNESS_SOURCE = ${JSON.stringify(harnessSource)};
 
 function run(cmd, args) {
-  return spawnSync(cmd, args, { encoding: "utf8" });
+  return spawnSync(cmd, args, { encoding: "utf8", timeout: 10_000, killSignal: "SIGKILL" });
 }
 
 function compileAndRun() {
@@ -64,8 +64,8 @@ if (!compileResult || compileResult.status !== 0) {
 
 if (!runResult || runResult.status !== 0) {
   fs.writeFileSync("result.json", JSON.stringify({
-    compiled: false,
-    error: (runResult?.stderr || runResult?.stdout || "harness failed").toString().slice(0, 4000),
+    compiled: true,
+    error: (runResult?.stderr || runResult?.stdout || runResult?.signal || "harness failed").toString().slice(0, 4000),
     harness: {}
   }), "utf8");
   process.exit(0);

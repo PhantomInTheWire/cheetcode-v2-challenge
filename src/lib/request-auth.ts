@@ -7,7 +7,9 @@ export type AuthenticatedGithubResult =
   | { ok: true; github: string }
   | { ok: false; response: NextResponse };
 
-export async function requireAuthenticatedGithub(request: Request): Promise<AuthenticatedGithubResult> {
+export async function requireAuthenticatedGithub(
+  request: Request,
+): Promise<AuthenticatedGithubResult> {
   let resolvedGithub = await resolveGitHubFromHeader(request);
   if (!resolvedGithub) {
     const oauthSession = await auth();

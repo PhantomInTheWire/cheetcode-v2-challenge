@@ -42,7 +42,20 @@ type Level3GameProps = {
   onFinishAction: (results: Level3FinishResult) => void;
 };
 
-export function Level3Game({ sessionId, github, challenge, expiresAt, onFinishAction }: Level3GameProps) {
+function extensionForLanguage(language: string): string {
+  if (language === "Rust") return "rs";
+  if (language === "C++") return "cpp";
+  if (language === "C") return "c";
+  return "txt";
+}
+
+export function Level3Game({
+  sessionId,
+  github,
+  challenge,
+  expiresAt,
+  onFinishAction,
+}: Level3GameProps) {
   const canAutoSolve = isClientDevMode();
   const [code, setCode] = useState(challenge.starterCode);
   const [now, setNow] = useState(Date.now());
@@ -97,7 +110,11 @@ export function Level3Game({ sessionId, github, challenge, expiresAt, onFinishAc
 
       const nextState: Record<string, boolean | null> = {};
       const correctIds: string[] = [];
-      for (const result of data.results as Array<{ problemId: string; correct: boolean; message?: string }>) {
+      for (const result of data.results as Array<{
+        problemId: string;
+        correct: boolean;
+        message?: string;
+      }>) {
         nextState[result.problemId] = result.correct;
         if (result.correct) correctIds.push(result.problemId);
       }
@@ -163,7 +180,7 @@ export function Level3Game({ sessionId, github, challenge, expiresAt, onFinishAc
     } finally {
       setIsSubmitting(false);
     }
-  }, [sessionId, github, timeLeftMs, isSubmitting, onFinishAction, code, challenge.id]);
+  }, [sessionId, github, timeLeftMs, isSubmitting, onFinishAction, code]);
 
   useEffect(() => {
     if (timeUp) void finishGame();
@@ -237,17 +254,38 @@ export function Level3Game({ sessionId, github, challenge, expiresAt, onFinishAc
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(0,0,0,0.35)", textTransform: "uppercase" }}>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                color: "rgba(0,0,0,0.35)",
+                textTransform: "uppercase",
+              }}
+            >
               Passed
             </span>
-            <span style={{ fontSize: 16, fontWeight: 800, color: solvedLocal === totalChecks ? "#1a9338" : "#262626" }}>
+            <span
+              style={{
+                fontSize: 16,
+                fontWeight: 800,
+                color: solvedLocal === totalChecks ? "#1a9338" : "#262626",
+              }}
+            >
               {solvedLocal}
               <span style={{ color: "rgba(0,0,0,0.25)" }}>/ {totalChecks}</span>
             </span>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 160, height: 5, background: "#e5e5e5", borderRadius: 4, overflow: "hidden" }}>
+            <div
+              style={{
+                width: 160,
+                height: 5,
+                background: "#e5e5e5",
+                borderRadius: 4,
+                overflow: "hidden",
+              }}
+            >
               <div
                 style={{
                   width: `${progress}%`,
@@ -268,7 +306,9 @@ export function Level3Game({ sessionId, github, challenge, expiresAt, onFinishAc
                 transition: "color 500ms",
               }}
             >
-              {timeUp ? "TIME" : `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`}
+              {timeUp
+                ? "TIME"
+                : `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`}
             </span>
           </div>
 
@@ -363,7 +403,7 @@ export function Level3Game({ sessionId, github, challenge, expiresAt, onFinishAc
             }}
           >
             <p style={{ fontSize: 12, color: "rgba(0,0,0,0.5)", margin: 0 }}>
-              Paste code for <strong>main.{challenge.language === "Rust" ? "rs" : challenge.language === "C++" ? "cpp" : "c"}</strong>
+              Paste code for <strong>main.{extensionForLanguage(challenge.language)}</strong>
             </p>
 
             <textarea
@@ -388,8 +428,14 @@ export function Level3Game({ sessionId, github, challenge, expiresAt, onFinishAc
               }}
             />
 
-            {compileError && <p style={{ fontSize: 12, color: "#dc2626", margin: 0 }}>Compile error: {compileError}</p>}
-            {submitError && <p style={{ fontSize: 12, color: "#dc2626", margin: 0 }}>{submitError}</p>}
+            {compileError && (
+              <p style={{ fontSize: 12, color: "#dc2626", margin: 0 }}>
+                Compile error: {compileError}
+              </p>
+            )}
+            {submitError && (
+              <p style={{ fontSize: 12, color: "#dc2626", margin: 0 }}>{submitError}</p>
+            )}
 
             <div
               style={{
@@ -399,6 +445,7 @@ export function Level3Game({ sessionId, github, challenge, expiresAt, onFinishAc
               }}
             >
               {challenge.checks.map((check) => {
+                const status = localCorrect[check.id];
                 return (
                   <div
                     key={check.id}
@@ -409,7 +456,30 @@ export function Level3Game({ sessionId, github, challenge, expiresAt, onFinishAc
                       background: "#ffffff",
                     }}
                   >
-                    <div style={{ color: "#262626" }}>{check.name}</div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 10,
+                      }}
+                    >
+                      <div style={{ color: "#262626" }}>{check.name}</div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color:
+                            status === true
+                              ? "#1a9338"
+                              : status === false
+                                ? "#dc2626"
+                                : "rgba(0,0,0,0.4)",
+                        }}
+                      >
+                        {status === true ? "PASS" : status === false ? "FAIL" : "PENDING"}
+                      </div>
+                    </div>
                   </div>
                 );
               })}

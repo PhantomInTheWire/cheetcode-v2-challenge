@@ -77,19 +77,31 @@ export function selectSessionProblems(): Problem[] {
   };
 
   const selected: Problem[] = [];
-  
-  (Object.keys(PROBLEM_DISTRIBUTION) as Array<keyof typeof PROBLEM_DISTRIBUTION>).forEach((tier) => {
-    const pool = shuffle(byTier[tier]);
-    const count = PROBLEM_DISTRIBUTION[tier];
-    selected.push(...pool.slice(0, count));
-  });
+
+  (Object.keys(PROBLEM_DISTRIBUTION) as Array<keyof typeof PROBLEM_DISTRIBUTION>).forEach(
+    (tier) => {
+      const pool = shuffle(byTier[tier]);
+      const count = PROBLEM_DISTRIBUTION[tier];
+      if (pool.length < count) {
+        throw new Error(`insufficient ${tier} problems: need ${count}, have ${pool.length}`);
+      }
+      selected.push(...pool.slice(0, count));
+    },
+  );
 
   return shuffle(selected);
 }
 
 export function stripSolution(problem: Problem): PublicProblem {
-  const { solution, ...publicProblem } = problem;
-  return publicProblem;
+  return {
+    id: problem.id,
+    title: problem.title,
+    tier: problem.tier,
+    description: problem.description,
+    signature: problem.signature,
+    starterCode: problem.starterCode,
+    testCases: problem.testCases,
+  };
 }
 
 const CANARY_INJECTION =

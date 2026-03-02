@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getQuickJS, type QuickJSWASMModule } from "quickjs-emscripten";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import { evalWithDeadline } from "../../../lib/quickjsTimeout";
+import { resolveSubmittedFunction } from "../../../lib/quickjsResolve";
 
 /**
  * POST /api/validate
@@ -54,39 +55,6 @@ async function getQJS(): Promise<QuickJSWASMModule> {
   return _qjs;
 }
 
-function resolveSubmittedFunction(vm: ReturnType<QuickJSWASMModule["newContext"]>, code: string): boolean {
-  // Fast path: code is already a function expression.
-  const expressionAttempt = evalWithDeadline(vm, `const __fn__ = (${code}); typeof __fn__ === "function";`, QUICKJS_SETUP_TIMEOUT_MS);
-  if (!("error" in expressionAttempt)) {
-    const ok = vm.dump(expressionAttempt.value) === true;
-    expressionAttempt.value.dispose();
-    if (ok) return true;
-  } else {
-    expressionAttempt.error.dispose();
-  }
-
-  // Fallback: execute as script and grab a named function declaration/assignment.
-  const nameMatch = code.match(
-    /\bfunction\s+([A-Za-z_$][\w$]*)\s*\(|\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=/,
-  );
-  const symbol = (nameMatch?.[1] || nameMatch?.[2] || "").trim();
-  if (!symbol) return false;
-
-  const scriptAttempt = evalWithDeadline(
-    vm,
-    `${code}\n;globalThis.__fn__ = (typeof ${symbol} === "function") ? ${symbol} : undefined;\n` +
-      `typeof globalThis.__fn__ === "function";`,
-    QUICKJS_SETUP_TIMEOUT_MS,
-  );
-  if ("error" in scriptAttempt) {
-    scriptAttempt.error.dispose();
-    return false;
-  }
-  const ok = vm.dump(scriptAttempt.value) === true;
-  scriptAttempt.value.dispose();
-  return ok;
-}
-
 /** Run all test cases in a single VM, returning actual output on failure */
 function runValidation(
   qjs: QuickJSWASMModule,
@@ -99,7 +67,7 @@ function runValidation(
     const setup = evalWithDeadline(
       vm,
       `globalThis.console={log(){},warn(){},error(){},info(){}};` +
-      `globalThis.__FIRECRAWL__="${FLAG}";`,
+        `globalThis.__FIRECRAWL__="${FLAG}";`,
       QUICKJS_SETUP_TIMEOUT_MS,
     );
     if ("error" in setup) {
@@ -108,7 +76,7 @@ function runValidation(
     }
     setup.value.dispose();
 
-    if (!resolveSubmittedFunction(vm, code)) {
+    if (!resolveSubmittedFunction(vm, code, QUICKJS_SETUP_TIMEOUT_MS, evalWithDeadline)) {
       return { passed: false, error: "Syntax error in submitted code" };
     }
 
@@ -126,16 +94,27 @@ function runValidation(
       const expected = JSON.stringify(tc.expected);
 
       // Get the actual stringified result from the user's function
-      const actualResult = evalWithDeadline(vm, `JSON.stringify(__fn__(...${args}));`, QUICKJS_TEST_TIMEOUT_MS);
+      const actualResult = evalWithDeadline(
+        vm,
+        `JSON.stringify(__fn__(...${args}));`,
+        QUICKJS_TEST_TIMEOUT_MS,
+      );
       if ("error" in actualResult) {
         const errDump = vm.dump(actualResult.error) as { message?: string } | string;
-        const errMessage = typeof errDump === "string" ? errDump : errDump?.message ?? "Runtime error";
+        const errMessage =
+          typeof errDump === "string" ? errDump : (errDump?.message ?? "Runtime error");
         actualResult.error.dispose();
         const isTimeout = errMessage.toLowerCase().includes("interrupted");
         return {
           passed: false,
-          error: isTimeout ? `Time limit exceeded (${QUICKJS_TEST_TIMEOUT_MS}ms per test)` : "Runtime error",
-          failedCase: { input: tc.input, expected: tc.expected, actual: isTimeout ? "TIMEOUT" : "ERROR" },
+          error: isTimeout
+            ? `Time limit exceeded (${QUICKJS_TEST_TIMEOUT_MS}ms per test)`
+            : "Runtime error",
+          failedCase: {
+            input: tc.input,
+            expected: tc.expected,
+            actual: isTimeout ? "TIMEOUT" : "ERROR",
+          },
         };
       }
       const actualStr = vm.dump(actualResult.value) as string;
@@ -144,7 +123,11 @@ function runValidation(
       if (actualStr !== expected) {
         // Parse the actual value back so the response is clean JSON, not a string
         let actual: unknown;
-        try { actual = JSON.parse(actualStr); } catch { actual = actualStr; }
+        try {
+          actual = JSON.parse(actualStr);
+        } catch {
+          actual = actualStr;
+        }
         return {
           passed: false,
           failedCase: { input: tc.input, expected: tc.expected, actual },

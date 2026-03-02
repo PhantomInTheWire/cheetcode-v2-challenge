@@ -49,7 +49,7 @@
   --color-heat-4: rgba(250, 93, 25, 0.04);
   --color-heat-8: rgba(250, 93, 25, 0.08);
   --color-heat-12: rgba(250, 93, 25, 0.12);
-  --color-heat-20: rgba(250, 93, 25, 0.20);
+  --color-heat-20: rgba(250, 93, 25, 0.2);
   --color-heat-100: #fa5d19;
 
   --color-accent-black: #262626;
@@ -72,10 +72,10 @@
   --color-black-alpha-5: rgba(0, 0, 0, 0.05);
   --color-black-alpha-6: rgba(0, 0, 0, 0.06);
   --color-black-alpha-8: rgba(0, 0, 0, 0.08);
-  --color-black-alpha-10: rgba(0, 0, 0, 0.10);
+  --color-black-alpha-10: rgba(0, 0, 0, 0.1);
   --color-black-alpha-12: rgba(0, 0, 0, 0.12);
-  --color-black-alpha-20: rgba(0, 0, 0, 0.20);
-  --color-black-alpha-50: rgba(0, 0, 0, 0.50);
+  --color-black-alpha-20: rgba(0, 0, 0, 0.2);
+  --color-black-alpha-50: rgba(0, 0, 0, 0.5);
 
   /* Default transition */
   --default-transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -90,7 +90,11 @@
 body {
   background: var(--color-background-base);
   color: var(--color-accent-black);
-  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    var(--font-geist-sans),
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 }
 
 /* ─── Firecrawl primary button ─── */
@@ -114,8 +118,13 @@ body {
     inset 0px -6px 12px 0px rgba(255, 0, 0, 0.2),
     0px 4px 8px 0px rgba(250, 93, 25, 0.4);
 }
-.btn-heat:active { transform: scale(0.995); }
-.btn-heat:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-heat:active {
+  transform: scale(0.995);
+}
+.btn-heat:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 /* ─── Ghost button ─── */
 .btn-ghost {
@@ -125,17 +134,38 @@ body {
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
-.btn-ghost:hover { background: var(--color-black-alpha-6); border-color: var(--color-border-loud); }
-.btn-ghost:active { transform: scale(0.99); }
+.btn-ghost:hover {
+  background: var(--color-black-alpha-6);
+  border-color: var(--color-border-loud);
+}
+.btn-ghost:active {
+  transform: scale(0.99);
+}
 
 /* ─── Difficulty badges ─── */
-.badge-easy { background: rgba(26, 147, 56, 0.10); color: #1a9338; }
-.badge-medium { background: rgba(180, 83, 9, 0.10); color: #b45309; }
-.badge-hard { background: rgba(220, 38, 38, 0.10); color: #dc2626; }
+.badge-easy {
+  background: rgba(26, 147, 56, 0.1);
+  color: #1a9338;
+}
+.badge-medium {
+  background: rgba(180, 83, 9, 0.1);
+  color: #b45309;
+}
+.badge-hard {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
 
 /* ─── Timer pulse for last 10 seconds ─── */
 @keyframes timer-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
-.timer-critical { animation: timer-pulse 0.6s ease-in-out infinite; }
+.timer-critical {
+  animation: timer-pulse 0.6s ease-in-out infinite;
+}

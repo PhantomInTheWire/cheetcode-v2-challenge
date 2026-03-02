@@ -2,18 +2,38 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
+import Image from "next/image";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import type { GameProblem } from "@/lib/types";
 import type { Id } from "../../convex/_generated/dataModel";
 import { Level2Game } from "@/components/Level2Game";
 import { Level3Game } from "@/components/Level3Game";
 import { validateEmail, validateXHandle } from "@/lib/validation";
-import { ROUND_DURATION_MS, ROUND_DURATION_SECONDS, PROBLEMS_PER_SESSION, SITE_URL } from "@/lib/constants";
+import {
+  ROUND_DURATION_MS,
+  ROUND_DURATION_SECONDS,
+  PROBLEMS_PER_SESSION,
+  SITE_URL,
+} from "@/lib/constants";
 import { isClientDevMode } from "@/lib/myEnv";
 import { clientFetch } from "@/lib/client-identity";
 
 type Screen = "landing" | "playing" | "results";
+type ProblemTier = "easy" | "medium" | "hard" | "competitive";
+type ProblemTestCase = {
+  input: Record<string, unknown>;
+  expected: unknown;
+  args?: unknown[];
+};
+type GameProblem = {
+  id: string;
+  title: string;
+  tier: ProblemTier;
+  description: string;
+  signature: string;
+  starterCode: string;
+  testCases: ProblemTestCase[];
+};
 
 type ExploitInfo = {
   id: string;
@@ -52,10 +72,12 @@ const ORIGINAL_TWEET_URL = "https://x.com/CalebPeffer/status/2024167056372097131
 
 /** True when viewport < 900px — gate gameplay on small screens */
 function useIsMobile() {
-  const [mobile, setMobile] = useState(false);
+  const [mobile, setMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`).matches;
+  });
   useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
-    setMobile(mql.matches);
     const handler = (e: MediaQueryListEvent) => setMobile(e.matches);
     mql.addEventListener("change", handler);
     return () => mql.removeEventListener("change", handler);
@@ -93,11 +115,15 @@ export default function Home() {
   const isMobile = useIsMobile();
 
   // ── Convex hooks (read-only — all mutations go through authenticated API routes) ──
-  const leaderboard = useQuery(api.leaderboard.getAll) ?? [];
+  const leaderboardQuery = useQuery(api.leaderboard.getAll);
+  const leaderboard = useMemo(() => leaderboardQuery ?? [], [leaderboardQuery]);
   const [lbPage, setLbPage] = useState(0);
   const LB_PAGE_SIZE = 25;
   const displayedSolveTarget = useMemo(() => {
-    const bestFromBoard = leaderboard.reduce((max, row) => Math.max(max, row.solved), TOTAL_SOLVE_TARGET);
+    const bestFromBoard = leaderboard.reduce(
+      (max, row) => Math.max(max, row.solved),
+      TOTAL_SOLVE_TARGET,
+    );
     const bestFromSession = results ? Math.max(bestFromBoard, results.solved) : bestFromBoard;
     return Math.max(TOTAL_SOLVE_TARGET, bestFromSession);
   }, [leaderboard, results]);
@@ -127,7 +153,9 @@ export default function Home() {
 
   const timeLeftMs = useMemo(() => Math.max(0, expiresAt - now), [expiresAt, now]);
   const secondsLeft = Math.ceil(timeLeftMs / 1000);
-  const progress = expiresAt ? Math.max(0, Math.min(100, (timeLeftMs / ROUND_DURATION_MS) * 100)) : 0;
+  const progress = expiresAt
+    ? Math.max(0, Math.min(100, (timeLeftMs / ROUND_DURATION_MS) * 100))
+    : 0;
   const solvedLocal = useMemo(
     () => problems.filter((p) => localPass[p.id] === true).length,
     [problems, localPass],
@@ -189,11 +217,11 @@ export default function Home() {
       });
       if (!res.ok) throw new Error(`session creation failed: ${res.status}`);
       const d = await res.json();
-      
+
       setCurrentLevel(d.level);
       setSessionId(d.sessionId);
       setExpiresAt(d.expiresAt);
-      
+
       if (d.level === 2) {
         // Level 2: Set text problems
         setL2Problems(d.problems as { id: string; question: string }[]);
@@ -201,26 +229,32 @@ export default function Home() {
         setL3Challenge(null);
       } else if (d.level === 3) {
         // Level 3: Set generated systems challenge
-        const challenge = (d.problems as Array<{
-          id: string;
-          title: string;
-          taskName: string;
-          language: string;
-          spec: string;
-          checks: { id: string; name: string }[];
-          starterCode: string;
-        }>)[0];
+        const challenge = (
+          d.problems as Array<{
+            id: string;
+            title: string;
+            taskName: string;
+            language: string;
+            spec: string;
+            checks: { id: string; name: string }[];
+            starterCode: string;
+          }>
+        )[0];
         setL3Challenge(challenge);
         setProblems([]);
         setL2Problems([]);
       } else {
         // Level 1: Set code problems
         setProblems(d.problems as unknown as GameProblem[]);
-        setCodes(Object.fromEntries(d.problems.map((p: { id: string; starterCode: string }) => [p.id, p.starterCode])));
+        setCodes(
+          Object.fromEntries(
+            d.problems.map((p: { id: string; starterCode: string }) => [p.id, p.starterCode]),
+          ),
+        );
         setL2Problems([]);
         setL3Challenge(null);
       }
-      
+
       setLocalPass({});
       setSubmittedLead(false);
       setResults(null);
@@ -255,8 +289,14 @@ export default function Home() {
     if (!sessionId) return;
     const emailResult = validateEmail(email);
     const xResult = validateXHandle(xHandle);
-    if (emailResult.ok === false) { setEmailError(emailResult.error); return; }
-    if (xResult.ok === false) { setXHandleError(xResult.error); return; }
+    if (emailResult.ok === false) {
+      setEmailError(emailResult.error);
+      return;
+    }
+    if (xResult.ok === false) {
+      setXHandleError(xResult.error);
+      return;
+    }
     setEmailError("");
     setXHandleError("");
 
@@ -323,9 +363,7 @@ export default function Home() {
       };
       setCodes((cur) => ({ ...cur, ...d.solutions }));
 
-      const solvedIds = problems
-        .map((p) => p.id)
-        .filter((id) => Boolean(d.solutions[id]?.trim()));
+      const solvedIds = problems.map((p) => p.id).filter((id) => Boolean(d.solutions[id]?.trim()));
 
       if (solvedIds.length > 0) {
         setLocalPass((cur) => {
@@ -445,7 +483,16 @@ export default function Home() {
                   <thead>
                     <tr style={{ borderBottom: "1px solid #e5e5e5" }}>
                       {["#", "Player", "Solved", "Tries", "Score"].map((h) => (
-                        <th key={h} style={{ padding: "12px 14px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "rgba(0,0,0,0.4)" }}>
+                        <th
+                          key={h}
+                          style={{
+                            padding: "12px 14px",
+                            textAlign: "left",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: "rgba(0,0,0,0.4)",
+                          }}
+                        >
                           {h}
                         </th>
                       ))}
@@ -454,7 +501,10 @@ export default function Home() {
                   <tbody>
                     {slice.length === 0 && (
                       <tr>
-                        <td colSpan={5} style={{ padding: "16px 14px", fontSize: 13, color: "rgba(0,0,0,0.4)" }}>
+                        <td
+                          colSpan={5}
+                          style={{ padding: "16px 14px", fontSize: 13, color: "rgba(0,0,0,0.4)" }}
+                        >
                           No entries yet.
                         </td>
                       </tr>
@@ -463,17 +513,46 @@ export default function Home() {
                       const rank = page * LB_PAGE_SIZE + i + 1;
                       return (
                         <tr key={row.github} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                          <td style={{ padding: "10px 14px", fontSize: 13, fontWeight: 700, color: rank <= 3 ? "#fa5d19" : "rgba(0,0,0,0.3)" }}>
+                          <td
+                            style={{
+                              padding: "10px 14px",
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: rank <= 3 ? "#fa5d19" : "rgba(0,0,0,0.3)",
+                            }}
+                          >
                             {rank}
                           </td>
-                          <td style={{ padding: "10px 14px", fontSize: 13, color: "#262626" }}>@{row.github}</td>
-                          <td style={{ padding: "10px 14px", fontSize: 13, color: row.solved >= TOTAL_SOLVE_TARGET ? "#1a9338" : "rgba(0,0,0,0.4)" }}>
+                          <td style={{ padding: "10px 14px", fontSize: 13, color: "#262626" }}>
+                            @{row.github}
+                          </td>
+                          <td
+                            style={{
+                              padding: "10px 14px",
+                              fontSize: 13,
+                              color:
+                                row.solved >= TOTAL_SOLVE_TARGET ? "#1a9338" : "rgba(0,0,0,0.4)",
+                            }}
+                          >
                             {row.solved}/{displayedSolveTarget}
                           </td>
-                          <td style={{ padding: "10px 14px", fontSize: 13, color: "rgba(0,0,0,0.35)" }}>
+                          <td
+                            style={{
+                              padding: "10px 14px",
+                              fontSize: 13,
+                              color: "rgba(0,0,0,0.35)",
+                            }}
+                          >
                             {row.attempts ?? 1}
                           </td>
-                          <td style={{ padding: "10px 14px", fontSize: 13, fontWeight: 600, color: row.elo > 1000 ? "#fa5d19" : "rgba(0,0,0,0.4)" }}>
+                          <td
+                            style={{
+                              padding: "10px 14px",
+                              fontSize: 13,
+                              fontWeight: 600,
+                              color: row.elo > 1000 ? "#fa5d19" : "rgba(0,0,0,0.4)",
+                            }}
+                          >
                             {row.elo.toLocaleString()}
                           </td>
                         </tr>
@@ -483,11 +562,29 @@ export default function Home() {
                 </table>
               </div>
               {totalPages > 1 && (
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 12 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 16,
+                    marginTop: 12,
+                  }}
+                >
                   <button
                     onClick={() => setLbPage((p) => Math.max(0, p - 1))}
                     disabled={page === 0}
-                    style={{ fontSize: 12, fontWeight: 600, fontFamily: "inherit", background: "none", border: "1px solid #e5e5e5", borderRadius: 6, padding: "6px 14px", cursor: page === 0 ? "not-allowed" : "pointer", color: page === 0 ? "rgba(0,0,0,0.2)" : "#262626" }}
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      fontFamily: "inherit",
+                      background: "none",
+                      border: "1px solid #e5e5e5",
+                      borderRadius: 6,
+                      padding: "6px 14px",
+                      cursor: page === 0 ? "not-allowed" : "pointer",
+                      color: page === 0 ? "rgba(0,0,0,0.2)" : "#262626",
+                    }}
                   >
                     Prev
                   </button>
@@ -497,7 +594,17 @@ export default function Home() {
                   <button
                     onClick={() => setLbPage((p) => Math.min(totalPages - 1, p + 1))}
                     disabled={page >= totalPages - 1}
-                    style={{ fontSize: 12, fontWeight: 600, fontFamily: "inherit", background: "none", border: "1px solid #e5e5e5", borderRadius: 6, padding: "6px 14px", cursor: page >= totalPages - 1 ? "not-allowed" : "pointer", color: page >= totalPages - 1 ? "rgba(0,0,0,0.2)" : "#262626" }}
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      fontFamily: "inherit",
+                      background: "none",
+                      border: "1px solid #e5e5e5",
+                      borderRadius: 6,
+                      padding: "6px 14px",
+                      cursor: page >= totalPages - 1 ? "not-allowed" : "pointer",
+                      color: page >= totalPages - 1 ? "rgba(0,0,0,0.2)" : "#262626",
+                    }}
                   >
                     Next
                   </button>
@@ -529,16 +636,37 @@ export default function Home() {
       >
         <div style={{ width: "100%", maxWidth: 600, textAlign: "center" }}>
           {/* Logo */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 40 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              marginBottom: 40,
+            }}
+          >
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ fontSize: 40 }}>🔥</span>
-              <h1 style={{ fontSize: 36, fontWeight: 800, color: "#fa5d19", margin: 0, letterSpacing: -1 }}>
+              <h1
+                style={{
+                  fontSize: 36,
+                  fontWeight: 800,
+                  color: "#fa5d19",
+                  margin: 0,
+                  letterSpacing: -1,
+                }}
+              >
                 FIRECRAWL CTF
               </h1>
             </div>
             <a
               href={SITE_URL}
-              style={{ fontSize: 12, color: "rgba(0,0,0,0.3)", marginTop: 6, textDecoration: "none", fontWeight: 500 }}
+              style={{
+                fontSize: 12,
+                color: "rgba(0,0,0,0.3)",
+                marginTop: 6,
+                textDecoration: "none",
+                fontWeight: 500,
+              }}
             >
               cheetcode-ctf.firecrawl.dev
             </a>
@@ -554,17 +682,45 @@ export default function Home() {
               boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
             }}
           >
-            <p style={{ fontSize: 44, fontWeight: 800, color: "#262626", margin: 0, lineHeight: 1.1, letterSpacing: -0.5 }}>
+            <p
+              style={{
+                fontSize: 44,
+                fontWeight: 800,
+                color: "#262626",
+                margin: 0,
+                lineHeight: 1.1,
+                letterSpacing: -0.5,
+              }}
+            >
               {PROBLEMS_PER_SESSION} problems. {ROUND_DURATION_SECONDS} seconds.
             </p>
-            <p style={{ fontSize: 16, color: "rgba(0,0,0,0.45)", margin: "12px 0 0", fontWeight: 400 }}>
+            <p
+              style={{
+                fontSize: 16,
+                color: "rgba(0,0,0,0.45)",
+                margin: "12px 0 0",
+                fontWeight: 400,
+              }}
+            >
               Good luck.
             </p>
           </div>
 
           {/* Info chips */}
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10, marginTop: 28 }}>
-            {[`Solve all ${PROBLEMS_PER_SESSION} coding challenges`, `You have ${ROUND_DURATION_SECONDS} seconds`, `That's ${(ROUND_DURATION_SECONDS / PROBLEMS_PER_SESSION).toFixed(1)} seconds per problem`].map((t) => (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: 10,
+              marginTop: 28,
+            }}
+          >
+            {[
+              `Solve all ${PROBLEMS_PER_SESSION} coding challenges`,
+              `You have ${ROUND_DURATION_SECONDS} seconds`,
+              `That's ${(ROUND_DURATION_SECONDS / PROBLEMS_PER_SESSION).toFixed(1)} seconds per problem`,
+            ].map((t) => (
               <span
                 key={t}
                 style={{
@@ -594,12 +750,22 @@ export default function Home() {
             }}
           >
             {authStatus === "loading" && (
-              <p style={{ fontSize: 13, color: "rgba(0,0,0,0.4)", textAlign: "center" }}>Loading...</p>
+              <p style={{ fontSize: 13, color: "rgba(0,0,0,0.4)", textAlign: "center" }}>
+                Loading...
+              </p>
             )}
 
             {authStatus === "unauthenticated" && (
               <>
-                <p style={{ fontSize: 12, fontWeight: 500, color: "rgba(0,0,0,0.4)", marginBottom: 12, textAlign: "center" }}>
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "rgba(0,0,0,0.4)",
+                    marginBottom: 12,
+                    textAlign: "center",
+                  }}
+                >
                   Sign in to play — your GitHub identity is your scoreboard entry
                 </p>
                 <button
@@ -634,10 +800,17 @@ export default function Home() {
 
             {isAuthenticated && (
               <>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 16,
+                  }}
+                >
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     {authSession.user.image && (
-                      <img
+                      <Image
                         src={authSession.user.image}
                         alt=""
                         width={32}
@@ -791,86 +964,162 @@ export default function Home() {
             {showLeaderboard ? "hide leaderboard" : "view leaderboard"}
           </button>
 
-          {showLeaderboard && (() => {
-            const totalPages = Math.max(1, Math.ceil(leaderboard.length / LB_PAGE_SIZE));
-            const page = Math.min(lbPage, totalPages - 1);
-            const slice = leaderboard.slice(page * LB_PAGE_SIZE, (page + 1) * LB_PAGE_SIZE);
-            return (
-              <div style={{ maxWidth: 520, margin: "20px auto 0" }}>
-                <div
-                  style={{
-                    background: "#ffffff",
-                    border: "1px solid #e5e5e5",
-                    borderRadius: 12,
-                    overflow: "hidden",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                  }}
-                >
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr style={{ borderBottom: "1px solid #e5e5e5" }}>
-                        {["#", "Player", "Solved", "Tries", "Score"].map((h) => (
-                          <th key={h} style={{ padding: "12px 18px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "rgba(0,0,0,0.4)" }}>
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {slice.length === 0 && (
-                        <tr>
-                          <td colSpan={5} style={{ padding: "16px 18px", fontSize: 13, color: "rgba(0,0,0,0.4)" }}>
-                            No entries yet.
-                          </td>
+          {showLeaderboard &&
+            (() => {
+              const totalPages = Math.max(1, Math.ceil(leaderboard.length / LB_PAGE_SIZE));
+              const page = Math.min(lbPage, totalPages - 1);
+              const slice = leaderboard.slice(page * LB_PAGE_SIZE, (page + 1) * LB_PAGE_SIZE);
+              return (
+                <div style={{ maxWidth: 520, margin: "20px auto 0" }}>
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #e5e5e5",
+                      borderRadius: 12,
+                      overflow: "hidden",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                    }}
+                  >
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr style={{ borderBottom: "1px solid #e5e5e5" }}>
+                          {["#", "Player", "Solved", "Tries", "Score"].map((h) => (
+                            <th
+                              key={h}
+                              style={{
+                                padding: "12px 18px",
+                                textAlign: "left",
+                                fontSize: 11,
+                                fontWeight: 600,
+                                color: "rgba(0,0,0,0.4)",
+                              }}
+                            >
+                              {h}
+                            </th>
+                          ))}
                         </tr>
-                      )}
-                      {slice.map((row, i) => {
-                        const rank = page * LB_PAGE_SIZE + i + 1;
-                        return (
-                          <tr key={row.github} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                            <td style={{ padding: "10px 18px", fontSize: 13, fontWeight: 700, color: rank <= 3 ? "#fa5d19" : "rgba(0,0,0,0.3)" }}>
-                              {rank}
-                            </td>
-                            <td style={{ padding: "10px 18px", fontSize: 13, color: "#262626" }}>@{row.github}</td>
-                            <td style={{ padding: "10px 18px", fontSize: 13, color: row.solved >= TOTAL_SOLVE_TARGET ? "#1a9338" : "rgba(0,0,0,0.4)" }}>
-                              {row.solved}/{displayedSolveTarget}
-                            </td>
-                            <td style={{ padding: "10px 18px", fontSize: 13, color: "rgba(0,0,0,0.35)" }}>
-                              {row.attempts ?? 1}
-                            </td>
-                            <td style={{ padding: "10px 18px", fontSize: 13, fontWeight: 600, color: row.elo > 1000 ? "#fa5d19" : "rgba(0,0,0,0.4)" }}>
-                              {row.elo.toLocaleString()}
+                      </thead>
+                      <tbody>
+                        {slice.length === 0 && (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              style={{
+                                padding: "16px 18px",
+                                fontSize: 13,
+                                color: "rgba(0,0,0,0.4)",
+                              }}
+                            >
+                              No entries yet.
                             </td>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {totalPages > 1 && (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 12 }}>
-                    <button
-                      onClick={() => setLbPage((p) => Math.max(0, p - 1))}
-                      disabled={page === 0}
-                      style={{ fontSize: 12, fontWeight: 600, fontFamily: "inherit", background: "none", border: "1px solid #e5e5e5", borderRadius: 6, padding: "6px 14px", cursor: page === 0 ? "not-allowed" : "pointer", color: page === 0 ? "rgba(0,0,0,0.2)" : "#262626" }}
-                    >
-                      Prev
-                    </button>
-                    <span style={{ fontSize: 12, color: "rgba(0,0,0,0.4)" }}>
-                      {page + 1} / {totalPages}
-                    </span>
-                    <button
-                      onClick={() => setLbPage((p) => Math.min(totalPages - 1, p + 1))}
-                      disabled={page >= totalPages - 1}
-                      style={{ fontSize: 12, fontWeight: 600, fontFamily: "inherit", background: "none", border: "1px solid #e5e5e5", borderRadius: 6, padding: "6px 14px", cursor: page >= totalPages - 1 ? "not-allowed" : "pointer", color: page >= totalPages - 1 ? "rgba(0,0,0,0.2)" : "#262626" }}
-                    >
-                      Next
-                    </button>
+                        )}
+                        {slice.map((row, i) => {
+                          const rank = page * LB_PAGE_SIZE + i + 1;
+                          return (
+                            <tr key={row.github} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                              <td
+                                style={{
+                                  padding: "10px 18px",
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  color: rank <= 3 ? "#fa5d19" : "rgba(0,0,0,0.3)",
+                                }}
+                              >
+                                {rank}
+                              </td>
+                              <td style={{ padding: "10px 18px", fontSize: 13, color: "#262626" }}>
+                                @{row.github}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "10px 18px",
+                                  fontSize: 13,
+                                  color:
+                                    row.solved >= TOTAL_SOLVE_TARGET
+                                      ? "#1a9338"
+                                      : "rgba(0,0,0,0.4)",
+                                }}
+                              >
+                                {row.solved}/{displayedSolveTarget}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "10px 18px",
+                                  fontSize: 13,
+                                  color: "rgba(0,0,0,0.35)",
+                                }}
+                              >
+                                {row.attempts ?? 1}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "10px 18px",
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                  color: row.elo > 1000 ? "#fa5d19" : "rgba(0,0,0,0.4)",
+                                }}
+                              >
+                                {row.elo.toLocaleString()}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                )}
-              </div>
-            );
-          })()}
+                  {totalPages > 1 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 16,
+                        marginTop: 12,
+                      }}
+                    >
+                      <button
+                        onClick={() => setLbPage((p) => Math.max(0, p - 1))}
+                        disabled={page === 0}
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          fontFamily: "inherit",
+                          background: "none",
+                          border: "1px solid #e5e5e5",
+                          borderRadius: 6,
+                          padding: "6px 14px",
+                          cursor: page === 0 ? "not-allowed" : "pointer",
+                          color: page === 0 ? "rgba(0,0,0,0.2)" : "#262626",
+                        }}
+                      >
+                        Prev
+                      </button>
+                      <span style={{ fontSize: 12, color: "rgba(0,0,0,0.4)" }}>
+                        {page + 1} / {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setLbPage((p) => Math.min(totalPages - 1, p + 1))}
+                        disabled={page >= totalPages - 1}
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          fontFamily: "inherit",
+                          background: "none",
+                          border: "1px solid #e5e5e5",
+                          borderRadius: 6,
+                          padding: "6px 14px",
+                          cursor: page >= totalPages - 1 ? "not-allowed" : "pointer",
+                          color: page >= totalPages - 1 ? "rgba(0,0,0,0.2)" : "#262626",
+                        }}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
         </div>
       </div>
     );
@@ -944,7 +1193,9 @@ export default function Home() {
             <span style={{ fontSize: 13, fontWeight: 800, color: "#fa5d19", letterSpacing: -0.5 }}>
               FIRECRAWL CTF
             </span>
-            <span style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", marginLeft: 4 }}>@{github}</span>
+            <span style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", marginLeft: 4 }}>
+              @{github}
+            </span>
             {canAutoSolve && (
               <button
                 onClick={autoSolve}
@@ -970,14 +1221,38 @@ export default function Home() {
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             {/* Solved */}
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(0,0,0,0.35)", textTransform: "uppercase" }}>Solved</span>
-              <span style={{ fontSize: 16, fontWeight: 800, color: solvedLocal === 25 ? "#1a9338" : "#262626" }}>
-                {solvedLocal}<span style={{ color: "rgba(0,0,0,0.25)" }}>/25</span>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  color: "rgba(0,0,0,0.35)",
+                  textTransform: "uppercase",
+                }}
+              >
+                Solved
+              </span>
+              <span
+                style={{
+                  fontSize: 16,
+                  fontWeight: 800,
+                  color: solvedLocal === 25 ? "#1a9338" : "#262626",
+                }}
+              >
+                {solvedLocal}
+                <span style={{ color: "rgba(0,0,0,0.25)" }}>/25</span>
               </span>
             </div>
             {/* Timer */}
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 140, height: 5, background: "#e5e5e5", borderRadius: 4, overflow: "hidden" }}>
+              <div
+                style={{
+                  width: 140,
+                  height: 5,
+                  background: "#e5e5e5",
+                  borderRadius: 4,
+                  overflow: "hidden",
+                }}
+              >
                 <div
                   style={{
                     width: `${progress}%`,
@@ -996,7 +1271,9 @@ export default function Home() {
                   minWidth: 48,
                   textAlign: "right",
                   transition: "color 500ms",
-                  ...(secondsLeft <= 10 ? { animation: "timer-pulse 0.6s ease-in-out infinite" } : {}),
+                  ...(secondsLeft <= 10
+                    ? { animation: "timer-pulse 0.6s ease-in-out infinite" }
+                    : {}),
                 }}
               >
                 {timeUp ? "TIME" : `0:${String(secondsLeft).padStart(2, "0")}`}
@@ -1081,7 +1358,17 @@ export default function Home() {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <span style={{ fontSize: 10, color: "rgba(0,0,0,0.3)" }}>#{idx + 1}</span>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "#262626", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 120 }}>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: "#262626",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        maxWidth: 120,
+                      }}
+                    >
                       {problem.title}
                     </span>
                   </div>
@@ -1123,7 +1410,15 @@ export default function Home() {
                 </div>
 
                 {/* Code textarea */}
-                <div style={{ flex: "1 1 auto", display: "flex", flexDirection: "column", minHeight: 0, padding: "0 10px" }}>
+                <div
+                  style={{
+                    flex: "1 1 auto",
+                    display: "flex",
+                    flexDirection: "column",
+                    minHeight: 0,
+                    padding: "0 10px",
+                  }}
+                >
                   <textarea
                     value={codes[problem.id] ?? ""}
                     onChange={(e) => setCodes((cur) => ({ ...cur, [problem.id]: e.target.value }))}
@@ -1161,19 +1456,17 @@ export default function Home() {
                       fontSize: 10,
                       fontWeight: 600,
                       fontFamily: "inherit",
-                      cursor: timeUp || status === "passed" || !(codes[problem.id] ?? "").trim() ? "not-allowed" : "pointer",
+                      cursor:
+                        timeUp || status === "passed" || !(codes[problem.id] ?? "").trim()
+                          ? "not-allowed"
+                          : "pointer",
                       background:
                         status === "passed"
                           ? "rgba(26,147,56,0.1)"
                           : timeUp
                             ? "#e5e5e5"
                             : "#fa5d19",
-                      color:
-                        status === "passed"
-                          ? "#1a9338"
-                          : timeUp
-                            ? "rgba(0,0,0,0.3)"
-                            : "#fff",
+                      color: status === "passed" ? "#1a9338" : timeUp ? "rgba(0,0,0,0.3)" : "#fff",
                       transition: "all 150ms",
                     }}
                   >
@@ -1204,13 +1497,25 @@ export default function Home() {
               zIndex: 50,
             }}
           >
-            <div style={{ textAlign: "center", background: "#ffffff", borderRadius: 20, padding: "48px 56px", border: "1px solid #e5e5e5", boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
-              <p style={{ fontSize: 52, fontWeight: 800, color: solvedLocal === 25 ? "#1a9338" : "#dc2626", margin: 0 }}>
-                {isSubmitting
-                  ? "SUBMITTING..."
-                  : solvedLocal === 25
-                    ? "ALL CLEAR 🔥"
-                    : "TIME'S UP"}
+            <div
+              style={{
+                textAlign: "center",
+                background: "#ffffff",
+                borderRadius: 20,
+                padding: "48px 56px",
+                border: "1px solid #e5e5e5",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: 52,
+                  fontWeight: 800,
+                  color: solvedLocal === 25 ? "#1a9338" : "#dc2626",
+                  margin: 0,
+                }}
+              >
+                {isSubmitting ? "SUBMITTING..." : solvedLocal === 25 ? "ALL CLEAR 🔥" : "TIME'S UP"}
               </p>
               <p style={{ fontSize: 22, color: "rgba(0,0,0,0.45)", margin: "8px 0 0" }}>
                 {solvedLocal}/25 solved locally
@@ -1298,11 +1603,7 @@ export default function Home() {
               color: results.solved >= TOTAL_SOLVE_TARGET ? "#fa5d19" : "#262626",
             }}
           >
-            {results.solved <= 2
-              ? "TIME'S UP"
-              : results.solved < 10
-                ? "NOT BAD"
-                : "ALL CLEAR 🔥"}
+            {results.solved <= 2 ? "TIME'S UP" : results.solved < 10 ? "NOT BAD" : "ALL CLEAR 🔥"}
           </h2>
 
           {results.solved <= 2 && (
@@ -1329,7 +1630,11 @@ export default function Home() {
             }}
           >
             {[
-              { label: "Solved", value: `${results.solved}/${displayedSolveTarget}`, color: "#262626" },
+              {
+                label: "Solved",
+                value: `${results.solved}/${displayedSolveTarget}`,
+                color: "#262626",
+              },
               { label: "Score", value: results.elo.toLocaleString(), color: "#fa5d19" },
               { label: "Rank", value: `#${results.rank}`, color: "#262626" },
             ].map((stat, i) => (
@@ -1342,7 +1647,16 @@ export default function Home() {
                   textAlign: "center",
                 }}
               >
-                <p style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, color: "rgba(0,0,0,0.35)", margin: 0 }}>
+                <p
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                    color: "rgba(0,0,0,0.35)",
+                    margin: 0,
+                  }}
+                >
                   {stat.label}
                 </p>
                 <p style={{ fontSize: 26, fontWeight: 800, color: stat.color, margin: "8px 0 0" }}>
@@ -1354,33 +1668,94 @@ export default function Home() {
 
           {/* ── Score Breakdown — always visible so players learn what's possible ── */}
           <div style={{ marginTop: 28, textAlign: "left" }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: "#262626", margin: "0 0 14px", textTransform: "uppercase", letterSpacing: 1 }}>
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: "#262626",
+                margin: "0 0 14px",
+                textTransform: "uppercase",
+                letterSpacing: 1,
+              }}
+            >
               Score Breakdown
             </p>
 
             {/* Base score */}
-            <div style={{ background: "#f3f3f3", borderRadius: 10, padding: "14px 18px", marginBottom: 10 }}>
+            <div
+              style={{
+                background: "#f3f3f3",
+                borderRadius: 10,
+                padding: "14px 18px",
+                marginBottom: 10,
+              }}
+            >
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                <span style={{ color: "rgba(0,0,0,0.5)" }}>Base score ({results.solved}/{displayedSolveTarget} solved, {results.timeRemaining}s remaining)</span>
+                <span style={{ color: "rgba(0,0,0,0.5)" }}>
+                  Base score ({results.solved}/{displayedSolveTarget} solved,{" "}
+                  {results.timeRemaining}s remaining)
+                </span>
                 <span style={{ fontWeight: 700, color: "#262626" }}>
-                  {results.elo - (results.exploits ?? []).reduce((s, e) => s + e.bonus, 0) - (results.landmines ?? []).reduce((s, l) => s + l.penalty, 0)}
+                  {results.elo -
+                    (results.exploits ?? []).reduce((s, e) => s + e.bonus, 0) -
+                    (results.landmines ?? []).reduce((s, l) => s + l.penalty, 0)}
                 </span>
               </div>
             </div>
 
             {/* ── Exploits — only visible if they found any ── */}
             {(results.exploits ?? []).length > 0 && (
-              <div style={{ borderRadius: 10, border: "1px solid rgba(250,93,25,0.2)", overflow: "hidden", marginBottom: 10, background: "rgba(250,93,25,0.03)" }}>
-                <div style={{ padding: "10px 18px", background: "rgba(250,93,25,0.06)", borderBottom: "1px solid rgba(250,93,25,0.15)" }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#fa5d19", margin: 0, textTransform: "uppercase", letterSpacing: 1 }}>
+              <div
+                style={{
+                  borderRadius: 10,
+                  border: "1px solid rgba(250,93,25,0.2)",
+                  overflow: "hidden",
+                  marginBottom: 10,
+                  background: "rgba(250,93,25,0.03)",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "10px 18px",
+                    background: "rgba(250,93,25,0.06)",
+                    borderBottom: "1px solid rgba(250,93,25,0.15)",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#fa5d19",
+                      margin: 0,
+                      textTransform: "uppercase",
+                      letterSpacing: 1,
+                    }}
+                  >
                     Exploits
                   </p>
                 </div>
                 {(results.exploits ?? []).map((e) => (
-                  <div key={e.id} style={{ padding: "8px 18px", borderBottom: "1px solid rgba(250,93,25,0.1)", display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 14, width: 20, textAlign: "center", flexShrink: 0 }}>✓</span>
-                    <span style={{ fontSize: 11, color: "#262626", flex: 1, lineHeight: 1.5 }}>{e.message}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#1a9338", flexShrink: 0 }}>+{e.bonus}</span>
+                  <div
+                    key={e.id}
+                    style={{
+                      padding: "8px 18px",
+                      borderBottom: "1px solid rgba(250,93,25,0.1)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                    }}
+                  >
+                    <span style={{ fontSize: 14, width: 20, textAlign: "center", flexShrink: 0 }}>
+                      ✓
+                    </span>
+                    <span style={{ fontSize: 11, color: "#262626", flex: 1, lineHeight: 1.5 }}>
+                      {e.message}
+                    </span>
+                    <span
+                      style={{ fontSize: 12, fontWeight: 700, color: "#1a9338", flexShrink: 0 }}
+                    >
+                      +{e.bonus}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -1388,53 +1763,153 @@ export default function Home() {
 
             {/* ── Landmines — only visible if they triggered any ── */}
             {(results.landmines ?? []).length > 0 && (
-              <div style={{ borderRadius: 10, border: "1px solid rgba(220,38,38,0.2)", overflow: "hidden", marginBottom: 10, background: "rgba(220,38,38,0.03)" }}>
-                <div style={{ padding: "10px 18px", background: "rgba(220,38,38,0.06)", borderBottom: "1px solid rgba(220,38,38,0.15)" }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#dc2626", margin: 0, textTransform: "uppercase", letterSpacing: 1 }}>
+              <div
+                style={{
+                  borderRadius: 10,
+                  border: "1px solid rgba(220,38,38,0.2)",
+                  overflow: "hidden",
+                  marginBottom: 10,
+                  background: "rgba(220,38,38,0.03)",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "10px 18px",
+                    background: "rgba(220,38,38,0.06)",
+                    borderBottom: "1px solid rgba(220,38,38,0.15)",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#dc2626",
+                      margin: 0,
+                      textTransform: "uppercase",
+                      letterSpacing: 1,
+                    }}
+                  >
                     Safety Issues
                   </p>
                 </div>
                 {(results.landmines ?? []).map((l) => (
-                  <div key={l.id} style={{ padding: "8px 18px", borderBottom: "1px solid rgba(220,38,38,0.1)", display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 14, width: 20, textAlign: "center", flexShrink: 0 }}>✗</span>
-                    <span style={{ fontSize: 11, color: "#262626", flex: 1, lineHeight: 1.5 }}>{l.message}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#dc2626", flexShrink: 0 }}>{l.penalty}</span>
+                  <div
+                    key={l.id}
+                    style={{
+                      padding: "8px 18px",
+                      borderBottom: "1px solid rgba(220,38,38,0.1)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                    }}
+                  >
+                    <span style={{ fontSize: 14, width: 20, textAlign: "center", flexShrink: 0 }}>
+                      ✗
+                    </span>
+                    <span style={{ fontSize: 11, color: "#262626", flex: 1, lineHeight: 1.5 }}>
+                      {l.message}
+                    </span>
+                    <span
+                      style={{ fontSize: 12, fontWeight: 700, color: "#dc2626", flexShrink: 0 }}
+                    >
+                      {l.penalty}
+                    </span>
                   </div>
                 ))}
               </div>
             )}
 
             {/* Final Score */}
-            <div style={{ background: "#262626", borderRadius: 10, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: 1 }}>Final Score</span>
-              <span style={{ fontSize: 22, fontWeight: 800, color: "#fa5d19" }}>{results.elo.toLocaleString()}</span>
+            <div
+              style={{
+                background: "#262626",
+                borderRadius: 10,
+                padding: "14px 18px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: "rgba(255,255,255,0.7)",
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                }}
+              >
+                Final Score
+              </span>
+              <span style={{ fontSize: 22, fontWeight: 800, color: "#fa5d19" }}>
+                {results.elo.toLocaleString()}
+              </span>
             </div>
 
             {currentLevel === 3 && results.validation && (
-              <div style={{ marginTop: 14, border: "1px solid #e5e5e5", borderRadius: 10, overflow: "hidden", background: "#fafafa" }}>
+              <div
+                style={{
+                  marginTop: 14,
+                  border: "1px solid #e5e5e5",
+                  borderRadius: 10,
+                  overflow: "hidden",
+                  background: "#fafafa",
+                }}
+              >
                 {(() => {
                   const passedCount = results.validation.results.filter((r) => r.correct).length;
                   const failedCount = Math.max(0, results.validation.results.length - passedCount);
                   return (
                     <>
-                <div style={{ padding: "10px 18px", borderBottom: "1px solid #e5e5e5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#262626", textTransform: "uppercase", letterSpacing: 1 }}>
-                    Stage 3 Verification
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: results.validation.compiled ? "#1a9338" : "#dc2626" }}>
-                    {passedCount}/{results.validation.results.length} checks passed
-                  </span>
-                </div>
-                {!results.validation.compiled && (
-                  <div style={{ padding: "10px 18px", borderBottom: "1px solid #e5e5e5", fontSize: 12, color: "#dc2626" }}>
-                    Compilation failed.
-                  </div>
-                )}
-                {failedCount > 0 && (
-                  <div style={{ padding: "10px 18px", fontSize: 12, color: "rgba(0,0,0,0.7)" }}>
-                    {failedCount} check{failedCount === 1 ? "" : "s"} failed.
-                  </div>
-                )}
+                      <div
+                        style={{
+                          padding: "10px 18px",
+                          borderBottom: "1px solid #e5e5e5",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "#262626",
+                            textTransform: "uppercase",
+                            letterSpacing: 1,
+                          }}
+                        >
+                          Stage 3 Verification
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: results.validation.compiled ? "#1a9338" : "#dc2626",
+                          }}
+                        >
+                          {passedCount}/{results.validation.results.length} checks passed
+                        </span>
+                      </div>
+                      {!results.validation.compiled && (
+                        <div
+                          style={{
+                            padding: "10px 18px",
+                            borderBottom: "1px solid #e5e5e5",
+                            fontSize: 12,
+                            color: "#dc2626",
+                          }}
+                        >
+                          Compilation failed.
+                        </div>
+                      )}
+                      {failedCount > 0 && (
+                        <div
+                          style={{ padding: "10px 18px", fontSize: 12, color: "rgba(0,0,0,0.7)" }}
+                        >
+                          {failedCount} check{failedCount === 1 ? "" : "s"} failed.
+                        </div>
+                      )}
                     </>
                   );
                 })()}
@@ -1448,10 +1923,17 @@ export default function Home() {
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <input
                   value={email}
-                  onChange={(e) => { setEmail(e.target.value); setEmailError(""); }}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setEmailError("");
+                  }}
                   placeholder="Email"
                   maxLength={254}
-                  style={{ ...inputStyle, flex: 1, borderColor: emailError ? "#dc2626" : "#e5e5e5" }}
+                  style={{
+                    ...inputStyle,
+                    flex: 1,
+                    borderColor: emailError ? "#dc2626" : "#e5e5e5",
+                  }}
                   onFocus={(e) => (e.target.style.borderColor = emailError ? "#dc2626" : "#fa5d19")}
                   onBlur={(e) => (e.target.style.borderColor = emailError ? "#dc2626" : "#e5e5e5")}
                 />
@@ -1462,12 +1944,23 @@ export default function Home() {
                 />
                 <input
                   value={xHandle}
-                  onChange={(e) => { setXHandle(e.target.value); setXHandleError(""); }}
+                  onChange={(e) => {
+                    setXHandle(e.target.value);
+                    setXHandleError("");
+                  }}
                   placeholder="@x_handle"
                   maxLength={16}
-                  style={{ ...inputStyle, flex: 1, borderColor: xHandleError ? "#dc2626" : "#e5e5e5" }}
-                  onFocus={(e) => (e.target.style.borderColor = xHandleError ? "#dc2626" : "#fa5d19")}
-                  onBlur={(e) => (e.target.style.borderColor = xHandleError ? "#dc2626" : "#e5e5e5")}
+                  style={{
+                    ...inputStyle,
+                    flex: 1,
+                    borderColor: xHandleError ? "#dc2626" : "#e5e5e5",
+                  }}
+                  onFocus={(e) =>
+                    (e.target.style.borderColor = xHandleError ? "#dc2626" : "#fa5d19")
+                  }
+                  onBlur={(e) =>
+                    (e.target.style.borderColor = xHandleError ? "#dc2626" : "#e5e5e5")
+                  }
                 />
                 <input
                   value={flag}
@@ -1562,25 +2055,26 @@ export default function Home() {
             </button>
           )}
 
-          {currentLevel === 2 && (unlockedLevel >= 3 || results.solved >= PROBLEMS_PER_SESSION + LEVEL2_TOTAL) && (
-            <button
-              onClick={() => startGame(3)}
-              className="btn-heat"
-              style={{
-                width: "100%",
-                height: 52,
-                borderRadius: 12,
-                fontSize: 17,
-                fontWeight: 800,
-                letterSpacing: 2,
-                fontFamily: "inherit",
-                marginTop: 20,
-                background: "#fa5d19",
-              }}
-            >
-              CONTINUE TO LEVEL 3 →
-            </button>
-          )}
+          {currentLevel === 2 &&
+            (unlockedLevel >= 3 || results.solved >= PROBLEMS_PER_SESSION + LEVEL2_TOTAL) && (
+              <button
+                onClick={() => startGame(3)}
+                className="btn-heat"
+                style={{
+                  width: "100%",
+                  height: 52,
+                  borderRadius: 12,
+                  fontSize: 17,
+                  fontWeight: 800,
+                  letterSpacing: 2,
+                  fontFamily: "inherit",
+                  marginTop: 20,
+                  background: "#fa5d19",
+                }}
+              >
+                CONTINUE TO LEVEL 3 →
+              </button>
+            )}
         </div>
       )}
     </div>

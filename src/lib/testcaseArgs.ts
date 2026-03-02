@@ -12,7 +12,14 @@ export function extractSignatureParamNames(signature: string): string[] {
     .split(",")
     .map((part) => part.trim())
     .filter(Boolean)
-    .map((part) => part.replace(/^\.{3}/, "").replace(/\s*=.*$/, "").trim())
+    .map((part) =>
+      part
+        .replace(/^\.{3}/, "")
+        .replace(/\s*=.*$/, "")
+        .replace(/\?.*$/, "")
+        .replace(/\s*:\s*.+$/, "")
+        .trim(),
+    )
     .filter(Boolean);
 }
 

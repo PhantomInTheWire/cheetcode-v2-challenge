@@ -2,15 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   API_ROUTE_TO_ABUSE_ROUTE,
   SHADOW_BAN_HEADER,
+  TRUSTED_FINGERPRINT_HEADER,
   checkAndTrackAbuse,
 } from "./src/lib/abuse-guard";
 
+const FINGERPRINT_COOKIE = "ctf_fp";
+
 function rateLimitBody(pathname: string): Record<string, unknown> {
-  if (pathname === "/api/validate") {
+  if (
+    pathname === "/api/validate" ||
+    pathname === "/api/validate-batch" ||
+    pathname === "/api/validate-l2" ||
+    pathname === "/api/validate-l3"
+  ) {
     return { passed: false, error: "rate limited" };
   }
   if (pathname === "/api/finish") {
-    return { error: "rate limited", elo: 0, solved: 0, rank: 0, timeRemaining: 0, exploits: [], landmines: [] };
+    return {
+      error: "rate limited",
+      elo: 0,
+      solved: 0,
+      rank: 0,
+      timeRemaining: 0,
+      exploits: [],
+      landmines: [],
+    };
   }
   if (pathname === "/api/finish-l2" || pathname === "/api/finish-l3") {
     return { error: "rate limited", elo: 0, solved: 0, rank: 0, timeRemaining: 0 };
@@ -24,20 +40,54 @@ export function middleware(request: NextRequest) {
   const route = API_ROUTE_TO_ABUSE_ROUTE[request.nextUrl.pathname];
   if (!route) return NextResponse.next();
 
-  const abuse = checkAndTrackAbuse(request, route);
+  const fingerprintCookie = request.cookies.get(FINGERPRINT_COOKIE)?.value?.trim();
+  const rawClientFingerprint = request.headers.get("x-client-fingerprint")?.trim();
+  const normalizedClientFingerprint =
+    rawClientFingerprint && /^[A-Za-z0-9._-]{8,128}$/.test(rawClientFingerprint)
+      ? rawClientFingerprint
+      : "";
+  const fingerprint = fingerprintCookie || normalizedClientFingerprint || crypto.randomUUID();
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(TRUSTED_FINGERPRINT_HEADER, fingerprint);
+
+  const abuse = checkAndTrackAbuse(
+    new Request(request.url, { method: request.method, headers: requestHeaders }),
+    route,
+  );
   if (abuse.limited) {
-    return NextResponse.json(rateLimitBody(request.nextUrl.pathname), {
+    const response = NextResponse.json(rateLimitBody(request.nextUrl.pathname), {
       status: 429,
-      headers: { "retry-after": String(abuse.retryAfterSeconds) },
+      headers: { "retry-after": String(abuse.retryAfterSeconds || 1) },
     });
+    if (!fingerprintCookie) {
+      response.cookies.set(FINGERPRINT_COOKIE, fingerprint, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: true,
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365,
+      });
+    }
+    return response;
   }
 
-  if (!abuse.shadowBanned) return NextResponse.next();
-  if (!route.startsWith("finish")) return NextResponse.next();
+  const responseHeaders = new Headers(requestHeaders);
+  if (abuse.shadowBanned && route.startsWith("finish")) {
+    responseHeaders.set(SHADOW_BAN_HEADER, "1");
+  }
 
-  const headers = new Headers(request.headers);
-  headers.set(SHADOW_BAN_HEADER, "1");
-  return NextResponse.next({ request: { headers } });
+  const response = NextResponse.next({ request: { headers: responseHeaders } });
+  if (!fingerprintCookie) {
+    response.cookies.set(FINGERPRINT_COOKIE, fingerprint, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: true,
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+  }
+  return response;
 }
 
 export const config = {

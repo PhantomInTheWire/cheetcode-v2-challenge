@@ -36,13 +36,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Script
-          src="https://openfpcdn.io/fingerprintjs/v4"
-          strategy="afterInteractive"
-        />
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <Script src="https://openfpcdn.io/fingerprintjs/v4" strategy="afterInteractive" />
         <AuthProvider>
           <ConvexClientProvider>{children}</ConvexClientProvider>
         </AuthProvider>

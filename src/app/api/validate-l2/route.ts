@@ -13,17 +13,16 @@ export async function POST(request: Request) {
     const { answers } = body;
 
     if (!answers || typeof answers !== "object") {
-      return NextResponse.json(
-        { error: "Invalid answers format" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid answers format" }, { status: 400 });
     }
 
     const results = LEVEL2_PROBLEMS.map((problem) => {
       const userAnswer = (answers[problem.id] || "").trim().toLowerCase();
       const correctAnswer = problem.answer.trim().toLowerCase();
-      const acceptable = [correctAnswer, ...(problem.acceptableAnswers || [])].map(a => a.trim().toLowerCase());
-      
+      const acceptable = [correctAnswer, ...(problem.acceptableAnswers || [])].map((a) =>
+        a.trim().toLowerCase(),
+      );
+
       return {
         problemId: problem.id,
         correct: acceptable.includes(userAnswer),
@@ -33,9 +32,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ results });
   } catch (error) {
     console.error("/api/validate-l2 error:", error);
-    return NextResponse.json(
-      { error: "Validation failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Validation failed" }, { status: 500 });
   }
 }

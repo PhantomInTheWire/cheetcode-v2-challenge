@@ -38,7 +38,9 @@ describe("sessions", () => {
   it("injectDescriptionCanary mutates exactly one problem description", () => {
     const selected = selectSessionProblems().slice(0, 5).map(stripSolution);
     const injected = injectDescriptionCanary(selected);
-    const mutatedCount = injected.filter((p, idx) => p.description !== selected[idx].description).length;
+    const mutatedCount = injected.filter(
+      (p, idx) => p.description !== selected[idx].description,
+    ).length;
     expect(mutatedCount).toBe(1);
   });
 });

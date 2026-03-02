@@ -48,7 +48,10 @@ async function getQJS(): Promise<QuickJSWASMModule> {
   return _qjs;
 }
 
-function resolveSubmittedFunction(vm: ReturnType<QuickJSWASMModule["newContext"]>, code: string): boolean {
+function resolveSubmittedFunction(
+  vm: ReturnType<QuickJSWASMModule["newContext"]>,
+  code: string,
+): boolean {
   const expressionAttempt = evalWithDeadline(
     vm,
     `globalThis.__fn__ = (${code}); typeof globalThis.__fn__ === "function";`,
@@ -73,8 +76,8 @@ function resolveSubmittedFunction(vm: ReturnType<QuickJSWASMModule["newContext"]
     `globalThis.__fn__ = (() => {` +
       `${code}\n` +
       `return (typeof ${symbol} === "function") ? ${symbol} : undefined;` +
-    `})();\n` +
-    `typeof globalThis.__fn__ === "function";`,
+      `})();\n` +
+      `typeof globalThis.__fn__ === "function";`,
     QUICKJS_SETUP_TIMEOUT_MS,
   );
   if ("error" in scriptAttempt) {
@@ -109,19 +112,31 @@ function runValidationInContext(
       return {
         passed: false,
         error: "Missing ordered testcase args",
-        debug: { stage: "mismatch", testCaseIndex: i, expected: tc.expected, actual: "MISSING_ARGS" },
+        debug: {
+          stage: "mismatch",
+          testCaseIndex: i,
+          expected: tc.expected,
+          actual: "MISSING_ARGS",
+        },
       };
     }
     const args = JSON.stringify(argsList);
-    const actualResult = evalWithDeadline(vm, `JSON.stringify(__fn__(...${args}));`, QUICKJS_TEST_TIMEOUT_MS);
+    const actualResult = evalWithDeadline(
+      vm,
+      `JSON.stringify(__fn__(...${args}));`,
+      QUICKJS_TEST_TIMEOUT_MS,
+    );
     if ("error" in actualResult) {
       const errDump = vm.dump(actualResult.error) as { message?: string } | string;
-      const errMessage = typeof errDump === "string" ? errDump : errDump?.message ?? "Runtime error";
+      const errMessage =
+        typeof errDump === "string" ? errDump : (errDump?.message ?? "Runtime error");
       actualResult.error.dispose();
       const isTimeout = errMessage.toLowerCase().includes("interrupted");
       return {
         passed: false,
-        error: isTimeout ? `Time limit exceeded (${QUICKJS_TEST_TIMEOUT_MS}ms per test)` : "Runtime error",
+        error: isTimeout
+          ? `Time limit exceeded (${QUICKJS_TEST_TIMEOUT_MS}ms per test)`
+          : "Runtime error",
         debug: {
           stage: "runtime",
           testCaseIndex: i,
@@ -163,18 +178,22 @@ function runBatchValidation(
   try {
     const setup = evalWithDeadline(
       vm,
-      `globalThis.console={log(){},warn(){},error(){},info(){}};` + `globalThis.__FIRECRAWL__="${FLAG}";`,
+      `globalThis.console={log(){},warn(){},error(){},info(){}};` +
+        `globalThis.__FIRECRAWL__="${FLAG}";`,
       QUICKJS_SETUP_TIMEOUT_MS,
     );
     if ("error" in setup) {
       setup.error.dispose();
-      return Object.fromEntries(items.map((item) => [item.problemId, { passed: false, error: "Setup failed" }]));
+      return Object.fromEntries(
+        items.map((item) => [item.problemId, { passed: false, error: "Setup failed" }]),
+      );
     }
     setup.value.dispose();
 
     const results: Record<string, { passed: boolean; error?: string }> = {};
     for (const item of items) {
-      if (!item?.problemId || typeof item.code !== "string" || !Array.isArray(item.testCases)) continue;
+      if (!item?.problemId || typeof item.code !== "string" || !Array.isArray(item.testCases))
+        continue;
       const itemStart = Date.now();
       const result = runValidationInContext(vm, item.code, item.testCases);
       results[item.problemId] = { passed: result.passed, error: result.error };

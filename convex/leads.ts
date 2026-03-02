@@ -1,11 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, action } from "./_generated/server";
 import { internal } from "./_generated/api";
-import {
-  validateGithub,
-  validateEmail,
-  validateXHandle,
-} from "../src/lib/validation";
+import { validateGithub, validateEmail, validateXHandle } from "../src/lib/validation";
 
 export const submitInternal = internalMutation({
   args: {
@@ -49,16 +45,11 @@ export const submitInternal = internalMutation({
       .withIndex("by_github", (query) => query.eq("github", ghResult.value))
       .first();
 
-    const xNormalized = args.xHandle
-      ? validateXHandle(args.xHandle)
-      : null;
+    const xNormalized = args.xHandle ? validateXHandle(args.xHandle) : null;
     const payload = {
       github: ghResult.value,
       email: emailResult.value,
-      xHandle:
-        xNormalized && xNormalized.ok && xNormalized.value
-          ? xNormalized.value
-          : undefined,
+      xHandle: xNormalized && xNormalized.ok && xNormalized.value ? xNormalized.value : undefined,
       flag: args.flag,
       elo: leaderboardRow.elo,
       solved: leaderboardRow.solved,
@@ -85,17 +76,16 @@ export const submit = action({
     flag: v.optional(v.string()),
     sessionId: v.id("sessions"),
   },
-  handler: async (
-    ctx,
-    args,
-  ): Promise<{ ok: boolean; upserted: string }> => {
+  handler: async (ctx, args): Promise<{ ok: boolean; upserted: string }> => {
     if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
       throw new Error("unauthorized");
     }
-    const { secret: _, ...mutationArgs } = args;
-    return await ctx.runMutation(
-      internal.leads.submitInternal,
-      mutationArgs,
-    );
+    return await ctx.runMutation(internal.leads.submitInternal, {
+      github: args.github,
+      email: args.email,
+      xHandle: args.xHandle,
+      flag: args.flag,
+      sessionId: args.sessionId,
+    });
   },
 });

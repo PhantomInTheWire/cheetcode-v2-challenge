@@ -94,7 +94,9 @@ describe("finish l2/l3 routes", () => {
     expect(hoisted.validateL3Mock).toHaveBeenCalled();
     expect(hoisted.actionMock).toHaveBeenCalled();
 
-    const actionCall = hoisted.actionMock.mock.calls[0]?.[1] as { solvedProblemIds: string[] } | undefined;
+    const actionCall = hoisted.actionMock.mock.calls[0]?.[1] as
+      | { solvedProblemIds: string[] }
+      | undefined;
     expect(actionCall).toBeTruthy();
     expect(actionCall?.solvedProblemIds).toHaveLength(20);
     expect(new Set(actionCall?.solvedProblemIds).size).toBe(20);
@@ -129,7 +131,9 @@ describe("finish l2/l3 routes", () => {
       const res = await POST(req);
       expect(res.status).toBe(200);
 
-      const actionCall = hoisted.actionMock.mock.calls[0]?.[1] as { solvedProblemIds: string[] } | undefined;
+      const actionCall = hoisted.actionMock.mock.calls[0]?.[1] as
+        | { solvedProblemIds: string[] }
+        | undefined;
       expect(actionCall).toBeTruthy();
       expect(actionCall?.solvedProblemIds).toHaveLength(19);
       expect(actionCall?.solvedProblemIds.includes(missedId)).toBe(false);

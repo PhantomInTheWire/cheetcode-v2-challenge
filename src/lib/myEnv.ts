@@ -3,13 +3,7 @@ function normalize(value: string | undefined): string {
 }
 
 export function getServerMyEnv(): string {
-  return (
-    normalize(process.env.MY_ENV) ||
-    normalize(process.env.my_env) ||
-    normalize(process.env.NEXT_PUBLIC_MY_ENV) ||
-    normalize(process.env.NEXT_PUBLIC_my_env) ||
-    "production"
-  );
+  return normalize(process.env.MY_ENV) || normalize(process.env.my_env) || "production";
 }
 
 export function getClientMyEnv(): string {
@@ -27,4 +21,3 @@ export function isServerDevMode(): boolean {
 export function isClientDevMode(): boolean {
   return getClientMyEnv() === "development";
 }
-

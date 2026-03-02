@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <stdlib.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -503,13 +504,42 @@ int main(void) {
     }
 
     if (wc > 0) {
-      char huge[ASM_MAX_SOURCE_BYTES + 64];
-      for (int i = 0; i < ASM_MAX_SOURCE_BYTES + 63; i++) huge[i] = 'A';
-      huge[ASM_MAX_SOURCE_BYTES + 63] = '\0';
-      int oversized = assemble_program(huge, words, 1024, asm_err, sizeof(asm_err));
-      if (oversized >= 0) {
-        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "oversized asm should fail but wrote %d words", oversized);
+      const char *bad_jump_program =
+        "JMP 3000\n"
+        "HALT\n";
+      int bad_jump = assemble_program(bad_jump_program, words, 1024, asm_err, sizeof(asm_err));
+      if (bad_jump >= 0) {
+        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "out-of-range jump should fail but wrote %d words", bad_jump);
         wc = -1;
+      }
+    }
+
+    if (wc > 0) {
+      const char *bad_imm_program =
+        "LOAD R0, 70000\n"
+        "HALT\n";
+      int bad_imm = assemble_program(bad_imm_program, words, 1024, asm_err, sizeof(asm_err));
+      if (bad_imm >= 0) {
+        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "out-of-range immediate should fail but wrote %d words", bad_imm);
+        wc = -1;
+      }
+    }
+
+    if (wc > 0) {
+      size_t huge_len = ASM_MAX_SOURCE_BYTES + 64;
+      char *huge = (char*)malloc(huge_len);
+      if (!huge) {
+        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "malloc failed for oversized asm");
+        wc = -1;
+      } else {
+        for (size_t i = 0; i < huge_len - 1; i++) huge[i] = 'A';
+        huge[huge_len - 1] = '\0';
+        int oversized = assemble_program(huge, words, 1024, asm_err, sizeof(asm_err));
+        if (oversized >= 0) {
+          snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "oversized asm should fail but wrote %d words", oversized);
+          wc = -1;
+        }
+        free(huge);
       }
     }
 

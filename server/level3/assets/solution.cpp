@@ -193,18 +193,21 @@ __attribute__((visibility("default"))) int cpu_assemble(const char* src, int src
             char* a = strtok_r(0, " \t\r", &tok_save);
             int addr = 0;
             if (asm_resolve(a, labels, label_count, &addr) != 0) { free(buf); return -11; }
+            if (addr < 0 || addr > 0x7FF) { free(buf); return -15; }
             out_words[idx] = asm_enc_j(opv, addr);
           } else if (opv == 0x01) {
             char* a = strtok_r(0, " \t\r", &tok_save);
             char* b = strtok_r(0, " \t\r", &tok_save);
             int rd = asm_parse_reg(a), imm = 0;
             if (rd < 0 || asm_resolve(b, labels, label_count, &imm) != 0) { free(buf); return -12; }
+            if (imm < -32768 || imm > 65535) { free(buf); return -16; }
             out_words[idx] = asm_enc_x(opv, rd);
             out_words[idx + 1] = (unsigned short)imm;
           } else if (opv == 0x14) {
             char* a = strtok_r(0, " \t\r", &tok_save);
             int addr = 0;
             if (asm_resolve(a, labels, label_count, &addr) != 0) { free(buf); return -13; }
+            if (addr < 0 || addr > 0xFFFF) { free(buf); return -17; }
             out_words[idx] = asm_enc_x(opv, 0);
             out_words[idx + 1] = (unsigned short)addr;
           } else {

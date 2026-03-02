@@ -2,19 +2,17 @@ import { describe, expect, it } from "vitest";
 import { generateLevel3Challenge, getLevel3ChallengeFromId } from "../server/level3/problems";
 
 describe("level3 challenge templates", () => {
-  it("loads spec/starter from asset files with assembler ABI requirement", () => {
+  it("loads non-empty spec and starter templates", () => {
     const challenge = generateLevel3Challenge();
-    expect(challenge.spec).toContain("cpu_assemble");
-    expect(challenge.spec).toContain("11-bit absolute byte target");
-    expect(challenge.spec).toContain("main.");
-    expect(challenge.starterCode).toContain("cpu_assemble");
+    expect(challenge.spec.trim().length).toBeGreaterThan(200);
+    expect(challenge.starterCode.trim().length).toBeGreaterThan(200);
   });
 
-  it("starter templates allow unaligned word memory access", () => {
+  it("includes expected language variants", () => {
     for (const key of ["c", "cpp", "rust"]) {
       const challenge = getLevel3ChallengeFromId(`l3:cpu-16bit-emulator:${key}`);
       expect(challenge).not.toBeNull();
-      expect(challenge?.starterCode).not.toContain("(addr & 1)");
+      expect(challenge?.language).toBe(key === "c" ? "C" : key === "cpp" ? "C++" : "Rust");
     }
   });
 

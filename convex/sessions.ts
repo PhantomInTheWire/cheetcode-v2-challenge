@@ -1,11 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, action } from "./_generated/server";
 import { internal } from "./_generated/api";
-import {
-  selectSessionProblems,
-  stripSolution,
-  injectDescriptionCanary,
-} from "../server/problems";
+import { selectSessionProblems, stripSolution, injectDescriptionCanary } from "../server/problems";
 import { validateGithub } from "../src/lib/validation";
 import { ROUND_DURATION_MS } from "./constants";
 import { LEVEL2_PROBLEMS } from "../server/level2/problems";
@@ -16,7 +12,11 @@ export const ROUND_DURATION_L2_MS = 45_000;
 export const ROUND_DURATION_L3_MS = 120_000;
 
 export const createInternal = internalMutation({
-  args: { github: v.string(), requestedLevel: v.optional(v.number()), isDev: v.optional(v.boolean()) },
+  args: {
+    github: v.string(),
+    requestedLevel: v.optional(v.number()),
+    isDev: v.optional(v.boolean()),
+  },
   handler: async (ctx, args) => {
     const ghResult = validateGithub(args.github);
     if (ghResult.ok === false) throw new Error(ghResult.error);
@@ -39,7 +39,10 @@ export const createInternal = internalMutation({
 
     const unlockedLevel = leaderboard?.unlockedLevel ?? 1;
     let level = args.requestedLevel ?? unlockedLevel;
-    
+    if (!Number.isInteger(level) || level < 1 || level > 3) {
+      throw new Error("invalid requested level");
+    }
+
     // In dev mode (explicit flag from frontend), allow playing any level
     if (!args.isDev && level > unlockedLevel) {
       level = unlockedLevel;
@@ -52,8 +55,8 @@ export const createInternal = internalMutation({
 
     if (level === 2) {
       expiresAt = startedAt + ROUND_DURATION_L2_MS;
-      problemIds = LEVEL2_PROBLEMS.map(p => p.id);
-      problemsToReturn = LEVEL2_PROBLEMS.map(p => ({
+      problemIds = LEVEL2_PROBLEMS.map((p) => p.id);
+      problemsToReturn = LEVEL2_PROBLEMS.map((p) => ({
         id: p.id,
         question: p.question,
       }));
@@ -101,7 +104,12 @@ export const createInternal = internalMutation({
 });
 
 export const create = action({
-  args: { secret: v.string(), github: v.string(), requestedLevel: v.optional(v.number()), isDev: v.optional(v.boolean()) },
+  args: {
+    secret: v.string(),
+    github: v.string(),
+    requestedLevel: v.optional(v.number()),
+    isDev: v.optional(v.boolean()),
+  },
   handler: async (
     ctx,
     args,

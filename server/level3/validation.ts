@@ -18,7 +18,7 @@ function extensionForLanguage(language: string): string {
   if (language === "C") return "c";
   if (language === "C++") return "cpp";
   if (language === "Rust") return "rs";
-  return "txt";
+  throw new Error(`Unsupported Level 3 language: ${language}`);
 }
 
 function resolveSandboxCredentials():
@@ -64,7 +64,10 @@ async function ensureToolchain(sandbox: Sandbox, language: string): Promise<stri
 
   const check = await sandbox.runCommand({
     cmd: "sh",
-    args: ["-lc", `for t in ${required.join(" ")}; do command -v "$t" >/dev/null 2>&1 || echo "$t"; done`],
+    args: [
+      "-lc",
+      `for t in ${required.join(" ")}; do command -v "$t" >/dev/null 2>&1 || echo "$t"; done`,
+    ],
   });
   const missingRaw = ((await check.stdout()) || "").trim();
   const missing = missingRaw ? missingRaw.split(/\s+/).filter(Boolean) : [];
@@ -128,7 +131,11 @@ function scheduleIdleStop(
 }
 
 async function getOrCreateRuntime(language: string): Promise<{
-  runtime: { sandbox: Sandbox & AsyncDisposable; lock: Promise<void>; idleTimer: ReturnType<typeof setTimeout> | null };
+  runtime: {
+    sandbox: Sandbox & AsyncDisposable;
+    lock: Promise<void>;
+    idleTimer: ReturnType<typeof setTimeout> | null;
+  };
   created: boolean;
 }> {
   const existing = runtimeByLanguage.get(language);
@@ -244,7 +251,10 @@ export async function validateLevel3Submission(
       const writeStart = Date.now();
       await sandbox.writeFiles([
         { path: `main.${ext}`, content: Buffer.from(code, "utf8") },
-        { path: "runner.mjs", content: Buffer.from(buildCpuNativeSandboxRunner(challenge.language), "utf8") },
+        {
+          path: "runner.mjs",
+          content: Buffer.from(buildCpuNativeSandboxRunner(challenge.language), "utf8"),
+        },
       ]);
       writeMs = Date.now() - writeStart;
 
@@ -255,7 +265,10 @@ export async function validateLevel3Submission(
       });
       runDurationMs = Date.now() - runStart;
       if (run.exitCode !== 0) {
-        const stderr = ((await run.stderr()) || (await run.stdout()) || "node runner failed").slice(0, 3000);
+        const stderr = ((await run.stderr()) || (await run.stdout()) || "node runner failed").slice(
+          0,
+          3000,
+        );
         return {
           type: "run_error" as const,
           stderr,
@@ -309,7 +322,8 @@ export async function validateLevel3Submission(
       return {
         problemId: check.id,
         correct: Boolean(outcome?.ok),
-        message: outcome?.message ?? (parsed.compiled ? "missing harness output" : "compile failed"),
+        message:
+          outcome?.message ?? (parsed.compiled ? "missing harness output" : "compile failed"),
       };
     });
 

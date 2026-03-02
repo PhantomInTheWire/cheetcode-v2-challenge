@@ -11,14 +11,10 @@ import type { Id } from "../../../../convex/_generated/dataModel";
  */
 export async function POST(request: Request) {
   const session = await auth();
-  const github =
-    (session?.user as { githubUsername?: string })?.githubUsername ?? null;
+  const github = (session?.user as { githubUsername?: string })?.githubUsername ?? null;
 
   if (!github) {
-    return NextResponse.json(
-      { error: "GitHub authentication required" },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: "GitHub authentication required" }, { status: 401 });
   }
 
   try {
@@ -34,8 +30,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(result);
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Lead submission failed";
+    const message = err instanceof Error ? err.message : "Lead submission failed";
     console.error("/api/leads error:", err);
     return NextResponse.json({ error: message }, { status: 400 });
   }

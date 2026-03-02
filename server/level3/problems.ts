@@ -1,5 +1,4 @@
-import fs from "node:fs";
-import path from "node:path";
+import { SPEC_TEMPLATE, STARTER_C, STARTER_CPP, STARTER_RS } from "./assetStrings";
 
 export type Level3Check = {
   id: string;
@@ -31,17 +30,6 @@ type Level3TaskTemplate = {
 
 const LANGUAGES = ["C", "C++", "Rust"];
 
-const assetsDir = path.join(process.cwd(), "server", "level3", "assets");
-
-function readAsset(name: string): string {
-  return fs.readFileSync(path.join(assetsDir, name), "utf8");
-}
-
-const SPEC_TEMPLATE = readAsset("spec.md");
-const STARTER_C = readAsset("main.c");
-const STARTER_CPP = readAsset("main.cpp");
-const STARTER_RS = readAsset("main.rs");
-
 const TASKS: Level3TaskTemplate[] = [
   {
     id: "cpu-16bit-emulator",
@@ -49,8 +37,16 @@ const TASKS: Level3TaskTemplate[] = [
     specTemplate: SPEC_TEMPLATE,
     checks: [
       { key: "abi_reset", name: "Reset state semantics", exportName: "cpu_reset" },
-      { key: "arith_add_overflow", name: "ADD overflow flag behavior", exportName: "cpu_get_flag_v" },
-      { key: "arith_sub_overflow", name: "SUB overflow flag behavior", exportName: "cpu_get_flag_v" },
+      {
+        key: "arith_add_overflow",
+        name: "ADD overflow flag behavior",
+        exportName: "cpu_get_flag_v",
+      },
+      {
+        key: "arith_sub_overflow",
+        name: "SUB overflow flag behavior",
+        exportName: "cpu_get_flag_v",
+      },
       { key: "arith_cmp_flags", name: "CMP flag-only behavior", exportName: "cpu_get_flag_n" },
       { key: "logic_bitwise", name: "Bitwise logical operations", exportName: "cpu_get_reg" },
       { key: "logic_shifts", name: "Shift semantics and flags", exportName: "cpu_get_flag_z" },
@@ -59,13 +55,33 @@ const TASKS: Level3TaskTemplate[] = [
       { key: "branch_jn_taken", name: "JN negative branch behavior", exportName: "cpu_get_pc" },
       { key: "stack_push_pop", name: "Stack push/pop behavior", exportName: "cpu_get_sp" },
       { key: "stack_call_ret", name: "CALL/RET discipline", exportName: "cpu_get_sp" },
-      { key: "memory_wraparound", name: "Memory wraparound semantics", exportName: "cpu_mem_read16" },
-      { key: "memory_unaligned", name: "Memory unaligned word semantics", exportName: "cpu_mem_read16" },
-      { key: "programs_asm1", name: "Assembler program: basic ALU/data path", exportName: "cpu_assemble" },
+      {
+        key: "memory_wraparound",
+        name: "Memory wraparound semantics",
+        exportName: "cpu_mem_read16",
+      },
+      {
+        key: "memory_unaligned",
+        name: "Memory unaligned word semantics",
+        exportName: "cpu_mem_read16",
+      },
+      {
+        key: "programs_asm1",
+        name: "Assembler program: basic ALU/data path",
+        exportName: "cpu_assemble",
+      },
       { key: "programs_asm2", name: "Assembler program: loop/sum", exportName: "cpu_assemble" },
       { key: "programs_asm3", name: "Assembler program: nested calls", exportName: "cpu_assemble" },
-      { key: "programs_asm4", name: "Assembler program: branch+memory", exportName: "cpu_assemble" },
-      { key: "programs_invalid_reject", name: "Assembler rejects invalid source", exportName: "cpu_assemble" },
+      {
+        key: "programs_asm4",
+        name: "Assembler program: branch+memory",
+        exportName: "cpu_assemble",
+      },
+      {
+        key: "programs_invalid_reject",
+        name: "Assembler rejects invalid source",
+        exportName: "cpu_assemble",
+      },
       { key: "random_alu", name: "Randomized ALU property checks", exportName: "cpu_get_reg" },
       { key: "benchmark_budget", name: "Cycle/timing budget constraints", exportName: "cpu_run" },
     ],
@@ -73,6 +89,9 @@ const TASKS: Level3TaskTemplate[] = [
 ];
 
 function randomPick<T>(items: T[]): T {
+  if (items.length === 0) {
+    throw new Error("randomPick requires at least one item");
+  }
   return items[Math.floor(Math.random() * items.length)];
 }
 

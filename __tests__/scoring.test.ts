@@ -3,9 +3,7 @@ import { computeElo, getDifficultyBonus } from "../src/lib/scoring";
 
 describe("scoring", () => {
   it("elo formula matches spec", () => {
-    expect(computeElo({ solvedCount: 3, timeRemainingSecs: 10, difficultyBonus: 250 })).toBe(
-      750,
-    );
+    expect(computeElo({ solvedCount: 3, timeRemainingSecs: 10, difficultyBonus: 250 })).toBe(750);
   });
 
   it("time bonus only applies when solvedCount > 0", () => {

@@ -1,0 +1,9 @@
+node_modules
+.next
+out
+dist
+build
+coverage
+convex/_generated
+yarn.lock
+tsconfig.tsbuildinfo
