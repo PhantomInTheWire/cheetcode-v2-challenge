@@ -11,14 +11,14 @@ const FINGERPRINT_COOKIE = "ctf_fp";
 
 function rateLimitBody(pathname: string): Record<string, unknown> {
   if (
-    pathname === "/api/validate" ||
+    pathname === "/api/validate-l1" ||
     pathname === "/api/validate-batch" ||
     pathname === "/api/validate-l2" ||
     pathname === "/api/validate-l3"
   ) {
     return { passed: false, error: "rate limited" };
   }
-  if (pathname === "/api/finish") {
+  if (pathname === "/api/finish-l1") {
     return {
       error: "rate limited",
       elo: 0,
@@ -105,11 +105,11 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/api/session",
-    "/api/validate",
+    "/api/validate-l1",
     "/api/validate-batch",
     "/api/validate-l2",
     "/api/validate-l3",
-    "/api/finish",
+    "/api/finish-l1",
     "/api/finish-l2",
     "/api/finish-l3",
   ],
