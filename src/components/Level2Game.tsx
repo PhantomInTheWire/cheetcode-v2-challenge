@@ -107,6 +107,7 @@ export function Level2Game({
     if (!answer.trim()) return;
 
     setLocalCorrect((cur) => ({ ...cur, [problemId]: null }));
+    setSubmitError(null);
     try {
       const res = await clientFetch("/api/validate-l2", {
         method: "POST",
@@ -114,6 +115,8 @@ export function Level2Game({
         body: JSON.stringify({ answers: { [problemId]: answer } }),
       });
       if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setSubmitError(data.error || "Validation failed");
         setLocalCorrect((cur) => ({ ...cur, [problemId]: false }));
         return;
       }
@@ -122,7 +125,9 @@ export function Level2Game({
         data.results.find((r: { problemId: string; correct: boolean }) => r.problemId === problemId)
           ?.correct || false;
       setLocalCorrect((cur) => ({ ...cur, [problemId]: isCorrect }));
-    } catch {
+    } catch (err) {
+      console.error("Level 2 check failed:", err);
+      setSubmitError("Network error during validation");
       setLocalCorrect((cur) => ({ ...cur, [problemId]: false }));
     }
   }

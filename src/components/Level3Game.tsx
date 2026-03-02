@@ -90,9 +90,10 @@ export function Level3Game({
   const totalChecks = challenge.checks.length;
   const timeUp = timeLeftMs === 0;
 
-  async function runChecks(): Promise<string[]> {
+  async function runChecks() {
     setIsChecking(true);
     setCompileError(null);
+    setSubmitError(null);
     try {
       const res = await clientFetch("/api/validate-l3", {
         method: "POST",
@@ -111,17 +112,17 @@ export function Level3Game({
       }
 
       const nextState: Record<string, boolean | null> = {};
-      const correctIds: string[] = [];
       for (const result of data.results as Array<{
         problemId: string;
         correct: boolean;
         message?: string;
       }>) {
         nextState[result.problemId] = result.correct;
-        if (result.correct) correctIds.push(result.problemId);
       }
       setLocalCorrect(nextState);
-      return correctIds;
+    } catch (err) {
+      console.error("Level 3 check failed:", err);
+      setSubmitError(err instanceof Error ? err.message : "Test run failed. Please try again.");
     } finally {
       setIsChecking(false);
     }

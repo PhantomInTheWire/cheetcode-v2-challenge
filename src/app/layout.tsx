@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-import ConvexClientProvider from "@/components/ConvexClientProvider";
-import AuthProvider from "@/components/AuthProvider";
-import { GAME_DESCRIPTION, SITE_URL } from "@/lib/constants";
+import { ConvexClientProvider } from "@/components/ConvexClientProvider";
+import { AuthProvider } from "@/components/AuthProvider";
+import { GAME_DESCRIPTION, SITE_URL, FINGERPRINT_JS_URL } from "@/lib/constants";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,7 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Script src="https://openfpcdn.io/fingerprintjs/v4" strategy="lazyOnload" />
+        <Script src={FINGERPRINT_JS_URL} strategy="lazyOnload" />
         <AuthProvider>
           <ConvexClientProvider>{children}</ConvexClientProvider>
         </AuthProvider>

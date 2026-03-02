@@ -8,6 +8,9 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
+import { LandingScreen } from "@/components/game/LandingScreen";
+import { Level1Game } from "@/components/game/Level1Game";
+import { ResultsScreen } from "@/components/game/ResultsScreen";
 import { validateEmail, validateXHandle } from "@/lib/validation";
 import {
   ROUND_DURATION_MS,
@@ -108,6 +111,7 @@ export default function Home() {
   const [isAutoSolving, setIsAutoSolving] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const lockedTimeElapsedMsRef = useRef<number | null>(null);
   // Inline validation error messages
   const [emailError, setEmailError] = useState("");
@@ -169,9 +173,8 @@ export default function Home() {
     }
     const lockedTimeElapsedMs = lockedTimeElapsedMsRef.current;
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
-      // Call our Next.js API route which validates with QuickJS (in-process)
-      // then updates Convex leaderboard — no cross-origin issues
       const res = await clientFetch("/api/finish-l1", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -179,18 +182,20 @@ export default function Home() {
           sessionId,
           github,
           timeElapsed: lockedTimeElapsedMs,
-          submissions: problems.map((p) => ({
-            problemId: p.id,
-            code: codes[p.id] ?? "",
-          })),
+          submissions: problems.map((p) => ({ problemId: p.id, code: codes[p.id] || "" })),
+          flag: flag || undefined,
         }),
       });
-      if (!res.ok) throw new Error(`finish failed: ${res.status}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `finish failed: ${res.status}`);
+      }
       const d = await res.json();
       setResults(d);
       setScreen("results");
     } catch (err) {
       console.error("submitResults failed:", err);
+      setSubmitError(err instanceof Error ? err.message : "Submission failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -209,6 +214,7 @@ export default function Home() {
     // In local dev, allow any level. In production, enforce unlockedLevel.
     if (!isLocalDev && level > unlockedLevel) return;
 
+    setSubmitError(null);
     try {
       const res = await clientFetch("/api/session", {
         method: "POST",
@@ -263,6 +269,7 @@ export default function Home() {
       setScreen("playing");
     } catch (err) {
       console.error("createSession failed:", err);
+      setSubmitError(err instanceof Error ? err.message : "Failed to start game. Please try again.");
     }
   }
 
@@ -299,6 +306,7 @@ export default function Home() {
     }
     setEmailError("");
     setXHandleError("");
+    setSubmitError(null);
 
     try {
       const res = await clientFetch("/api/leads", {
@@ -315,6 +323,7 @@ export default function Home() {
       setSubmittedLead(true);
     } catch (err) {
       console.error("submitLead failed:", err);
+      setSubmitError(err instanceof Error ? err.message : "Failed to submit form. Please try again.");
     }
   }
 
@@ -477,359 +486,21 @@ export default function Home() {
      ═══════════════════════════════════════════════════════════ */
   if (screen === "landing") {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#f9f9f9",
-          padding: "80px 24px",
-          fontFamily: "var(--font-geist-mono), monospace",
-        }}
-      >
-        <div style={{ width: "100%", maxWidth: 600, textAlign: "center" }}>
-          {/* Logo */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              marginBottom: 40,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 40 }}>🔥</span>
-              <h1
-                style={{
-                  fontSize: 36,
-                  fontWeight: 800,
-                  color: "#fa5d19",
-                  margin: 0,
-                  letterSpacing: -1,
-                }}
-              >
-                FIRECRAWL CTF
-              </h1>
-            </div>
-            <a
-              href={SITE_URL}
-              style={{
-                fontSize: 12,
-                color: "rgba(0,0,0,0.3)",
-                marginTop: 6,
-                textDecoration: "none",
-                fontWeight: 500,
-              }}
-            >
-              cheetcode-ctf.firecrawl.dev
-            </a>
-          </div>
-
-          {/* Headline card */}
-          <div
-            style={{
-              background: "#ffffff",
-              border: "1px solid #e5e5e5",
-              borderRadius: 16,
-              padding: "48px 40px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-            }}
-          >
-            <p
-              style={{
-                fontSize: 44,
-                fontWeight: 800,
-                color: "#262626",
-                margin: 0,
-                lineHeight: 1.1,
-                letterSpacing: -0.5,
-              }}
-            >
-              {PROBLEMS_PER_SESSION} problems. {ROUND_DURATION_SECONDS} seconds.
-            </p>
-            <p
-              style={{
-                fontSize: 16,
-                color: "rgba(0,0,0,0.45)",
-                margin: "12px 0 0",
-                fontWeight: 400,
-              }}
-            >
-              Good luck.
-            </p>
-          </div>
-
-          {/* Info chips */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              gap: 10,
-              marginTop: 28,
-            }}
-          >
-            {[
-              `Solve all ${PROBLEMS_PER_SESSION} coding challenges`,
-              `You have ${ROUND_DURATION_SECONDS} seconds`,
-              `That's ${(ROUND_DURATION_SECONDS / PROBLEMS_PER_SESSION).toFixed(1)} seconds per problem`,
-            ].map((t) => (
-              <span
-                key={t}
-                style={{
-                  background: "#ffffff",
-                  border: "1px solid #e5e5e5",
-                  borderRadius: 8,
-                  padding: "8px 16px",
-                  fontSize: 13,
-                  color: "rgba(0,0,0,0.45)",
-                }}
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-
-          {/* Auth + Start card */}
-          <div
-            style={{
-              maxWidth: 420,
-              margin: "36px auto 0",
-              background: "#ffffff",
-              border: "1px solid #e5e5e5",
-              borderRadius: 16,
-              padding: "28px 32px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-            }}
-          >
-            {authStatus === "loading" && (
-              <p style={{ fontSize: 13, color: "rgba(0,0,0,0.4)", textAlign: "center" }}>
-                Loading...
-              </p>
-            )}
-
-            {authStatus === "unauthenticated" && (
-              <>
-                <p
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: "rgba(0,0,0,0.4)",
-                    marginBottom: 12,
-                    textAlign: "center",
-                  }}
-                >
-                  Sign in to play — your GitHub identity is your scoreboard entry
-                </p>
-                <button
-                  onClick={() => signIn("github")}
-                  style={{
-                    width: "100%",
-                    height: 52,
-                    borderRadius: 12,
-                    fontSize: 15,
-                    fontWeight: 700,
-                    fontFamily: "inherit",
-                    background: "#24292f",
-                    color: "#ffffff",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 10,
-                    transition: "background 0.2s",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#1b1f23")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "#24292f")}
-                >
-                  <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-                  </svg>
-                  Sign in with GitHub
-                </button>
-              </>
-            )}
-
-            {isAuthenticated && (
-              <>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: 16,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    {authSession.user.image && (
-                      <Image
-                        src={authSession.user.image}
-                        alt=""
-                        width={32}
-                        height={32}
-                        style={{ borderRadius: "50%", border: "1px solid #e5e5e5" }}
-                      />
-                    )}
-                    <div>
-                      <p style={{ fontSize: 14, fontWeight: 600, color: "#262626", margin: 0 }}>
-                        @{github}
-                      </p>
-                      <p style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", margin: 0 }}>
-                        Verified via GitHub OAuth
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => signOut()}
-                    style={{
-                      fontSize: 11,
-                      color: "rgba(0,0,0,0.35)",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      textDecoration: "underline",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    sign out
-                  </button>
-                </div>
-                {/* Level selection */}
-                {unlockedLevel < 2 && !isLocalDev ? (
-                  <button
-                    onClick={() => startGame(1)}
-                    className="btn-heat"
-                    style={{
-                      width: "100%",
-                      height: 52,
-                      borderRadius: 12,
-                      fontSize: 17,
-                      fontWeight: 800,
-                      letterSpacing: 2,
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    START
-                  </button>
-                ) : unlockedLevel < 3 && !isLocalDev ? (
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button
-                      onClick={() => startGame(1)}
-                      className="btn-heat"
-                      style={{
-                        flex: 1,
-                        height: 52,
-                        borderRadius: 12,
-                        fontSize: 17,
-                        fontWeight: 800,
-                        letterSpacing: 2,
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      PLAY LEVEL 1
-                    </button>
-                    <button
-                      onClick={() => startGame(2)}
-                      className="btn-heat"
-                      style={{
-                        flex: 1,
-                        height: 52,
-                        borderRadius: 12,
-                        fontSize: 17,
-                        fontWeight: 800,
-                        letterSpacing: 2,
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      PLAY LEVEL 2
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button
-                      onClick={() => startGame(1)}
-                      className="btn-heat"
-                      style={{
-                        flex: 1,
-                        height: 52,
-                        borderRadius: 12,
-                        fontSize: 17,
-                        fontWeight: 800,
-                        letterSpacing: 2,
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      PLAY LEVEL 1
-                    </button>
-                    <button
-                      onClick={() => startGame(2)}
-                      className="btn-heat"
-                      style={{
-                        flex: 1,
-                        height: 52,
-                        borderRadius: 12,
-                        fontSize: 17,
-                        fontWeight: 800,
-                        letterSpacing: 2,
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      PLAY LEVEL 2
-                    </button>
-                    <button
-                      onClick={() => startGame(3)}
-                      className="btn-heat"
-                      style={{
-                        flex: 1,
-                        height: 52,
-                        borderRadius: 12,
-                        fontSize: 17,
-                        fontWeight: 800,
-                        letterSpacing: 2,
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      PLAY LEVEL 3
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Leaderboard toggle */}
-          <button
-            onClick={() => setShowLeaderboard((c) => !c)}
-            style={{
-              display: "block",
-              margin: "28px auto 0",
-              background: "none",
-              border: "none",
-              color: "rgba(0,0,0,0.4)",
-              fontSize: 13,
-              cursor: "pointer",
-              textDecoration: "underline",
-              textUnderlineOffset: 4,
-              fontFamily: "inherit",
-            }}
-          >
-            {showLeaderboard ? "hide leaderboard" : "view leaderboard"}
-          </button>
-
-          {showLeaderboard && (
-            <div style={{ marginTop: 20, display: "flex", justifyContent: "center" }}>
-              <LeaderboardTable
-                rows={leaderboard}
-                totalSolveTarget={TOTAL_SOLVE_TARGET}
-                displayedSolveTarget={displayedSolveTarget}
-              />
-            </div>
-          )}
-        </div>
-      </div>
+      <LandingScreen
+        isAuthenticated={isAuthenticated}
+        github={github}
+        authStatus={authStatus}
+        authSession={authSession}
+        showLeaderboard={showLeaderboard}
+        setShowLeaderboard={setShowLeaderboard}
+        unlockedLevel={unlockedLevel}
+        isLocalDev={isLocalDev}
+        startGame={startGame}
+        leaderboard={leaderboard}
+        TOTAL_SOLVE_TARGET={TOTAL_SOLVE_TARGET}
+        displayedSolveTarget={displayedSolveTarget}
+        submitError={submitError}
+      />
     );
   }
 
@@ -868,923 +539,67 @@ export default function Home() {
       );
     }
 
-    // Level 1: Original game UI
+    // Level 1 Game UI
     const timerBg = secondsLeft <= 10 ? "#dc2626" : secondsLeft <= 20 ? "#fa5d19" : "#1a9338";
     const timerFg = secondsLeft <= 10 ? "#dc2626" : secondsLeft <= 20 ? "#fa5d19" : "#1a9338";
 
     return (
-      <div
-        style={{
-          height: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          background: "#f9f9f9",
-          fontFamily: "'SF Mono', 'Fira Code', var(--font-geist-mono), monospace",
-        }}
-      >
-        {/* ── Header bar ── */}
-        <div
-          style={{
-            height: 44,
-            flexShrink: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 14px",
-            borderBottom: "1px solid #e5e5e5",
-            background: "#ffffff",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 16 }}>🔥</span>
-            <span style={{ fontSize: 13, fontWeight: 800, color: "#fa5d19", letterSpacing: -0.5 }}>
-              FIRECRAWL CTF
-            </span>
-            <span style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", marginLeft: 4 }}>
-              @{github}
-            </span>
-            {canAutoSolve && (
-              <button
-                onClick={autoSolve}
-                disabled={isAutoSolving}
-                style={{
-                  marginLeft: 8,
-                  padding: "2px 10px",
-                  fontSize: 10,
-                  fontWeight: 600,
-                  background: "#f3f3f3",
-                  color: "rgba(0,0,0,0.5)",
-                  border: "1px solid #e5e5e5",
-                  borderRadius: 4,
-                  cursor: isAutoSolving ? "not-allowed" : "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                {isAutoSolving ? "solving..." : "⚡ Auto Solve"}
-              </button>
-            )}
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            {/* Solved */}
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  color: "rgba(0,0,0,0.35)",
-                  textTransform: "uppercase",
-                }}
-              >
-                Solved
-              </span>
-              <span
-                style={{
-                  fontSize: 16,
-                  fontWeight: 800,
-                  color: solvedLocal === 25 ? "#1a9338" : "#262626",
-                }}
-              >
-                {solvedLocal}
-                <span style={{ color: "rgba(0,0,0,0.25)" }}>/25</span>
-              </span>
-            </div>
-            {/* Timer */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div
-                style={{
-                  width: 140,
-                  height: 5,
-                  background: "#e5e5e5",
-                  borderRadius: 4,
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    width: `${progress}%`,
-                    height: "100%",
-                    background: timerBg,
-                    borderRadius: 4,
-                    transition: "width 100ms linear, background 500ms",
-                  }}
-                />
-              </div>
-              <span
-                style={{
-                  fontSize: 18,
-                  fontWeight: 800,
-                  color: timerFg,
-                  minWidth: 48,
-                  textAlign: "right",
-                  transition: "color 500ms",
-                  ...(secondsLeft <= 10
-                    ? { animation: "timer-pulse 0.6s ease-in-out infinite" }
-                    : {}),
-                }}
-              >
-                {timeUp ? "TIME" : `0:${String(secondsLeft).padStart(2, "0")}`}
-              </span>
-            </div>
-            {/* ── Big SUBMIT button ── */}
-            <button
-              onClick={() => void finishGame()}
-              disabled={isSubmitting}
-              className="btn-heat"
-              style={{
-                height: 32,
-                padding: "0 20px",
-                borderRadius: 8,
-                fontSize: 13,
-                fontWeight: 800,
-                fontFamily: "inherit",
-                letterSpacing: 1,
-                cursor: isSubmitting ? "not-allowed" : "pointer",
-                opacity: isSubmitting ? 0.7 : 1,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {isSubmitting ? "SUBMITTING..." : "FINISH & SUBMIT"}
-            </button>
-          </div>
-        </div>
-
-        {/* ── 5×2 Challenge Grid ── */}
-        <div
-          style={{
-            flex: 1,
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gridAutoRows: "minmax(560px, auto)",
-            alignContent: "start",
-            gap: 8,
-            padding: 8,
-            minHeight: 0,
-            overflowY: "auto",
-          }}
-        >
-          {problems.map((problem, idx) => {
-            const status =
-              problem.id in localPass
-                ? localPass[problem.id] === null
-                  ? "submitting"
-                  : localPass[problem.id]
-                    ? "passed"
-                    : "failed"
-                : "idle";
-
-            const borderColor =
-              status === "passed" ? "#22c55e" : status === "failed" ? "#ef4444" : "#e5e5e5";
-            const bgColor =
-              status === "passed" ? "#f0fdf4" : status === "failed" ? "#fef2f2" : "#ffffff";
-
-            return (
-              <div
-                key={problem.id}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  overflow: "hidden",
-                  borderRadius: 8,
-                  border: `1px solid ${borderColor}`,
-                  background: bgColor,
-                  transition: "all 300ms",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-                }}
-              >
-                {/* Panel header */}
-                <div
-                  style={{
-                    padding: "5px 8px",
-                    borderBottom: "1px solid #f0f0f0",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    flexShrink: 0,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                    <span style={{ fontSize: 10, color: "rgba(0,0,0,0.3)" }}>#{idx + 1}</span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: "#262626",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        maxWidth: 120,
-                      }}
-                    >
-                      {problem.title}
-                    </span>
-                  </div>
-                  <span
-                    style={{
-                      fontSize: 9,
-                      padding: "1px 6px",
-                      borderRadius: 999,
-                      fontWeight: 600,
-                      background:
-                        problem.tier === "competitive"
-                          ? "rgba(147, 51, 234, 0.10)"
-                          : problem.tier === "hard"
-                            ? "rgba(220,38,38,0.10)"
-                            : problem.tier === "medium"
-                              ? "rgba(180,83,9,0.10)"
-                              : "rgba(26,147,56,0.10)",
-                      color:
-                        problem.tier === "competitive"
-                          ? "#9333ea"
-                          : problem.tier === "hard"
-                            ? "#dc2626"
-                            : problem.tier === "medium"
-                              ? "#b45309"
-                              : "#1a9338",
-                    }}
-                  >
-                    {problem.tier}
-                  </span>
-                </div>
-
-                {/* Description */}
-                <div style={{ padding: "8px 10px", flexShrink: 0 }}>
-                  <p style={{ fontSize: 10, color: "rgba(0,0,0,0.5)", lineHeight: 1.4, margin: 0 }}>
-                    {problem.description.length > 520
-                      ? problem.description.slice(0, 520) + "..."
-                      : problem.description}
-                  </p>
-                </div>
-
-                {/* Code textarea */}
-                <div
-                  style={{
-                    flex: "1 1 auto",
-                    display: "flex",
-                    flexDirection: "column",
-                    minHeight: 0,
-                    padding: "0 10px",
-                  }}
-                >
-                  <textarea
-                    value={codes[problem.id] ?? ""}
-                    onChange={(e) => setCodes((cur) => ({ ...cur, [problem.id]: e.target.value }))}
-                    disabled={timeUp || status === "passed"}
-                    placeholder={problem.signature}
-                    spellCheck={false}
-                    style={{
-                      flex: "1 1 auto",
-                      minHeight: 320,
-                      width: "100%",
-                      resize: "none",
-                      background: "#fafafa",
-                      color: status === "passed" ? "#1a9338" : "#262626",
-                      border: "1px solid #e5e5e5",
-                      borderRadius: 4,
-                      padding: 6,
-                      fontSize: 10,
-                      lineHeight: 1.4,
-                      fontFamily: "inherit",
-                      outline: "none",
-                    }}
-                  />
-                </div>
-
-                {/* Submit button */}
-                <div style={{ padding: "5px 8px", flexShrink: 0 }}>
-                  <button
-                    onClick={() => runLocalCheck(problem)}
-                    disabled={timeUp || status === "passed" || !(codes[problem.id] ?? "").trim()}
-                    style={{
-                      width: "100%",
-                      padding: "4px 0",
-                      borderRadius: 4,
-                      border: "none",
-                      fontSize: 10,
-                      fontWeight: 600,
-                      fontFamily: "inherit",
-                      cursor:
-                        timeUp || status === "passed" || !(codes[problem.id] ?? "").trim()
-                          ? "not-allowed"
-                          : "pointer",
-                      background:
-                        status === "passed"
-                          ? "rgba(26,147,56,0.1)"
-                          : timeUp
-                            ? "#e5e5e5"
-                            : "#fa5d19",
-                      color: status === "passed" ? "#1a9338" : timeUp ? "rgba(0,0,0,0.3)" : "#fff",
-                      transition: "all 150ms",
-                    }}
-                  >
-                    {status === "passed"
-                      ? "✓ PASSED"
-                      : status === "failed"
-                        ? "✗ RETRY"
-                        : status === "submitting"
-                          ? "..."
-                          : "SUBMIT"}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── Time's up / submitting overlay ── */}
-        {(timeUp || isSubmitting) && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0,0,0,0.85)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 50,
-            }}
-          >
-            <div
-              style={{
-                textAlign: "center",
-                background: "#ffffff",
-                borderRadius: 20,
-                padding: "48px 56px",
-                border: "1px solid #e5e5e5",
-                boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
-              }}
-            >
-              <p
-                style={{
-                  fontSize: 52,
-                  fontWeight: 800,
-                  color: solvedLocal === 25 ? "#1a9338" : "#dc2626",
-                  margin: 0,
-                }}
-              >
-                {isSubmitting ? "SUBMITTING..." : solvedLocal === 25 ? "ALL CLEAR 🔥" : "TIME'S UP"}
-              </p>
-              <p style={{ fontSize: 22, color: "rgba(0,0,0,0.45)", margin: "8px 0 0" }}>
-                {solvedLocal}/25 solved locally
-              </p>
-              {!isSubmitting && (
-                <button
-                  onClick={() => void finishGame()}
-                  className="btn-heat"
-                  style={{
-                    marginTop: 32,
-                    padding: "14px 48px",
-                    borderRadius: 10,
-                    fontSize: 16,
-                    fontWeight: 800,
-                    fontFamily: "inherit",
-                    letterSpacing: 1,
-                  }}
-                >
-                  SEE RESULTS
-                </button>
-              )}
-              {isSubmitting && (
-                <p style={{ fontSize: 14, color: "rgba(0,0,0,0.35)", marginTop: 20 }}>
-                  Validating your solutions on the server...
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      <Level1Game
+        github={github}
+        canAutoSolve={canAutoSolve}
+        autoSolve={autoSolve}
+        isAutoSolving={isAutoSolving}
+        solvedLocal={solvedLocal}
+        progress={progress}
+        timerBg={timerBg}
+        timerFg={timerFg}
+        timeUp={timeUp}
+        secondsLeft={secondsLeft}
+        finishGame={finishGame}
+        isSubmitting={isSubmitting}
+        submitError={submitError}
+        problems={problems}
+        localPass={localPass}
+        codes={codes}
+        setCodes={setCodes}
+        runLocalCheck={runLocalCheck}
+      />
     );
   }
 
   /* ═══════════════════════════════════════════════════════════
      RESULTS
      ═══════════════════════════════════════════════════════════ */
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    height: 44,
-    borderRadius: 10,
-    border: "1px solid #e5e5e5",
-    background: "#f3f3f3",
-    padding: "0 16px",
-    fontSize: 14,
-    fontFamily: "var(--font-geist-mono), monospace",
-    color: "#262626",
-    outline: "none",
-    boxSizing: "border-box",
-    transition: "border-color 0.2s",
-  };
+  /* ═══════════════════════════════════════════════════════════
+     RESULTS
+     ═══════════════════════════════════════════════════════════ */
+  if (results) {
+    return (
+      <ResultsScreen
+        results={results}
+        displayedSolveTarget={displayedSolveTarget}
+        currentLevel={currentLevel}
+        unlockedLevel={unlockedLevel}
+        github={github}
+        email={email}
+        setEmail={setEmail}
+        xHandle={xHandle}
+        setXHandle={setXHandle}
+        flag={flag}
+        setFlag={setFlag}
+        emailError={emailError}
+        setEmailError={setEmailError}
+        xHandleError={xHandleError}
+        setXHandleError={setXHandleError}
+        submitError={submitError}
+        submittedLead={submittedLead}
+        submitLeadForm={submitLeadForm}
+        shareScore={shareScore}
+        resetAll={resetAll}
+        startGame={startGame}
+      />
+    );
+  }
 
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#f9f9f9",
-        padding: "80px 24px",
-        fontFamily: "var(--font-geist-mono), monospace",
-      }}
-    >
-      {results && (
-        <div
-          style={{
-            width: "100%",
-            maxWidth: 720,
-            background: "#ffffff",
-            border: "1px solid #e5e5e5",
-            borderRadius: 20,
-            padding: "48px 44px",
-            textAlign: "center",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-          }}
-        >
-          {/* Headline */}
-          <h2
-            style={{
-              fontSize: 44,
-              fontWeight: 800,
-              margin: 0,
-              lineHeight: 1.1,
-              color: results.solved >= TOTAL_SOLVE_TARGET ? "#fa5d19" : "#262626",
-            }}
-          >
-            {results.solved <= 2 ? "TIME'S UP" : results.solved < 10 ? "NOT BAD" : "ALL CLEAR 🔥"}
-          </h2>
-
-          {results.solved <= 2 && (
-            <p style={{ marginTop: 16, fontSize: 15, color: "rgba(0,0,0,0.45)" }}>
-              You probably need a different approach.
-            </p>
-          )}
-          {results.solved >= TOTAL_SOLVE_TARGET && (
-            <p style={{ marginTop: 16, fontSize: 15, fontWeight: 600, color: "#fa5d19" }}>
-              We want to talk to you.
-            </p>
-          )}
-
-          {/* Stats row */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: 0,
-              marginTop: 36,
-              background: "#f3f3f3",
-              borderRadius: 14,
-              overflow: "hidden",
-            }}
-          >
-            {[
-              {
-                label: "Solved",
-                value: `${results.solved}/${displayedSolveTarget}`,
-                color: "#262626",
-              },
-              { label: "Score", value: results.elo.toLocaleString(), color: "#fa5d19" },
-              { label: "Rank", value: `#${results.rank}`, color: "#262626" },
-            ].map((stat, i) => (
-              <div
-                key={stat.label}
-                style={{
-                  flex: 1,
-                  padding: "20px 16px",
-                  borderRight: i < 2 ? "1px solid #e5e5e5" : "none",
-                  textAlign: "center",
-                }}
-              >
-                <p
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    letterSpacing: 1,
-                    color: "rgba(0,0,0,0.35)",
-                    margin: 0,
-                  }}
-                >
-                  {stat.label}
-                </p>
-                <p style={{ fontSize: 26, fontWeight: 800, color: stat.color, margin: "8px 0 0" }}>
-                  {stat.value}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* ── Score Breakdown — always visible so players learn what's possible ── */}
-          <div style={{ marginTop: 28, textAlign: "left" }}>
-            <p
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#262626",
-                margin: "0 0 14px",
-                textTransform: "uppercase",
-                letterSpacing: 1,
-              }}
-            >
-              Score Breakdown
-            </p>
-
-            {/* Base score */}
-            <div
-              style={{
-                background: "#f3f3f3",
-                borderRadius: 10,
-                padding: "14px 18px",
-                marginBottom: 10,
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                <span style={{ color: "rgba(0,0,0,0.5)" }}>
-                  Base score ({results.solved}/{displayedSolveTarget} solved,{" "}
-                  {results.timeRemaining}s remaining)
-                </span>
-                <span style={{ fontWeight: 700, color: "#262626" }}>
-                  {results.elo -
-                    (results.exploits ?? []).reduce((s, e) => s + e.bonus, 0) -
-                    (results.landmines ?? []).reduce((s, l) => s + l.penalty, 0)}
-                </span>
-              </div>
-            </div>
-
-            {/* ── Exploits — only visible if they found any ── */}
-            {(results.exploits ?? []).length > 0 && (
-              <div
-                style={{
-                  borderRadius: 10,
-                  border: "1px solid rgba(250,93,25,0.2)",
-                  overflow: "hidden",
-                  marginBottom: 10,
-                  background: "rgba(250,93,25,0.03)",
-                }}
-              >
-                <div
-                  style={{
-                    padding: "10px 18px",
-                    background: "rgba(250,93,25,0.06)",
-                    borderBottom: "1px solid rgba(250,93,25,0.15)",
-                  }}
-                >
-                  <p
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: "#fa5d19",
-                      margin: 0,
-                      textTransform: "uppercase",
-                      letterSpacing: 1,
-                    }}
-                  >
-                    Exploits
-                  </p>
-                </div>
-                {(results.exploits ?? []).map((e) => (
-                  <div
-                    key={e.id}
-                    style={{
-                      padding: "8px 18px",
-                      borderBottom: "1px solid rgba(250,93,25,0.1)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                    }}
-                  >
-                    <span style={{ fontSize: 14, width: 20, textAlign: "center", flexShrink: 0 }}>
-                      ✓
-                    </span>
-                    <span style={{ fontSize: 11, color: "#262626", flex: 1, lineHeight: 1.5 }}>
-                      {e.message}
-                    </span>
-                    <span
-                      style={{ fontSize: 12, fontWeight: 700, color: "#1a9338", flexShrink: 0 }}
-                    >
-                      +{e.bonus}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* ── Landmines — only visible if they triggered any ── */}
-            {(results.landmines ?? []).length > 0 && (
-              <div
-                style={{
-                  borderRadius: 10,
-                  border: "1px solid rgba(220,38,38,0.2)",
-                  overflow: "hidden",
-                  marginBottom: 10,
-                  background: "rgba(220,38,38,0.03)",
-                }}
-              >
-                <div
-                  style={{
-                    padding: "10px 18px",
-                    background: "rgba(220,38,38,0.06)",
-                    borderBottom: "1px solid rgba(220,38,38,0.15)",
-                  }}
-                >
-                  <p
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: "#dc2626",
-                      margin: 0,
-                      textTransform: "uppercase",
-                      letterSpacing: 1,
-                    }}
-                  >
-                    Safety Issues
-                  </p>
-                </div>
-                {(results.landmines ?? []).map((l) => (
-                  <div
-                    key={l.id}
-                    style={{
-                      padding: "8px 18px",
-                      borderBottom: "1px solid rgba(220,38,38,0.1)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                    }}
-                  >
-                    <span style={{ fontSize: 14, width: 20, textAlign: "center", flexShrink: 0 }}>
-                      ✗
-                    </span>
-                    <span style={{ fontSize: 11, color: "#262626", flex: 1, lineHeight: 1.5 }}>
-                      {l.message}
-                    </span>
-                    <span
-                      style={{ fontSize: 12, fontWeight: 700, color: "#dc2626", flexShrink: 0 }}
-                    >
-                      {l.penalty}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Final Score */}
-            <div
-              style={{
-                background: "#262626",
-                borderRadius: 10,
-                padding: "14px 18px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: "rgba(255,255,255,0.7)",
-                  textTransform: "uppercase",
-                  letterSpacing: 1,
-                }}
-              >
-                Final Score
-              </span>
-              <span style={{ fontSize: 22, fontWeight: 800, color: "#fa5d19" }}>
-                {results.elo.toLocaleString()}
-              </span>
-            </div>
-
-            {currentLevel === 3 && results.validation && (
-              <div
-                style={{
-                  marginTop: 14,
-                  border: "1px solid #e5e5e5",
-                  borderRadius: 10,
-                  overflow: "hidden",
-                  background: "#fafafa",
-                }}
-              >
-                {(() => {
-                  const passedCount = results.validation.results.filter((r) => r.correct).length;
-                  const failedCount = Math.max(0, results.validation.results.length - passedCount);
-                  return (
-                    <>
-                      <div
-                        style={{
-                          padding: "10px 18px",
-                          borderBottom: "1px solid #e5e5e5",
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: "#262626",
-                            textTransform: "uppercase",
-                            letterSpacing: 1,
-                          }}
-                        >
-                          Stage 3 Verification
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: results.validation.compiled ? "#1a9338" : "#dc2626",
-                          }}
-                        >
-                          {passedCount}/{results.validation.results.length} checks passed
-                        </span>
-                      </div>
-                      {!results.validation.compiled && (
-                        <div
-                          style={{
-                            padding: "10px 18px",
-                            borderBottom: "1px solid #e5e5e5",
-                            fontSize: 12,
-                            color: "#dc2626",
-                          }}
-                        >
-                          Compilation failed.
-                        </div>
-                      )}
-                      {failedCount > 0 && (
-                        <div
-                          style={{ padding: "10px 18px", fontSize: 12, color: "rgba(0,0,0,0.7)" }}
-                        >
-                          {failedCount} check{failedCount === 1 ? "" : "s"} failed.
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-            )}
-          </div>
-
-          {/* Capture form — inline row */}
-          {results.solved >= 3 && !submittedLead && (
-            <div style={{ marginTop: 32 }}>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <input
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setEmailError("");
-                  }}
-                  placeholder="Email"
-                  maxLength={254}
-                  style={{
-                    ...inputStyle,
-                    flex: 1,
-                    borderColor: emailError ? "#dc2626" : "#e5e5e5",
-                  }}
-                  onFocus={(e) => (e.target.style.borderColor = emailError ? "#dc2626" : "#fa5d19")}
-                  onBlur={(e) => (e.target.style.borderColor = emailError ? "#dc2626" : "#e5e5e5")}
-                />
-                <input
-                  value={github}
-                  readOnly
-                  style={{ ...inputStyle, flex: 1, color: "rgba(0,0,0,0.35)" }}
-                />
-                <input
-                  value={xHandle}
-                  onChange={(e) => {
-                    setXHandle(e.target.value);
-                    setXHandleError("");
-                  }}
-                  placeholder="@x_handle"
-                  maxLength={16}
-                  style={{
-                    ...inputStyle,
-                    flex: 1,
-                    borderColor: xHandleError ? "#dc2626" : "#e5e5e5",
-                  }}
-                  onFocus={(e) =>
-                    (e.target.style.borderColor = xHandleError ? "#dc2626" : "#fa5d19")
-                  }
-                  onBlur={(e) =>
-                    (e.target.style.borderColor = xHandleError ? "#dc2626" : "#e5e5e5")
-                  }
-                />
-                <input
-                  value={flag}
-                  onChange={(e) => setFlag(e.target.value)}
-                  placeholder="🔥{...}"
-                  style={{ ...inputStyle, flex: 0.7 }}
-                  onFocus={(e) => (e.target.style.borderColor = "#fa5d19")}
-                  onBlur={(e) => (e.target.style.borderColor = "#e5e5e5")}
-                />
-                <button
-                  disabled={!email.trim()}
-                  onClick={submitLeadForm}
-                  className="btn-heat"
-                  style={{
-                    height: 44,
-                    padding: "0 24px",
-                    borderRadius: 10,
-                    fontSize: 13,
-                    fontWeight: 800,
-                    fontFamily: "inherit",
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
-                  }}
-                >
-                  SUBMIT
-                </button>
-              </div>
-              {(emailError || xHandleError) && (
-                <p style={{ margin: "6px 0 0", fontSize: 12, color: "#dc2626", textAlign: "left" }}>
-                  {emailError || xHandleError}
-                </p>
-              )}
-            </div>
-          )}
-
-          {submittedLead && (
-            <p style={{ marginTop: 28, fontSize: 15, fontWeight: 600, color: "#1a9338" }}>
-              You&apos;re in. Share for the next challenge 🔥
-            </p>
-          )}
-
-          {/* Action buttons */}
-          <div style={{ display: "flex", gap: 12, marginTop: 36 }}>
-            <button
-              onClick={shareScore}
-              className="btn-heat"
-              style={{
-                flex: 1,
-                height: 46,
-                borderRadius: 10,
-                fontSize: 13,
-                fontWeight: 800,
-                fontFamily: "inherit",
-              }}
-            >
-              SHARE ON X
-            </button>
-            <button
-              onClick={resetAll}
-              className="btn-ghost"
-              style={{
-                flex: 1,
-                height: 46,
-                borderRadius: 10,
-                fontSize: 13,
-                fontWeight: 800,
-                fontFamily: "inherit",
-              }}
-            >
-              TRY AGAIN
-            </button>
-          </div>
-
-          {/* Continue to Level 2 after perfect Level 1 */}
-          {currentLevel === 1 && results.solved >= PROBLEMS_PER_SESSION && (
-            <button
-              onClick={() => startGame(2)}
-              className="btn-heat"
-              style={{
-                width: "100%",
-                height: 52,
-                borderRadius: 12,
-                fontSize: 17,
-                fontWeight: 800,
-                letterSpacing: 2,
-                fontFamily: "inherit",
-                marginTop: 20,
-                background: "#fa5d19",
-              }}
-            >
-              CONTINUE TO LEVEL 2 →
-            </button>
-          )}
-
-          {currentLevel === 2 &&
-            (unlockedLevel >= 3 || results.solved >= PROBLEMS_PER_SESSION + LEVEL2_TOTAL) && (
-              <button
-                onClick={() => startGame(3)}
-                className="btn-heat"
-                style={{
-                  width: "100%",
-                  height: 52,
-                  borderRadius: 12,
-                  fontSize: 17,
-                  fontWeight: 800,
-                  letterSpacing: 2,
-                  fontFamily: "inherit",
-                  marginTop: 20,
-                  background: "#fa5d19",
-                }}
-              >
-                CONTINUE TO LEVEL 3 →
-              </button>
-            )}
-        </div>
-      )}
-    </div>
-  );
+  return null;
 }

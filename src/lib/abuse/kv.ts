@@ -3,8 +3,8 @@ import {
   type AbuseDecision,
   type AbuseRoute,
   getRouteConfig,
-} from "./abuse-guard";
-import { getIdentityKeys } from "./abuse-identity";
+} from "./guard";
+import { getIdentityKeys } from "./identity";
 
 const SHADOW_BAN_DURATION_SECONDS = 24 * 60 * 60;
 const KEY_PREFIX = "ctf:abuse:v1";

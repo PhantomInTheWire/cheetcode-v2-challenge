@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { validateLevel3Submission } from "../../../../server/level3/validation";
-import { requireAuthenticatedGithub } from "../../../lib/request-auth";
-import { SHADOW_BAN_HEADER } from "../../../lib/abuse-guard";
-import { requireOwnedSession } from "../../../lib/session-auth";
-import { clampElapsed, getJsonBody, shadowBanResponse } from "../../../lib/api-route";
+import { SHADOW_BAN_HEADER } from "../../../lib/abuse";
+import { clampElapsed, shadowBanResponse } from "../../../lib/api-route";
+import { ENV } from "../../../lib/env-vars";
+import { withAuthenticatedSession } from "../../../lib/route-handler";
 
 type RequestBody = {
   sessionId: string;
@@ -13,29 +13,13 @@ type RequestBody = {
   timeElapsed: number;
 };
 
-/**
- * POST /api/finish-l3
- * Records Level 3 challenge results.
- */
 export async function POST(request: Request) {
-  try {
-    const body = await getJsonBody<RequestBody>(request);
-    if (!body) {
-      return NextResponse.json({ error: "invalid request" }, { status: 400 });
-    }
+  return withAuthenticatedSession<RequestBody>(request, 3, async ({ github, session, convex, body }) => {
     const { sessionId, code, timeElapsed } = body;
 
-    if (!sessionId || typeof code !== "string" || !code.trim() || typeof timeElapsed !== "number") {
+    if (typeof code !== "string" || !code.trim() || typeof timeElapsed !== "number") {
       return NextResponse.json({ error: "invalid request" }, { status: 400 });
     }
-
-    const authResult = await requireAuthenticatedGithub(request);
-    if ("response" in authResult) return authResult.response;
-    const github = authResult.github;
-
-    const sessionResult = await requireOwnedSession(sessionId, github, 3);
-    if ("response" in sessionResult) return sessionResult.response;
-    const { session, convex } = sessionResult;
 
     const clientElapsedMs = clampElapsed(timeElapsed, session.expiresAt - session.startedAt);
 
@@ -60,13 +44,13 @@ export async function POST(request: Request) {
             validation.error ||
             "Level 3 validation infrastructure is currently unavailable. Please retry in a moment.",
         },
-        { status: 503 },
+        { status: 503 }
       );
     }
     const solvedProblemIds = validation.results.filter((r) => r.correct).map((r) => r.problemId);
 
     const result = await convex.action(api.submissions.recordResults, {
-      secret: process.env.CONVEX_MUTATION_SECRET!,
+      secret: ENV.CONVEX_MUTATION_SECRET,
       sessionId: sessionId as Id<"sessions">,
       github,
       solvedProblemIds,
@@ -78,11 +62,5 @@ export async function POST(request: Request) {
       ...result,
       validation,
     });
-  } catch (err) {
-    console.error("/api/finish-l3 error:", err);
-    return NextResponse.json(
-      { error: "submission failed", elo: 0, solved: 0, rank: 0, timeRemaining: 0 },
-      { status: 500 },
-    );
-  }
+  });
 }

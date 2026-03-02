@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
-import { resolveGitHubFromHeader } from "../../../lib/github-auth";
-import { auth } from "../../../../auth";
+import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import { warmLevel3Runtime } from "../../../../server/level3/validation";
 import { getLevel3ChallengeFromId } from "../../../../server/level3/problems";
 import { normalizeTestCasesWithArgs } from "../../../lib/testcaseArgs";
+import { ENV } from "../../../lib/env-vars";
 
 type SessionLevel1Problem = {
   id: string;
@@ -24,23 +24,9 @@ type SessionLevel1Problem = {
  *   2. OAuth session cookie (browser users)
  */
 export async function POST(request: Request) {
-  // Try PAT first (API agents), then fall back to OAuth session (browser)
-  let github = await resolveGitHubFromHeader(request);
-
-  if (!github) {
-    const session = await auth();
-    github = (session?.user as { githubUsername?: string })?.githubUsername ?? null;
-  }
-
-  if (!github) {
-    return NextResponse.json(
-      {
-        error: "GitHub authentication required",
-        hint: "Send a GitHub PAT via Authorization: Bearer <token>, or sign in with OAuth",
-      },
-      { status: 401 },
-    );
-  }
+  const authResult = await requireAuthenticatedGithub(request);
+  if ("response" in authResult) return authResult.response;
+  const { github } = authResult;
 
   // Parse request body for level selection
   let requestedLevel: number | undefined;
@@ -52,18 +38,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-    const hasSecret = !!process.env.CONVEX_MUTATION_SECRET;
-    if (!convexUrl) {
-      return NextResponse.json({ error: "NEXT_PUBLIC_CONVEX_URL not configured" }, { status: 500 });
-    }
-    if (!hasSecret) {
-      return NextResponse.json({ error: "CONVEX_MUTATION_SECRET not configured" }, { status: 500 });
-    }
+    const convexUrl = ENV.NEXT_PUBLIC_CONVEX_URL;
+    const mutationSecret = ENV.CONVEX_MUTATION_SECRET;
 
     const convex = new ConvexHttpClient(convexUrl);
     const result = await convex.action(api.sessions.create, {
-      secret: process.env.CONVEX_MUTATION_SECRET!,
+      secret: mutationSecret,
       github,
       requestedLevel,
     });

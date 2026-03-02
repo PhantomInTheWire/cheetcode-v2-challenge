@@ -4,6 +4,11 @@ export type ArgsTestCase = {
   args?: unknown[];
 };
 
+export function buildArgs(testCase: { args?: unknown[] }): unknown[] | null {
+  if (Array.isArray(testCase.args)) return testCase.args;
+  return null;
+}
+
 export function extractSignatureParamNames(signature: string): string[] {
   const match = signature.match(/\(([^)]*)\)/);
   const raw = (match?.[1] ?? "").trim();

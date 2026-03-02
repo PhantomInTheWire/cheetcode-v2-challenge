@@ -1,27 +1,29 @@
 import { NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
-import { auth } from "../../../../auth";
+import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
 /**
  * POST /api/leads
  * Submit lead/contact info after scoring 3+.
- * Auth: OAuth session cookie (browser users only).
+ * Auth: GitHub PAT or OAuth session.
  */
 export async function POST(request: Request) {
-  const session = await auth();
-  const github = (session?.user as { githubUsername?: string })?.githubUsername ?? null;
-
-  if (!github) {
-    return NextResponse.json({ error: "GitHub authentication required" }, { status: 401 });
-  }
+  const authResult = await requireAuthenticatedGithub(request);
+  if ("response" in authResult) return authResult.response;
+  const { github } = authResult;
 
   try {
     const body = await request.json();
-    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    const convexSecret = process.env.CONVEX_MUTATION_SECRET;
+    if (!convexUrl || !convexSecret) {
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    }
+    const convex = new ConvexHttpClient(convexUrl);
     const result = await convex.action(api.leads.submit, {
-      secret: process.env.CONVEX_MUTATION_SECRET!,
+      secret: convexSecret,
       github,
       email: body.email,
       xHandle: body.xHandle,

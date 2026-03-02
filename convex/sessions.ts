@@ -9,16 +9,12 @@ import {
 import { generateLevel3ChallengeMeta } from "../server/level3/catalog";
 import { validateGithub } from "../src/lib/validation";
 import { ROUND_DURATION_MS } from "../src/lib/constants";
+import { isServerDevMode } from "../src/lib/myEnv";
 import { LEVEL2_PROBLEMS } from "../server/level2/problems";
 
 const SESSION_COOLDOWN_MS = 5_000;
 export const ROUND_DURATION_L2_MS = 45_000;
 export const ROUND_DURATION_L3_MS = 120_000;
-
-function isConvexDevMode(): boolean {
-  const env = (process.env.MY_ENV || process.env.my_env || "").trim().toLowerCase();
-  return env === "development";
-}
 
 export const createInternal = internalMutation({
   args: {
@@ -52,7 +48,7 @@ export const createInternal = internalMutation({
     }
 
     // In dev mode, allow playing any level for local/testing workflows.
-    if (!isConvexDevMode() && level > unlockedLevel) {
+    if (!isServerDevMode() && level > unlockedLevel) {
       level = unlockedLevel;
     }
 

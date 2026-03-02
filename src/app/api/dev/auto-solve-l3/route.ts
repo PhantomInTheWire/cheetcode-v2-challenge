@@ -2,11 +2,15 @@ import { NextResponse } from "next/server";
 import { getLevel3ChallengeFromId } from "../../../../../server/level3/problems";
 import { getLevel3AutoSolveCode } from "../../../../../server/level3/autoSolve";
 import { isServerDevMode } from "../../../../lib/myEnv";
+import { requireAuthenticatedGithub } from "../../../../lib/request-auth";
 
 export async function POST(request: Request) {
   if (!isServerDevMode()) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
+
+  const authResult = await requireAuthenticatedGithub(request);
+  if ("response" in authResult) return authResult.response;
 
   try {
     const body = (await request.json()) as { challengeId?: string };
