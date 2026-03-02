@@ -17,13 +17,13 @@
 
 For headings and major text elements:
 
-| Class | Size | Line Height | Letter Spacing | Usage |
-|-------|------|-------------|----------------|-------|
-| title-h1 | 60px | 64px | -0.3px | Hero headlines |
-| title-h2 | 52px | 56px | -0.52px | Section titles |
-| title-h3 | 40px | 44px | -0.4px | Feature titles |
-| title-h4 | 32px | 36px | -0.32px | Card titles |
-| title-h5 | 24px | 32px | -0.24px | Sub-headings |
+| Class    | Size | Line Height | Letter Spacing | Usage          |
+| -------- | ---- | ----------- | -------------- | -------------- |
+| title-h1 | 60px | 64px        | -0.3px         | Hero headlines |
+| title-h2 | 52px | 56px        | -0.52px        | Section titles |
+| title-h3 | 40px | 44px        | -0.4px         | Feature titles |
+| title-h4 | 32px | 36px        | -0.32px        | Card titles    |
+| title-h5 | 24px | 32px        | -0.24px        | Sub-headings   |
 
 ```css
 .title-h1 {
@@ -71,13 +71,13 @@ For headings and major text elements:
 
 For paragraphs and general content:
 
-| Class | Size | Line Height | Letter Spacing | Usage |
-|-------|------|-------------|----------------|-------|
-| body-x-large | 20px | 28px | 0 | Lead paragraphs |
-| body-large | 16px | 24px | 0 | Standard body |
-| body-medium | 14px | 20px | 0.14px | Default text |
-| body-small | 13px | 20px | 0 | Secondary text |
-| body-input | 15px | 24px | 0 | Form inputs |
+| Class        | Size | Line Height | Letter Spacing | Usage           |
+| ------------ | ---- | ----------- | -------------- | --------------- |
+| body-x-large | 20px | 28px        | 0              | Lead paragraphs |
+| body-large   | 16px | 24px        | 0              | Standard body   |
+| body-medium  | 14px | 20px        | 0.14px         | Default text    |
+| body-small   | 13px | 20px        | 0              | Secondary text  |
+| body-input   | 15px | 24px        | 0              | Form inputs     |
 
 ```css
 .body-x-large {
@@ -121,13 +121,13 @@ For paragraphs and general content:
 
 For buttons, badges, and UI labels (weight: 450):
 
-| Class | Size | Line Height | Usage |
-|-------|------|-------------|-------|
-| label-x-large | 20px | 28px | Large buttons |
-| label-large | 16px | 24px | Standard buttons |
-| label-medium | 14px | 20px | Default labels |
-| label-small | 13px | 18px | Small buttons |
-| label-x-small | 12px | 16px | Badges, tags |
+| Class         | Size | Line Height | Usage            |
+| ------------- | ---- | ----------- | ---------------- |
+| label-x-large | 20px | 28px        | Large buttons    |
+| label-large   | 16px | 24px        | Standard buttons |
+| label-medium  | 14px | 20px        | Default labels   |
+| label-small   | 13px | 18px        | Small buttons    |
+| label-x-small | 12px | 16px        | Badges, tags     |
 
 ```css
 .label-x-large {
@@ -170,11 +170,11 @@ For buttons, badges, and UI labels (weight: 450):
 
 For code blocks and technical content:
 
-| Class | Size | Line Height | Weight | Usage |
-|-------|------|-------------|--------|-------|
-| mono-medium | 14px | 22px | 400 | Code blocks |
-| mono-small | 13px | 20px | 500 | Inline code |
-| mono-x-small | 12px | 16px | 500 | Compact code |
+| Class        | Size | Line Height | Weight | Usage        |
+| ------------ | ---- | ----------- | ------ | ------------ |
+| mono-medium  | 14px | 22px        | 400    | Code blocks  |
+| mono-small   | 13px | 20px        | 500    | Inline code  |
+| mono-x-small | 12px | 16px        | 500    | Compact code |
 
 ```css
 .mono-medium {
@@ -217,9 +217,7 @@ For code blocks and technical content:
 
 ```tsx
 <div className="p-24">
-  <h3 className="title-h5 text-accent-black mb-8">
-    Web Scraping API
-  </h3>
+  <h3 className="title-h5 text-accent-black mb-8">Web Scraping API</h3>
   <p className="body-medium text-accent-black/60">
     Extract data from any website with a simple API call.
   </p>
@@ -230,10 +228,7 @@ For code blocks and technical content:
 
 ```tsx
 <pre className="mono-medium bg-surface-raised p-16 rounded-8">
-  <code>
-    curl https://api.firecrawl.dev/v1/scrape \
-      -H "Authorization: Bearer fc-..."
-  </code>
+  <code>curl https://api.firecrawl.dev/v1/scrape \ -H "Authorization: Bearer fc-..."</code>
 </pre>
 ```
 

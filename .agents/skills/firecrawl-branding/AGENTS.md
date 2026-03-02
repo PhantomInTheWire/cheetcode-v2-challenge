@@ -16,39 +16,40 @@ This is Firecrawl's signature color representing fire, heat, and speed. It must 
 
 ### Heat Scale
 
-| Token | Hex | Usage |
-|-------|-----|-------|
-| heat-4 | rgba(250, 93, 25, 0.04) | Subtle backgrounds |
-| heat-8 | rgba(250, 93, 25, 0.08) | Hover backgrounds |
-| heat-12 | rgba(250, 93, 25, 0.12) | Active backgrounds |
-| heat-100 | #fa5d19 | Primary brand color |
+| Token    | Hex                     | Usage               |
+| -------- | ----------------------- | ------------------- |
+| heat-4   | rgba(250, 93, 25, 0.04) | Subtle backgrounds  |
+| heat-8   | rgba(250, 93, 25, 0.08) | Hover backgrounds   |
+| heat-12  | rgba(250, 93, 25, 0.12) | Active backgrounds  |
+| heat-100 | #fa5d19                 | Primary brand color |
 
 ### Accent Colors
 
-| Token | Hex | Usage |
-|-------|-----|-------|
-| amethyst | #9061ff | Purple accent |
-| bluetron | #2a6dfb | Blue accent |
-| crimson | #eb3424 | Red/error states |
-| forest | #42c366 | Green/success |
-| honey | #ecb730 | Yellow/warning |
+| Token    | Hex     | Usage            |
+| -------- | ------- | ---------------- |
+| amethyst | #9061ff | Purple accent    |
+| bluetron | #2a6dfb | Blue accent      |
+| crimson  | #eb3424 | Red/error states |
+| forest   | #42c366 | Green/success    |
+| honey    | #ecb730 | Yellow/warning   |
 
 ### Semantic Colors
 
-| Token | Light | Dark |
-|-------|-------|------|
-| accent-black | #262626 | #f5f5f5 |
-| accent-white | #f5f5f5 | #262626 |
-| bg-base | #f9f9f9 | #0a0a0a |
-| bg-surface | #ffffff | #171717 |
+| Token             | Light   | Dark    |
+| ----------------- | ------- | ------- |
+| accent-black      | #262626 | #f5f5f5 |
+| accent-white      | #f5f5f5 | #262626 |
+| bg-base           | #f9f9f9 | #0a0a0a |
+| bg-surface        | #ffffff | #171717 |
 | bg-surface-raised | #ffffff | #262626 |
-| border-faint | #f0f0f0 | #262626 |
-| border-muted | #e8e8e8 | #333333 |
-| border-loud | #d1d1d1 | #525252 |
+| border-faint      | #f0f0f0 | #262626 |
+| border-muted      | #e8e8e8 | #333333 |
+| border-loud       | #d1d1d1 | #525252 |
 
 ### Alpha Scales
 
 **Black Alpha (Light Mode):**
+
 ```css
 black-alpha-3: rgba(0, 0, 0, 0.03)
 black-alpha-4: rgba(0, 0, 0, 0.04)
@@ -64,6 +65,7 @@ black-alpha-80: rgba(0, 0, 0, 0.80)
 ```
 
 **White Alpha (Dark Mode):**
+
 ```css
 white-alpha-3: rgba(255, 255, 255, 0.03)
 white-alpha-4: rgba(255, 255, 255, 0.04)
@@ -89,41 +91,41 @@ white-alpha-4: rgba(255, 255, 255, 0.04)
 
 ### Title Hierarchy
 
-| Class | Size | Line Height | Letter Spacing |
-|-------|------|-------------|----------------|
-| title-h1 | 60px | 64px | -0.3px |
-| title-h2 | 52px | 56px | -0.52px |
-| title-h3 | 40px | 44px | -0.4px |
-| title-h4 | 32px | 36px | -0.32px |
-| title-h5 | 24px | 32px | -0.24px |
+| Class    | Size | Line Height | Letter Spacing |
+| -------- | ---- | ----------- | -------------- |
+| title-h1 | 60px | 64px        | -0.3px         |
+| title-h2 | 52px | 56px        | -0.52px        |
+| title-h3 | 40px | 44px        | -0.4px         |
+| title-h4 | 32px | 36px        | -0.32px        |
+| title-h5 | 24px | 32px        | -0.24px        |
 
 ### Body Text
 
-| Class | Size | Line Height | Letter Spacing |
-|-------|------|-------------|----------------|
-| body-x-large | 20px | 28px | 0 |
-| body-large | 16px | 24px | 0 |
-| body-medium | 14px | 20px | 0.14px |
-| body-small | 13px | 20px | 0 |
-| body-input | 15px | 24px | 0 |
+| Class        | Size | Line Height | Letter Spacing |
+| ------------ | ---- | ----------- | -------------- |
+| body-x-large | 20px | 28px        | 0              |
+| body-large   | 16px | 24px        | 0              |
+| body-medium  | 14px | 20px        | 0.14px         |
+| body-small   | 13px | 20px        | 0              |
+| body-input   | 15px | 24px        | 0              |
 
 ### Labels (weight: 450)
 
-| Class | Size | Line Height |
-|-------|------|-------------|
-| label-x-large | 20px | 28px |
-| label-large | 16px | 24px |
-| label-medium | 14px | 20px |
-| label-small | 13px | 18px |
-| label-x-small | 12px | 16px |
+| Class         | Size | Line Height |
+| ------------- | ---- | ----------- |
+| label-x-large | 20px | 28px        |
+| label-large   | 16px | 24px        |
+| label-medium  | 14px | 20px        |
+| label-small   | 13px | 18px        |
+| label-x-small | 12px | 16px        |
 
 ### Monospace
 
-| Class | Size | Line Height | Weight |
-|-------|------|-------------|--------|
-| mono-medium | 14px | 22px | 400 |
-| mono-small | 13px | 20px | 500 |
-| mono-x-small | 12px | 16px | 500 |
+| Class        | Size | Line Height | Weight |
+| ------------ | ---- | ----------- | ------ |
+| mono-medium  | 14px | 22px        | 400    |
+| mono-small   | 13px | 20px        | 500    |
+| mono-x-small | 12px | 16px        | 500    |
 
 ---
 
@@ -135,7 +137,8 @@ The primary button uses the heat color with multi-layer shadows for depth:
 
 ```tsx
 // React/Tailwind implementation
-<button className="
+<button
+  className="
   bg-heat-100
   text-accent-white
   px-16 py-8
@@ -144,7 +147,8 @@ The primary button uses the heat color with multi-layer shadows for depth:
   transition-all duration-200
   hover:shadow-lg
   active:scale-[0.995]
-">
+"
+>
   Get Started
 </button>
 ```
@@ -263,11 +267,11 @@ The primary button uses the heat color with multi-layer shadows for depth:
 
 ### Button Sizes
 
-| Size | Height | Padding | Font |
-|------|--------|---------|------|
-| sm | 32px | 8px 12px | label-small |
-| md | 40px | 8px 16px | label-medium |
-| lg | 48px | 12px 24px | label-large |
+| Size | Height | Padding   | Font         |
+| ---- | ------ | --------- | ------------ |
+| sm   | 32px   | 8px 12px  | label-small  |
+| md   | 40px   | 8px 16px  | label-medium |
+| lg   | 48px   | 12px 24px | label-large  |
 
 ---
 
@@ -291,9 +295,7 @@ const HeroFlame = () => {
 
   return (
     <div className="flex justify-between w-full">
-      <pre className="font-mono text-black-alpha-20">
-        {/* Left flame */}
-      </pre>
+      <pre className="font-mono text-black-alpha-20">{/* Left flame */}</pre>
       <pre className="font-mono text-black-alpha-20 scale-x-[-1]">
         {/* Right flame (mirrored) */}
       </pre>
@@ -316,11 +318,7 @@ const AsciiExplosion = () => {
   // Color: #FA5D19 (bright heat orange)
   // Initial delay: 40 frames before loop
 
-  return (
-    <pre className="font-mono text-heat-100">
-      {/* Explosion frames */}
-    </pre>
-  );
+  return <pre className="font-mono text-heat-100">{/* Explosion frames */}</pre>;
 };
 ```
 
@@ -337,11 +335,7 @@ const CoreFlame = () => {
   // Frame interval: 80ms
   // Usage: Background decoration
 
-  return (
-    <pre className="font-mono opacity-10">
-      {/* Background flame */}
-    </pre>
-  );
+  return <pre className="font-mono opacity-10">{/* Background flame */}</pre>;
 };
 ```
 
@@ -363,10 +357,7 @@ const FlameBackground = ({ intensity, pulse, children }) => {
 
   return (
     <div className="relative">
-      <div
-        className="absolute inset-0"
-        style={{ opacity: intensity / 100 }}
-      >
+      <div className="absolute inset-0" style={{ opacity: intensity / 100 }}>
         {/* Flame animation */}
       </div>
       {children}
@@ -379,15 +370,15 @@ const FlameBackground = ({ intensity, pulse, children }) => {
 
 ```tsx
 // setIntervalOnVisible - only animates when in viewport
-import { setIntervalOnVisible } from '@/lib/animation-utils';
+import { setIntervalOnVisible } from "@/lib/animation-utils";
 
 useEffect(() => {
   const cleanup = setIntervalOnVisible(
     containerRef.current,
     () => {
-      setFrameIndex(prev => (prev + 1) % frames.length);
+      setFrameIndex((prev) => (prev + 1) % frames.length);
     },
-    85 // interval in ms
+    85, // interval in ms
   );
 
   return cleanup;
@@ -403,32 +394,25 @@ useEffect(() => {
 Unicode braille character spinner:
 
 ```tsx
-const BrailleSpinner = ({
-  interval = 80,
-  ariaLabel = "Loading..."
-}) => {
-  const frames = ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷'];
+const BrailleSpinner = ({ interval = 80, ariaLabel = "Loading..." }) => {
+  const frames = ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"];
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
     // Respect prefers-reduced-motion
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       return;
     }
 
     const timer = setInterval(() => {
-      setIndex(i => (i + 1) % frames.length);
+      setIndex((i) => (i + 1) % frames.length);
     }, interval);
 
     return () => clearInterval(timer);
   }, [interval]);
 
   return (
-    <span
-      role="status"
-      aria-live="polite"
-      aria-label={ariaLabel}
-    >
+    <span role="status" aria-live="polite" aria-label={ariaLabel}>
       {frames[index]}
     </span>
   );
@@ -471,13 +455,13 @@ const patterns = {
 
 ### Breakpoints
 
-| Name | Min Width | Usage |
-|------|-----------|-------|
-| xs | 390px | Small mobile |
-| sm | 576px | Large mobile |
-| md | 768px | Tablet |
-| lg | 996px | Desktop |
-| xl | 1200px | Large desktop |
+| Name | Min Width | Usage         |
+| ---- | --------- | ------------- |
+| xs   | 390px     | Small mobile  |
+| sm   | 576px     | Large mobile  |
+| md   | 768px     | Tablet        |
+| lg   | 996px     | Desktop       |
+| xl   | 1200px    | Large desktop |
 
 ### Custom Utilities
 
@@ -541,7 +525,7 @@ const patterns = {
   position: relative;
 }
 .inside-border::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   border: 1px solid rgba(0, 0, 0, 0.08);
@@ -557,25 +541,17 @@ const patterns = {
 ### Section Header
 
 ```tsx
-const SectionHead = ({
-  title,
-  description,
-  action
-}) => (
+const SectionHead = ({ title, description, action }) => (
   <div className="flex justify-between items-start mb-24">
     <div>
       <h2 className="text-title-h3">
         <span className="text-heat-100">{title}</span>
       </h2>
       {description && (
-        <p className="text-body-large text-accent-black/60 max-w-[590px] mt-8">
-          {description}
-        </p>
+        <p className="text-body-large text-accent-black/60 max-w-[590px] mt-8">{description}</p>
       )}
     </div>
-    {action && (
-      <div>{action}</div>
-    )}
+    {action && <div>{action}</div>}
   </div>
 );
 ```
@@ -584,13 +560,15 @@ const SectionHead = ({
 
 ```tsx
 const Card = ({ children }) => (
-  <div className="
+  <div
+    className="
     bg-surface
     border border-border-muted
     rounded-12
     p-24
     inside-border
-  ">
+  "
+  >
     {children}
   </div>
 );
@@ -609,7 +587,7 @@ const DashboardBackground = () => (
           linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
           linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)
         `,
-        backgroundSize: '8px 8px'
+        backgroundSize: "8px 8px",
       }}
     />
     {/* Corner gradient */}
@@ -622,7 +600,7 @@ const DashboardBackground = () => (
             rgba(250, 93, 25, 0.05) 0%,
             transparent 50%
           )
-        `
+        `,
       }}
     />
   </div>
@@ -646,21 +624,21 @@ transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
 const fadeIn = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
-  transition: { duration: 0.2 }
+  transition: { duration: 0.2 },
 };
 
 // Scale on press
 const pressScale = {
-  whileTap: { scale: 0.98 }
+  whileTap: { scale: 0.98 },
 };
 
 // Stagger children
 const staggerContainer = {
   animate: {
     transition: {
-      staggerChildren: 0.05
-    }
-  }
+      staggerChildren: 0.05,
+    },
+  },
 };
 ```
 
@@ -692,14 +670,14 @@ const staggerContainer = {
 
 ### Available Files
 
-| File | Format | Usage |
-|------|--------|-------|
-| firecrawl-logo.svg | SVG | Primary colored logo |
-| firecrawl-logo.png | PNG | Primary colored logo |
-| firecrawl-light-logo.svg | SVG | Light/white theme |
-| firecrawl-wordmark.svg | SVG | Text-only version |
-| firecrawl-black.svg | SVG | Black version |
-| firecrawl-icon.png | PNG | App icon |
+| File                     | Format | Usage                |
+| ------------------------ | ------ | -------------------- |
+| firecrawl-logo.svg       | SVG    | Primary colored logo |
+| firecrawl-logo.png       | PNG    | Primary colored logo |
+| firecrawl-light-logo.svg | SVG    | Light/white theme    |
+| firecrawl-wordmark.svg   | SVG    | Text-only version    |
+| firecrawl-black.svg      | SVG    | Black version        |
+| firecrawl-icon.png       | PNG    | App icon             |
 
 **Location:** `/public/brand/`
 
@@ -733,9 +711,7 @@ import Image from 'next/image';
 
 ```tsx
 // Check for reduced motion preference
-const prefersReducedMotion = window.matchMedia(
-  '(prefers-reduced-motion: reduce)'
-).matches;
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Disable animations if preferred
 useEffect(() => {

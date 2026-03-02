@@ -26,6 +26,7 @@ Firecrawl's visual identity is built around **heat, fire, and speed**:
 ## When to Apply
 
 Reference these guidelines when:
+
 - Creating new landing pages or marketing pages
 - Building UI components that need brand consistency
 - Implementing animations or loading states
@@ -41,6 +42,7 @@ Heat Orange: #fa5d19
 ```
 
 This is the signature color. Use it for:
+
 - Primary CTAs and buttons
 - Accent text and highlights
 - ASCII animation colors
@@ -48,13 +50,13 @@ This is the signature color. Use it for:
 
 ### Core Color Palette
 
-| Token | Light | Dark | Usage |
-|-------|-------|------|-------|
-| heat-100 | #fa5d19 | #fa5d19 | Primary brand color |
-| accent-black | #262626 | #f5f5f5 | Primary text |
-| accent-white | #f5f5f5 | #262626 | Inverse text |
-| surface | #ffffff | #171717 | Card backgrounds |
-| border-muted | #e8e8e8 | #333333 | Subtle borders |
+| Token        | Light   | Dark    | Usage               |
+| ------------ | ------- | ------- | ------------------- |
+| heat-100     | #fa5d19 | #fa5d19 | Primary brand color |
+| accent-black | #262626 | #f5f5f5 | Primary text        |
+| accent-white | #f5f5f5 | #262626 | Inverse text        |
+| surface      | #ffffff | #171717 | Card backgrounds    |
+| border-muted | #e8e8e8 | #333333 | Subtle borders      |
 
 ### Typography Stack
 
@@ -63,15 +65,20 @@ This is the signature color. Use it for:
 font-family: SuisseIntl, sans-serif;
 
 /* Monospace (code) */
-font-family: Geist Mono, monospace;
+font-family:
+  Geist Mono,
+  monospace;
 
 /* ASCII Art */
-font-family: Roboto Mono, monospace;
+font-family:
+  Roboto Mono,
+  monospace;
 ```
 
 ### Button Styles
 
 Primary button with heat color and multi-layer shadow:
+
 ```css
 .btn-primary {
   background: #ff4c00;
@@ -96,20 +103,21 @@ Primary button with heat color and multi-layer shadow:
 ### Animation Timing
 
 Standard transition:
+
 ```css
 transition: 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
 ```
 
 ## Categories
 
-| Category | Description | Reference |
-|----------|-------------|-----------|
-| Colors | Full color system with heat scale | `colors.md` |
-| Typography | Font sizes and text styles | `typography.md` |
-| Buttons | Button variants and states | `buttons.md` |
-| ASCII Animations | Flame and explosion effects | `ascii-animations.md` |
-| Components | Reusable UI patterns | `components.md` |
-| Layout | Grid and spacing system | `layout.md` |
+| Category         | Description                       | Reference             |
+| ---------------- | --------------------------------- | --------------------- |
+| Colors           | Full color system with heat scale | `colors.md`           |
+| Typography       | Font sizes and text styles        | `typography.md`       |
+| Buttons          | Button variants and states        | `buttons.md`          |
+| ASCII Animations | Flame and explosion effects       | `ascii-animations.md` |
+| Components       | Reusable UI patterns              | `components.md`       |
+| Layout           | Grid and spacing system           | `layout.md`           |
 
 ## How to Use
 
@@ -123,6 +131,7 @@ rules/ascii-animations.md
 ```
 
 Each file contains:
+
 - Token definitions and values
 - Code examples (CSS/React)
 - Usage guidelines

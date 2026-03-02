@@ -2,21 +2,31 @@
 
 ## Breakpoints
 
-| Name | Min Width | Tailwind | Usage |
-|------|-----------|----------|-------|
-| xs | 390px | `xs:` | Small mobile |
-| sm | 576px | `sm:` | Large mobile |
-| md | 768px | `md:` | Tablet |
-| lg | 996px | `lg:` | Desktop |
-| xl | 1200px | `xl:` | Large desktop |
+| Name | Min Width | Tailwind | Usage         |
+| ---- | --------- | -------- | ------------- |
+| xs   | 390px     | `xs:`    | Small mobile  |
+| sm   | 576px     | `sm:`    | Large mobile  |
+| md   | 768px     | `md:`    | Tablet        |
+| lg   | 996px     | `lg:`    | Desktop       |
+| xl   | 1200px    | `xl:`    | Large desktop |
 
 ```css
 /* Custom breakpoints */
-@media (min-width: 390px) { /* xs */ }
-@media (min-width: 576px) { /* sm */ }
-@media (min-width: 768px) { /* md */ }
-@media (min-width: 996px) { /* lg */ }
-@media (min-width: 1200px) { /* xl */ }
+@media (min-width: 390px) {
+  /* xs */
+}
+@media (min-width: 576px) {
+  /* sm */
+}
+@media (min-width: 768px) {
+  /* md */
+}
+@media (min-width: 996px) {
+  /* lg */
+}
+@media (min-width: 1200px) {
+  /* xl */
+}
 ```
 
 ## Container Widths
@@ -71,14 +81,16 @@
 
 ```tsx
 const PageContainer = ({ children }) => (
-  <div className="
+  <div
+    className="
     max-w-[1200px]
     mx-auto
     px-24
     py-32
     lg:px-32
     lg:py-48
-  ">
+  "
+  >
     {children}
   </div>
 );
@@ -88,12 +100,14 @@ const PageContainer = ({ children }) => (
 
 ```tsx
 const ContentContainer = ({ children }) => (
-  <div className="
+  <div
+    className="
     max-w-[720px]
     mx-auto
     px-16
     md:px-24
-  ">
+  "
+  >
     {children}
   </div>
 );
@@ -164,7 +178,7 @@ Adds a subtle inner border effect:
 }
 
 .inside-border::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   border: 1px solid rgba(0, 0, 0, 0.08);
@@ -204,14 +218,10 @@ Adds a subtle inner border effect:
 ```tsx
 <div className="flex gap-24">
   {/* Sidebar */}
-  <aside className="w-240 flex-shrink-0">
-    {/* Navigation */}
-  </aside>
+  <aside className="w-240 flex-shrink-0">{/* Navigation */}</aside>
 
   {/* Main content */}
-  <main className="flex-1 min-w-0">
-    {/* Content */}
-  </main>
+  <main className="flex-1 min-w-0">{/* Content */}</main>
 </div>
 ```
 
@@ -219,16 +229,16 @@ Adds a subtle inner border effect:
 
 Use pixel values for spacing:
 
-| Size | Value | Usage |
-|------|-------|-------|
-| 4 | 4px | Tight spacing |
-| 8 | 8px | Small gaps |
-| 12 | 12px | Default gaps |
-| 16 | 16px | Standard padding |
-| 24 | 24px | Card padding |
-| 32 | 32px | Section spacing |
-| 48 | 48px | Large sections |
-| 64 | 64px | Page sections |
+| Size | Value | Usage            |
+| ---- | ----- | ---------------- |
+| 4    | 4px   | Tight spacing    |
+| 8    | 8px   | Small gaps       |
+| 12   | 12px  | Default gaps     |
+| 16   | 16px  | Standard padding |
+| 24   | 24px  | Card padding     |
+| 32   | 32px  | Section spacing  |
+| 48   | 48px  | Large sections   |
+| 64   | 64px  | Page sections    |
 
 ```tsx
 // Gap utilities
@@ -247,14 +257,14 @@ Use pixel values for spacing:
 
 ## Border Radius Scale
 
-| Size | Value | Usage |
-|------|-------|-------|
-| rounded-4 | 4px | Tags, badges |
-| rounded-6 | 6px | Small buttons |
-| rounded-8 | 8px | Standard elements |
-| rounded-10 | 10px | Large buttons |
-| rounded-12 | 12px | Cards |
-| rounded-full | 9999px | Pills, avatars |
+| Size         | Value  | Usage             |
+| ------------ | ------ | ----------------- |
+| rounded-4    | 4px    | Tags, badges      |
+| rounded-6    | 6px    | Small buttons     |
+| rounded-8    | 8px    | Standard elements |
+| rounded-10   | 10px   | Large buttons     |
+| rounded-12   | 12px   | Cards             |
+| rounded-full | 9999px | Pills, avatars    |
 
 ## Dashboard Background
 
@@ -271,7 +281,7 @@ const DashboardBackground = () => (
           linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
           linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)
         `,
-        backgroundSize: '8px 8px'
+        backgroundSize: "8px 8px",
       }}
     />
 
@@ -282,7 +292,7 @@ const DashboardBackground = () => (
         background: `
           radial-gradient(ellipse at top left, rgba(250, 93, 25, 0.05) 0%, transparent 50%),
           radial-gradient(ellipse at bottom right, rgba(250, 93, 25, 0.03) 0%, transparent 50%)
-        `
+        `,
       }}
     />
   </div>
