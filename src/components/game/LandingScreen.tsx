@@ -4,7 +4,13 @@ import { signIn, signOut } from "next-auth/react";
 import Image from "next/image";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
 import { COLORS } from "@/lib/theme";
-import { ROUND_DURATION_SECONDS, PROBLEMS_PER_SESSION, SITE_URL } from "@/lib/constants";
+import {
+  ROUND_DURATION_SECONDS,
+  PROBLEMS_PER_SESSION,
+  SITE_URL,
+  LEVEL2_TOTAL,
+  LEVEL3_TOTAL,
+} from "@/lib/constants";
 
 type LandingScreenProps = {
   isAuthenticated: boolean;
@@ -37,6 +43,11 @@ export function LandingScreen({
   displayedSolveTarget,
   submitError,
 }: LandingScreenProps) {
+  const totalSeconds = ROUND_DURATION_SECONDS + 60 + 120;
+  const totalMinutesLabel = `${Math.floor(totalSeconds / 60)}m ${String(totalSeconds % 60).padStart(2, "0")}s`;
+  const availableLevels =
+    unlockedLevel < 2 && !isLocalDev ? [1] : unlockedLevel < 3 && !isLocalDev ? [1, 2] : [1, 2, 3];
+
   return (
     <div
       style={{
@@ -108,17 +119,17 @@ export function LandingScreen({
               letterSpacing: -0.5,
             }}
           >
-            {PROBLEMS_PER_SESSION} problems. {ROUND_DURATION_SECONDS} seconds.
+            3 levels. {totalMinutesLabel}.
           </p>
           <p
             style={{
-              fontSize: 16,
+              fontSize: 17,
               color: COLORS.TEXT_MUTED,
               margin: "12px 0 0",
-              fontWeight: 400,
+              fontWeight: 500,
             }}
           >
-            Good luck.
+            Build fast. Think clearly. Ship correct code.
           </p>
         </div>
 
@@ -133,9 +144,8 @@ export function LandingScreen({
           }}
         >
           {[
-            `Solve all ${PROBLEMS_PER_SESSION} coding challenges`,
-            `You have ${ROUND_DURATION_SECONDS} seconds`,
-            `That's ${(ROUND_DURATION_SECONDS / PROBLEMS_PER_SESSION).toFixed(1)} seconds per problem`,
+            `${PROBLEMS_PER_SESSION + LEVEL2_TOTAL + LEVEL3_TOTAL} total tasks`,
+            `${totalMinutesLabel} total time`,
           ].map((t) => (
             <span
               key={t}
@@ -278,105 +288,52 @@ export function LandingScreen({
                   {submitError}
                 </div>
               )}
-              {/* Level selection */}
-              {unlockedLevel < 2 && !isLocalDev ? (
-                <button
-                  onClick={() => startGame(1)}
-                  className="btn-heat"
-                  style={{
-                    width: "100%",
-                    height: 52,
-                    borderRadius: 12,
-                    fontSize: 17,
-                    fontWeight: 800,
-                    letterSpacing: 2,
-                    fontFamily: "inherit",
-                  }}
-                >
-                  START
-                </button>
-              ) : unlockedLevel < 3 && !isLocalDev ? (
-                <div style={{ display: "flex", gap: 8 }}>
+              <p
+                style={{
+                  margin: "0 0 10px",
+                  fontSize: 12,
+                  color: COLORS.TEXT_MUTED,
+                  textAlign: "left",
+                }}
+              >
+                Select level
+              </p>
+              <div
+                style={{
+                  display: "grid",
+                  gap: 10,
+                  gridTemplateColumns:
+                    availableLevels.length === 1
+                      ? "1fr"
+                      : availableLevels.length === 2
+                        ? "repeat(2, minmax(0, 1fr))"
+                        : "repeat(3, minmax(0, 1fr))",
+                }}
+              >
+                {availableLevels.map((level) => (
                   <button
-                    onClick={() => startGame(1)}
+                    key={level}
+                    onClick={() => startGame(level)}
                     className="btn-heat"
                     style={{
-                      flex: 1,
-                      height: 52,
+                      width: "100%",
+                      minHeight: 46,
                       borderRadius: 12,
-                      fontSize: 17,
+                      fontSize: 12,
                       fontWeight: 800,
-                      letterSpacing: 2,
+                      letterSpacing: 0.2,
                       fontFamily: "inherit",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      whiteSpace: "nowrap",
+                      padding: "0 10px",
                     }}
                   >
-                    PLAY LEVEL 1
+                    {level === 1 ? "Start Level 1" : `Play Level ${level}`}
                   </button>
-                  <button
-                    onClick={() => startGame(2)}
-                    className="btn-heat"
-                    style={{
-                      flex: 1,
-                      height: 52,
-                      borderRadius: 12,
-                      fontSize: 17,
-                      fontWeight: 800,
-                      letterSpacing: 2,
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    PLAY LEVEL 2
-                  </button>
-                </div>
-              ) : (
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={() => startGame(1)}
-                    className="btn-heat"
-                    style={{
-                      flex: 1,
-                      height: 52,
-                      borderRadius: 12,
-                      fontSize: 17,
-                      fontWeight: 800,
-                      letterSpacing: 2,
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    PLAY LEVEL 1
-                  </button>
-                  <button
-                    onClick={() => startGame(2)}
-                    className="btn-heat"
-                    style={{
-                      flex: 1,
-                      height: 52,
-                      borderRadius: 12,
-                      fontSize: 17,
-                      fontWeight: 800,
-                      letterSpacing: 2,
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    PLAY LEVEL 2
-                  </button>
-                  <button
-                    onClick={() => startGame(3)}
-                    className="btn-heat"
-                    style={{
-                      flex: 1,
-                      height: 52,
-                      borderRadius: 12,
-                      fontSize: 17,
-                      fontWeight: 800,
-                      letterSpacing: 2,
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    PLAY LEVEL 3
-                  </button>
-                </div>
-              )}
+                ))}
+              </div>
             </>
           )}
         </div>

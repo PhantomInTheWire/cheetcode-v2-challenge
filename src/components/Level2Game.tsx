@@ -5,7 +5,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { isClientDevMode } from "../lib/myEnv";
 import { clientFetch } from "../lib/client-identity";
 
-const ROUND_DURATION_L2_MS = 45_000;
+const ROUND_DURATION_L2_MS = 60_000;
 
 type Level2Problem = {
   id: string;
