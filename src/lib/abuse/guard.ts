@@ -1,4 +1,4 @@
-import { getIdentityKeys, TRUSTED_FINGERPRINT_HEADER } from "./abuse-identity";
+import { getIdentityKeys, TRUSTED_FINGERPRINT_HEADER } from "./identity";
 
 export type AbuseRoute =
   | "session"

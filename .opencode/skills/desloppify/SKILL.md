@@ -1,16 +1,14 @@
 <!-- desloppify-begin -->
-
-## <!-- desloppify-skill-version: 2 -->
-
+<!-- desloppify-skill-version: 2 -->
+---
 name: desloppify
 description: >
-Codebase health scanner and technical debt tracker. Use when the user asks
-about code quality, technical debt, dead code, large files, god classes,
-duplicate functions, code smells, naming issues, import cycles, or coupling
-problems. Also use when asked for a health score, what to fix next, or to
-create a cleanup plan. Supports 28 languages.
-allowed-tools: Bash(desloppify \*)
-
+  Codebase health scanner and technical debt tracker. Use when the user asks
+  about code quality, technical debt, dead code, large files, god classes,
+  duplicate functions, code smells, naming issues, import cycles, or coupling
+  problems. Also use when asked for a health score, what to fix next, or to
+  create a cleanup plan. Supports 28 languages.
+allowed-tools: Bash(desloppify *)
 ---
 
 # Desloppify
@@ -34,7 +32,6 @@ The **inner loop** is where you spend most of your time: fixing issues one by on
 desloppify scan --path .       # analyse the codebase
 desloppify status              # check scores — are we at target?
 ```
-
 If not at target, work the inner loop. Rescan periodically — especially after clearing a cluster or batch of related fixes. Issues cascade-resolve and new ones may surface.
 
 ### Inner loop — fix issues
@@ -51,7 +48,6 @@ Score may temporarily drop after fixes — cascade effects are normal, keep goin
 If `next` suggests an auto-fixer, run `desloppify fix <fixer> --dry-run` to preview, then apply.
 
 **To be strategic**, use `plan` to shape what `next` gives you:
-
 ```bash
 desloppify plan                        # see the full ordered queue
 desloppify plan move <pat> top         # reorder — what unblocks the most?
@@ -67,7 +63,6 @@ desloppify plan reopen <pat>           # reopen
 
 The scan will prompt you when a subjective review is needed — just follow its instructions.
 If you need to trigger one manually:
-
 ```bash
 desloppify review --run-batches --runner codex --parallel --scan-after-import
 ```

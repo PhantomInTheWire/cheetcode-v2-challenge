@@ -11,6 +11,10 @@ const tokenCache = new Map<string, { username: string; expiresAt: number }>();
 const CACHE_TTL_MS = 60_000; // 1 minute
 const GITHUB_API_URL = "https://api.github.com/user";
 
+type GitHubUser = {
+  login: string;
+};
+
 /** Verify a GitHub PAT and return the associated username, or null if invalid */
 async function verifyGitHubToken(token: string): Promise<string | null> {
   // Check cache first
@@ -22,20 +26,21 @@ async function verifyGitHubToken(token: string): Promise<string | null> {
   try {
     const res = await fetch(GITHUB_API_URL, {
       headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
+        Authorization: `token ${token}`,
+        "User-Agent": "CheetCode-CTF",
       },
     });
-    if (!res.ok) return null;
 
-    const data = await res.json();
-    const username = data.login as string | undefined;
-    if (!username) return null;
+    if (!res.ok) {
+      console.warn(`GitHub PAT auth failed with status ${res.status}`);
+      return null;
+    }
 
-    // Cache the result
-    tokenCache.set(token, { username, expiresAt: Date.now() + CACHE_TTL_MS });
-    return username;
-  } catch {
+    const user = (await res.json()) as GitHubUser;
+    return user.login;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "unknown error";
+    console.warn(`GitHub PAT auth error: ${message}`);
     return null;
   }
 }

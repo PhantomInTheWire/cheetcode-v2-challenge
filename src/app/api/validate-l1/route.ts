@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
-import { getQuickJS, type QuickJSWASMModule } from "quickjs-emscripten";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import { evalWithDeadline } from "../../../lib/quickjsTimeout";
 import { resolveSubmittedFunction } from "../../../lib/quickjsResolve";
-import { buildArgs } from "../../../lib/testcase-args";
+import { buildArgs } from "../../../lib/testcaseArgs";
+import {
+  SANDBOX_FLAG,
+  QUICKJS_TEST_TIMEOUT_MS,
+  QUICKJS_SETUP_TIMEOUT_MS,
+  getQJS,
+  type QuickJSWASMModule,
+} from "../../../lib/quickjs-shared";
 
 /**
  * POST /api/validate-l1
@@ -40,17 +46,6 @@ type ValidationResult = {
   system_note?: string;
 };
 
-const FLAG = "🔥{you_found_the_fire}";
-const QUICKJS_TEST_TIMEOUT_MS = 1_000;
-const QUICKJS_SETUP_TIMEOUT_MS = 250;
-
-// Cache WASM module at module scope
-let _qjs: QuickJSWASMModule | null = null;
-async function getQJS(): Promise<QuickJSWASMModule> {
-  if (!_qjs) _qjs = await getQuickJS();
-  return _qjs;
-}
-
 /** Run all test cases in a single VM, returning actual output on failure */
 function runValidation(
   qjs: QuickJSWASMModule,
@@ -63,7 +58,7 @@ function runValidation(
     const setup = evalWithDeadline(
       vm,
       `globalThis.console={log(){},warn(){},error(){},info(){}};` +
-        `globalThis.__FIRECRAWL__="${FLAG}";`,
+        `globalThis.__FIRECRAWL__="${SANDBOX_FLAG}";`,
       QUICKJS_SETUP_TIMEOUT_MS,
     );
     if ("error" in setup) {

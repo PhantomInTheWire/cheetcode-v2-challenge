@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import { PROBLEM_BANK } from "../../../../../server/level1/problems";
 import { isServerDevMode } from "../../../../lib/myEnv";
+import { requireAuthenticatedGithub } from "../../../../lib/request-auth";
 
 export async function POST(request: Request) {
-  // Dev-only — returns solutions for given problem IDs
+  // Dev-only gate
   if (!isServerDevMode()) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
+
+  // Auth gate — even in dev, don't expose solutions without authentication
+  const authResult = await requireAuthenticatedGithub(request);
+  if ("response" in authResult) return authResult.response;
 
   try {
     const body = (await request.json()) as { problemIds?: string[] };

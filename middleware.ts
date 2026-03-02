@@ -4,10 +4,21 @@ import {
   SHADOW_BAN_HEADER,
   TRUSTED_FINGERPRINT_HEADER,
   checkAndTrackAbuse,
-} from "./src/lib/abuse-guard";
-import { checkAndTrackAbuseInKv } from "./src/lib/abuse-guard-kv";
+  checkAndTrackAbuseInKv,
+} from "./src/lib/abuse";
 
 const FINGERPRINT_COOKIE = "ctf_fp";
+const FINGERPRINT_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
+
+function setFingerprintCookie(response: NextResponse, value: string): void {
+  response.cookies.set(FINGERPRINT_COOKIE, value, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: true,
+    path: "/",
+    maxAge: FINGERPRINT_COOKIE_MAX_AGE,
+  });
+}
 
 function rateLimitBody(pathname: string): Record<string, unknown> {
   if (
@@ -72,15 +83,7 @@ export async function middleware(request: NextRequest) {
       status: 429,
       headers: { "retry-after": String(retryAfterSeconds || 1) },
     });
-    if (!fingerprintCookie) {
-      response.cookies.set(FINGERPRINT_COOKIE, fingerprint, {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: true,
-        path: "/",
-        maxAge: 60 * 60 * 24 * 365,
-      });
-    }
+    if (!fingerprintCookie) setFingerprintCookie(response, fingerprint);
     return response;
   }
 
@@ -90,15 +93,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const response = NextResponse.next({ request: { headers: responseHeaders } });
-  if (!fingerprintCookie) {
-    response.cookies.set(FINGERPRINT_COOKIE, fingerprint, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: true,
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-    });
-  }
+  if (!fingerprintCookie) setFingerprintCookie(response, fingerprint);
   return response;
 }
 

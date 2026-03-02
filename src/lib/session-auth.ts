@@ -2,6 +2,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { NextResponse } from "next/server";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { ENV } from "./env-vars";
 
 type OwnedSession = {
   github: string;
@@ -16,7 +17,7 @@ export async function requireOwnedSession(
   github: string,
   expectedLevel?: 1 | 2 | 3,
 ): Promise<{ session: OwnedSession; convex: ConvexHttpClient } | { response: NextResponse }> {
-  const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+  const convex = new ConvexHttpClient(ENV.NEXT_PUBLIC_CONVEX_URL);
   const session = (await convex.query(api.submissions.getSession, {
     sessionId: sessionId as Id<"sessions">,
   })) as OwnedSession | null;
