@@ -15,7 +15,7 @@ Architecture (authoritative)
 
 Instruction Set and Semantics
 - Opcodes: NOP LOAD MOV ADD SUB AND OR XOR NOT SHL SHR CMP JMP JZ JNZ JN LDR STR PUSH POP CALL RET HALT.
-- Formats: R(16-bit), J(16-bit), I extension for LOAD/CALL (32-bit total).
+- Formats: R(16-bit), J(16-bit word with 11-bit absolute byte target), I extension for LOAD/CALL (32-bit total).
 - PC is byte-addressed and increments by 2 after each fetched 16-bit word.
 - LOAD/MOV/LDR/STR/PUSH/POP do not modify flags.
 - ADD/SUB/CMP update Z,N,V (V uses signed overflow formulas).

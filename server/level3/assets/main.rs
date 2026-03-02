@@ -21,8 +21,14 @@ pub extern "C" fn cpu_reset() {
 
 #[no_mangle]
 pub extern "C" fn cpu_load_word(addr: i32, word: i32) {
-    if addr < 0 || addr > 0xFFFE || (addr & 1) != 0 { return; }
-    unsafe { MEM[(addr as usize) >> 1] = word as u16; }
+    if addr < 0 { return; }
+    let a = (addr as u16) as usize;
+    let w = word as u16;
+    unsafe {
+        let bytes = core::slice::from_raw_parts_mut(MEM.as_mut_ptr() as *mut u8, 65536);
+        bytes[a] = (w & 0x00FF) as u8;
+        bytes[((a as u16).wrapping_add(1)) as usize] = ((w >> 8) & 0x00FF) as u8;
+    }
 }
 
 #[no_mangle]
@@ -54,8 +60,14 @@ pub extern "C" fn cpu_get_flag_n() -> i32 { unsafe { FLAG_N } }
 pub extern "C" fn cpu_get_flag_v() -> i32 { unsafe { FLAG_V } }
 #[no_mangle]
 pub extern "C" fn cpu_mem_read16(addr: i32) -> i32 {
-    if addr < 0 || addr > 0xFFFE || (addr & 1) != 0 { return 0; }
-    unsafe { MEM[(addr as usize) >> 1] as i32 }
+    if addr < 0 { return 0; }
+    let a = (addr as u16) as usize;
+    unsafe {
+        let bytes = core::slice::from_raw_parts(MEM.as_ptr() as *const u8, 65536);
+        let lo = bytes[a] as u16;
+        let hi = bytes[((a as u16).wrapping_add(1)) as usize] as u16;
+        ((hi << 8) | lo) as i32
+    }
 }
 
 #[no_mangle]

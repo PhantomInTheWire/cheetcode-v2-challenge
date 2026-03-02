@@ -1,61 +1,44 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { ROUND_DURATION_MS } from "../src/lib/constants";
-import { createSession, resetStore } from "../src/server/store";
+import { describe, expect, it } from "vitest";
+import {
+  PROBLEM_DISTRIBUTION,
+  injectDescriptionCanary,
+  selectSessionProblems,
+  stripSolution,
+} from "../server/problems";
 
 describe("sessions", () => {
-  beforeEach(() => {
-    resetStore();
-  });
-
-  it("create returns sessionId + 10 problems", () => {
-    const session = createSession("firecrawl");
-    expect(session.sessionId).toBeTruthy();
-    expect(session.problems).toHaveLength(10);
-  });
-
-  it("problems include testCases but not solutions", () => {
-    const session = createSession("firecrawl");
-    for (const problem of session.problems) {
-      expect(problem.testCases.length).toBeGreaterThan(0);
-      expect("solution" in problem).toBe(false);
-    }
-  });
-
-  it("selection ratio is 5 easy, 3 medium, 2 hard", () => {
-    const session = createSession("firecrawl");
-    const counts = session.problems.reduce(
-      (acc, problem) => ({ ...acc, [problem.difficulty]: acc[problem.difficulty] + 1 }),
-      { easy: 0, medium: 0, hard: 0 },
+  it("selects the configured number of level 1 problems by tier", () => {
+    const selected = selectSessionProblems();
+    expect(selected).toHaveLength(
+      PROBLEM_DISTRIBUTION.easy +
+        PROBLEM_DISTRIBUTION.medium +
+        PROBLEM_DISTRIBUTION.hard +
+        PROBLEM_DISTRIBUTION.competitive,
     );
-    expect(counts.easy).toBe(5);
-    expect(counts.medium).toBe(3);
-    expect(counts.hard).toBe(2);
+
+    const counts = selected.reduce(
+      (acc, problem) => ({ ...acc, [problem.tier]: acc[problem.tier] + 1 }),
+      { easy: 0, medium: 0, hard: 0, competitive: 0 },
+    );
+    expect(counts).toEqual(PROBLEM_DISTRIBUTION);
   });
 
-  it("no duplicates within a session", () => {
-    const session = createSession("firecrawl");
-    expect(new Set(session.problems.map((problem) => problem.id)).size).toBe(10);
+  it("does not duplicate problems in one selected session set", () => {
+    const selected = selectSessionProblems();
+    expect(new Set(selected.map((problem) => problem.id)).size).toBe(selected.length);
   });
 
-  it("two sessions can return different sets", () => {
-    let different = false;
-    for (let i = 0; i < 6; i += 1) {
-      const a = createSession(`a-${i}`).problems.map((problem) => problem.id).join("|");
-      const b = createSession(`b-${i}`).problems.map((problem) => problem.id).join("|");
-      if (a !== b) {
-        different = true;
-        break;
-      }
-    }
-    expect(different).toBe(true);
+  it("stripSolution removes solution but keeps test cases", () => {
+    const selected = selectSessionProblems();
+    const stripped = stripSolution(selected[0]);
+    expect("solution" in stripped).toBe(false);
+    expect(stripped.testCases.length).toBeGreaterThan(0);
   });
 
-  it("expiresAt = startedAt + round duration", () => {
-    const session = createSession("firecrawl");
-    expect(session.expiresAt - session.startedAt).toBe(ROUND_DURATION_MS);
-  });
-
-  it("create without github throws", () => {
-    expect(() => createSession("")).toThrow();
+  it("injectDescriptionCanary mutates exactly one problem description", () => {
+    const selected = selectSessionProblems().slice(0, 5).map(stripSolution);
+    const injected = injectDescriptionCanary(selected);
+    const mutatedCount = injected.filter((p, idx) => p.description !== selected[idx].description).length;
+    expect(mutatedCount).toBe(1);
   });
 });
