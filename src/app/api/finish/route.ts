@@ -17,6 +17,7 @@ import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import { evalWithDeadline } from "../../../lib/quickjsTimeout";
 import { SHADOW_BAN_HEADER } from "../../../lib/abuse-guard";
 import { resolveSubmittedFunction } from "../../../lib/quickjsResolve";
+import { buildArgs } from "../../../lib/testcase-args";
 
 /**
  * POST /api/finish
@@ -48,11 +49,6 @@ type RequestBody = {
 const FLAG = "🔥{you_found_the_fire}";
 const QUICKJS_TEST_TIMEOUT_MS = 1_000;
 const QUICKJS_SETUP_TIMEOUT_MS = 250;
-
-function buildArgs(testCase: TestCase): unknown[] | null {
-  if (Array.isArray(testCase.args)) return testCase.args;
-  return null;
-}
 
 // Cache the WASM module at module scope — loaded once, reused across requests
 let _qjs: QuickJSWASMModule | null = null;

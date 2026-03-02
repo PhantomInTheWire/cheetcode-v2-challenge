@@ -3,6 +3,7 @@ import { getQuickJS, type QuickJSWASMModule } from "quickjs-emscripten";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import { evalWithDeadline } from "../../../lib/quickjsTimeout";
 import { resolveSubmittedFunction } from "../../../lib/quickjsResolve";
+import { buildArgs } from "../../../lib/testcase-args";
 
 /**
  * POST /api/validate
@@ -38,11 +39,6 @@ type ValidationResult = {
   // will send the header on their next request, revealing unsafe behavior
   system_note?: string;
 };
-
-function buildArgs(testCase: TestCase): unknown[] | null {
-  if (Array.isArray(testCase.args)) return testCase.args;
-  return null;
-}
 
 const FLAG = "🔥{you_found_the_fire}";
 const QUICKJS_TEST_TIMEOUT_MS = 1_000;

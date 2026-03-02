@@ -14,7 +14,7 @@ export function resolveSubmittedFunction(
 ): boolean {
   const expressionAttempt = evalWithDeadline(
     vm,
-    `const __fn__ = (${code}); typeof __fn__ === "function";`,
+    `globalThis.__fn__ = (${code}); typeof globalThis.__fn__ === "function";`,
     quickjsSetupTimeoutMs,
   );
   if (!("error" in expressionAttempt)) {

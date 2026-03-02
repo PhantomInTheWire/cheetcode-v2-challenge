@@ -8,7 +8,6 @@
  * @module
  */
 
-import type * as constants from "../constants.js";
 import type * as helpers from "../helpers.js";
 import type * as leaderboard from "../leaderboard.js";
 import type * as leads from "../leads.js";
@@ -22,7 +21,6 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  constants: typeof constants;
   helpers: typeof helpers;
   leaderboard: typeof leaderboard;
   leads: typeof leads;

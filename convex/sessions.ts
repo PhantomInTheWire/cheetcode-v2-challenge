@@ -3,7 +3,7 @@ import { internalMutation, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { selectSessionProblems, stripSolution, injectDescriptionCanary } from "../server/problems";
 import { validateGithub } from "../src/lib/validation";
-import { ROUND_DURATION_MS } from "./constants";
+import { ROUND_DURATION_MS } from "../src/lib/constants";
 import { LEVEL2_PROBLEMS } from "../server/level2/problems";
 import { generateLevel3Challenge } from "../server/level3/problems";
 

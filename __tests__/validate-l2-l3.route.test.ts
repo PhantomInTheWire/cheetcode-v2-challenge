@@ -1,7 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const hoisted = vi.hoisted(() => ({
+  requireAuthMock: vi.fn(async () => ({ ok: true, github: "tester" })),
+}));
 
 vi.mock("../src/lib/request-auth", () => ({
-  requireAuthenticatedGithub: vi.fn(async () => ({ ok: true, github: "tester" })),
+  requireAuthenticatedGithub: hoisted.requireAuthMock,
 }));
 
 vi.mock("../server/level3/validation", () => ({
@@ -13,6 +17,11 @@ vi.mock("../server/level3/validation", () => ({
 }));
 
 describe("validate l2/l3 routes", () => {
+  beforeEach(() => {
+    hoisted.requireAuthMock.mockReset();
+    hoisted.requireAuthMock.mockResolvedValue({ ok: true, github: "tester" });
+  });
+
   it("/api/validate-l2 validates acceptable answers", async () => {
     const { POST } = await import("../src/app/api/validate-l2/route");
     const req = new Request("http://localhost/api/validate-l2", {
@@ -25,6 +34,21 @@ describe("validate l2/l3 routes", () => {
     const body = (await res.json()) as { results: Array<{ problemId: string; correct: boolean }> };
     const item = body.results.find((r) => r.problemId === "l2_2");
     expect(item?.correct).toBe(true);
+  });
+
+  it("/api/validate-l2 requires auth", async () => {
+    hoisted.requireAuthMock.mockResolvedValueOnce({
+      response: Response.json({ error: "unauthorized" }, { status: 401 }),
+    });
+    const { POST } = await import("../src/app/api/validate-l2/route");
+    const req = new Request("http://localhost/api/validate-l2", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ answers: { l2_2: "zero" } }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
   });
 
   it("/api/validate-l3 returns validation payload for authenticated request", async () => {
