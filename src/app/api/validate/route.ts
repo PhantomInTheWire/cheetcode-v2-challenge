@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getQuickJS, type QuickJSWASMModule } from "quickjs-emscripten";
+import { requireAuthenticatedGithub } from "../../../lib/request-auth";
+import { evalWithDeadline } from "../../../lib/quickjsTimeout";
 
 /**
  * POST /api/validate
@@ -42,6 +44,8 @@ function buildArgs(testCase: TestCase): unknown[] | null {
 }
 
 const FLAG = "🔥{you_found_the_fire}";
+const QUICKJS_TEST_TIMEOUT_MS = 1_000;
+const QUICKJS_SETUP_TIMEOUT_MS = 250;
 
 // Cache WASM module at module scope
 let _qjs: QuickJSWASMModule | null = null;
@@ -52,7 +56,7 @@ async function getQJS(): Promise<QuickJSWASMModule> {
 
 function resolveSubmittedFunction(vm: ReturnType<QuickJSWASMModule["newContext"]>, code: string): boolean {
   // Fast path: code is already a function expression.
-  const expressionAttempt = vm.evalCode(`const __fn__ = (${code}); typeof __fn__ === "function";`);
+  const expressionAttempt = evalWithDeadline(vm, `const __fn__ = (${code}); typeof __fn__ === "function";`, QUICKJS_SETUP_TIMEOUT_MS);
   if (!("error" in expressionAttempt)) {
     const ok = vm.dump(expressionAttempt.value) === true;
     expressionAttempt.value.dispose();
@@ -68,9 +72,11 @@ function resolveSubmittedFunction(vm: ReturnType<QuickJSWASMModule["newContext"]
   const symbol = (nameMatch?.[1] || nameMatch?.[2] || "").trim();
   if (!symbol) return false;
 
-  const scriptAttempt = vm.evalCode(
+  const scriptAttempt = evalWithDeadline(
+    vm,
     `${code}\n;globalThis.__fn__ = (typeof ${symbol} === "function") ? ${symbol} : undefined;\n` +
       `typeof globalThis.__fn__ === "function";`,
+    QUICKJS_SETUP_TIMEOUT_MS,
   );
   if ("error" in scriptAttempt) {
     scriptAttempt.error.dispose();
@@ -90,9 +96,11 @@ function runValidation(
   const vm = qjs.newContext();
   try {
     // Inject console no-op + easter egg (discoverable by probing globalThis)
-    const setup = vm.evalCode(
+    const setup = evalWithDeadline(
+      vm,
       `globalThis.console={log(){},warn(){},error(){},info(){}};` +
-      `globalThis.__FIRECRAWL__="${FLAG}";`
+      `globalThis.__FIRECRAWL__="${FLAG}";`,
+      QUICKJS_SETUP_TIMEOUT_MS,
     );
     if ("error" in setup) {
       setup.error.dispose();
@@ -118,13 +126,16 @@ function runValidation(
       const expected = JSON.stringify(tc.expected);
 
       // Get the actual stringified result from the user's function
-      const actualResult = vm.evalCode(`JSON.stringify(__fn__(...${args}));`);
+      const actualResult = evalWithDeadline(vm, `JSON.stringify(__fn__(...${args}));`, QUICKJS_TEST_TIMEOUT_MS);
       if ("error" in actualResult) {
+        const errDump = vm.dump(actualResult.error) as { message?: string } | string;
+        const errMessage = typeof errDump === "string" ? errDump : errDump?.message ?? "Runtime error";
         actualResult.error.dispose();
+        const isTimeout = errMessage.toLowerCase().includes("interrupted");
         return {
           passed: false,
-          error: "Runtime error",
-          failedCase: { input: tc.input, expected: tc.expected, actual: "ERROR" },
+          error: isTimeout ? `Time limit exceeded (${QUICKJS_TEST_TIMEOUT_MS}ms per test)` : "Runtime error",
+          failedCase: { input: tc.input, expected: tc.expected, actual: isTimeout ? "TIMEOUT" : "ERROR" },
         };
       }
       const actualStr = vm.dump(actualResult.value) as string;
@@ -149,6 +160,9 @@ function runValidation(
 
 export async function POST(request: Request) {
   try {
+    const authResult = await requireAuthenticatedGithub(request);
+    if ("response" in authResult) return authResult.response;
+
     const { code, testCases } = (await request.json()) as Payload;
 
     if (!code || !Array.isArray(testCases)) {

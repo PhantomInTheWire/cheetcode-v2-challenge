@@ -21,16 +21,27 @@ type Level3Challenge = {
   starterCode: string;
 };
 
+type Level3FinishResult = {
+  elo: number;
+  solved: number;
+  rank: number;
+  timeRemaining: number;
+  validation?: {
+    compiled: boolean;
+    error: string;
+    results: Array<{ problemId: string; correct: boolean; message: string }>;
+  };
+};
+
 type Level3GameProps = {
   sessionId: Id<"sessions">;
   github: string;
   challenge: Level3Challenge;
   expiresAt: number;
-  onFinish: (results: { elo: number; solved: number; rank: number; timeRemaining: number }) => void;
-  onReset: () => void;
+  onFinishAction: (results: Level3FinishResult) => void;
 };
 
-export function Level3Game({ sessionId, github, challenge, expiresAt, onFinish }: Level3GameProps) {
+export function Level3Game({ sessionId, github, challenge, expiresAt, onFinishAction }: Level3GameProps) {
   const canAutoSolve = isClientDevMode();
   const [code, setCode] = useState(challenge.starterCode);
   const [now, setNow] = useState(Date.now());
@@ -85,7 +96,7 @@ export function Level3Game({ sessionId, github, challenge, expiresAt, onFinish }
 
       const nextState: Record<string, boolean | null> = {};
       const correctIds: string[] = [];
-      for (const result of data.results as Array<{ problemId: string; correct: boolean }>) {
+      for (const result of data.results as Array<{ problemId: string; correct: boolean; message?: string }>) {
         nextState[result.problemId] = result.correct;
         if (result.correct) correctIds.push(result.problemId);
       }
@@ -136,15 +147,7 @@ export function Level3Game({ sessionId, github, challenge, expiresAt, onFinish }
         const errorData = await finishRes.json().catch(() => ({}));
         throw new Error(errorData.error || `finish failed: ${finishRes.status}`);
       }
-      const data = (await finishRes.json()) as {
-        elo: number;
-        solved: number;
-        rank: number;
-        timeRemaining: number;
-        validation?: {
-          results?: Array<{ problemId: string; correct: boolean }>;
-        };
-      };
+      const data = (await finishRes.json()) as Level3FinishResult;
       if (data.validation?.results) {
         const nextState: Record<string, boolean | null> = {};
         for (const result of data.validation.results) {
@@ -152,14 +155,14 @@ export function Level3Game({ sessionId, github, challenge, expiresAt, onFinish }
         }
         setLocalCorrect(nextState);
       }
-      onFinish(data);
+      onFinishAction(data);
     } catch (err) {
       console.error("Level 3 submission failed:", err);
       setSubmitError(err instanceof Error ? err.message : "Submission failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
-  }, [sessionId, github, timeLeftMs, isSubmitting, onFinish, code, challenge.id]);
+  }, [sessionId, github, timeLeftMs, isSubmitting, onFinishAction, code, challenge.id]);
 
   useEffect(() => {
     if (timeUp) void finishGame();
@@ -395,25 +398,17 @@ export function Level3Game({ sessionId, github, challenge, expiresAt, onFinish }
               }}
             >
               {challenge.checks.map((check) => {
-                const passed = localCorrect[check.id] === true;
-                const failed = localCorrect[check.id] === false;
                 return (
                   <div
                     key={check.id}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
                       padding: "8px 10px",
                       borderBottom: "1px solid #f0f0f0",
                       fontSize: 12,
-                      background: passed ? "#f0fdf4" : failed ? "#fef2f2" : "#ffffff",
+                      background: "#ffffff",
                     }}
                   >
-                    <span style={{ color: "#262626" }}>{check.name}</span>
-                    <span style={{ color: passed ? "#1a9338" : failed ? "#dc2626" : "rgba(0,0,0,0.35)" }}>
-                      {passed ? "PASS" : failed ? "FAIL" : "PENDING"}
-                    </span>
+                    <div style={{ color: "#262626" }}>{check.name}</div>
                   </div>
                 );
               })}

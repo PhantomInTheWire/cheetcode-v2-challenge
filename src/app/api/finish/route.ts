@@ -4,15 +4,15 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import { PROBLEM_BANK } from "../../../../server/problems";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import { validateGithub, validateCode } from "../../../lib/validation";
+import { validateCode } from "../../../lib/validation";
 import {
   detectExploits, totalExploitBonus,
   detectLandmines, totalLandminePenalty,
   INJECTION_ECHO_HEADER,
 } from "../../../lib/scoring";
-import { resolveGitHubFromHeader } from "../../../lib/github-auth";
-import { auth } from "../../../../auth";
 import { ROUND_DURATION_MS } from "../../../lib/constants";
+import { requireAuthenticatedGithub } from "../../../lib/request-auth";
+import { evalWithDeadline } from "../../../lib/quickjsTimeout";
 
 /**
  * POST /api/finish
@@ -36,13 +36,14 @@ type Submission = {
 
 type RequestBody = {
   sessionId: string;
-  github: string;
   submissions: Submission[];
   timeElapsed: number;
   flag?: string; // agents can submit the hidden flag for bonus ELO
 };
 
 const FLAG = "🔥{you_found_the_fire}";
+const QUICKJS_TEST_TIMEOUT_MS = 1_000;
+const QUICKJS_SETUP_TIMEOUT_MS = 250;
 
 function buildArgs(testCase: TestCase): unknown[] | null {
   if (Array.isArray(testCase.args)) return testCase.args;
@@ -57,7 +58,11 @@ async function getQJS(): Promise<QuickJSWASMModule> {
 }
 
 function resolveSubmittedFunction(vm: ReturnType<QuickJSWASMModule["newContext"]>, code: string): boolean {
-  const expressionAttempt = vm.evalCode(`const __fn__ = (${code}); typeof __fn__ === "function";`);
+  const expressionAttempt = evalWithDeadline(
+    vm,
+    `const __fn__ = (${code}); typeof __fn__ === "function";`,
+    QUICKJS_SETUP_TIMEOUT_MS,
+  );
   if (!("error" in expressionAttempt)) {
     const ok = vm.dump(expressionAttempt.value) === true;
     expressionAttempt.value.dispose();
@@ -72,9 +77,11 @@ function resolveSubmittedFunction(vm: ReturnType<QuickJSWASMModule["newContext"]
   const symbol = (nameMatch?.[1] || nameMatch?.[2] || "").trim();
   if (!symbol) return false;
 
-  const scriptAttempt = vm.evalCode(
+  const scriptAttempt = evalWithDeadline(
+    vm,
     `${code}\n;globalThis.__fn__ = (typeof ${symbol} === "function") ? ${symbol} : undefined;\n` +
       `typeof globalThis.__fn__ === "function";`,
+    QUICKJS_SETUP_TIMEOUT_MS,
   );
   if ("error" in scriptAttempt) {
     scriptAttempt.error.dispose();
@@ -98,9 +105,11 @@ function validateSubmission(
   const vm = qjs.newContext();
   try {
     // Inject console no-op + easter egg
-    const setup = vm.evalCode(
+    const setup = evalWithDeadline(
+      vm,
       `globalThis.console={log(){},warn(){},error(){},info(){}};` +
-      `globalThis.__FIRECRAWL__="${FLAG}";`
+      `globalThis.__FIRECRAWL__="${FLAG}";`,
+      QUICKJS_SETUP_TIMEOUT_MS,
     );
     if ("error" in setup) { setup.error.dispose(); return false; }
     setup.value.dispose();
@@ -120,7 +129,7 @@ function validateSubmission(
       const expected = JSON.stringify(tc.expected);
       const testScript = `JSON.stringify(__fn__(...${args})) === ${JSON.stringify(expected)};`;
 
-      const result = vm.evalCode(testScript);
+      const result = evalWithDeadline(vm, testScript, QUICKJS_TEST_TIMEOUT_MS);
       if ("error" in result) { result.error.dispose(); return false; }
       const passed = vm.dump(result.value) === true;
       result.value.dispose();
@@ -138,33 +147,13 @@ export async function POST(request: Request) {
     const body = (await request.json()) as RequestBody;
     const { sessionId, submissions, timeElapsed } = body;
 
-    if (!sessionId || !Array.isArray(submissions)) {
+    if (!sessionId || !Array.isArray(submissions) || typeof timeElapsed !== "number") {
       return NextResponse.json({ error: "invalid request" }, { status: 400 });
     }
 
-    // Resolve GitHub identity: PAT header > OAuth session > reject
-    // Never trust the github field from the request body
-    let resolvedGithub = await resolveGitHubFromHeader(request);
-    if (!resolvedGithub) {
-      const oauthSession = await auth();
-      resolvedGithub = (oauthSession?.user as { githubUsername?: string })?.githubUsername ?? null;
-    }
-
-    if (!resolvedGithub) {
-      return NextResponse.json(
-        {
-          error: "GitHub authentication required",
-          hint: "Send a GitHub PAT via Authorization: Bearer <token>, or sign in with OAuth",
-        },
-        { status: 401 },
-      );
-    }
-
-    // Server-side input validation on the resolved username
-    const ghResult = validateGithub(resolvedGithub);
-    if (ghResult.ok === false) {
-      return NextResponse.json({ error: ghResult.error }, { status: 400 });
-    }
+    const authResult = await requireAuthenticatedGithub(request);
+    if ("response" in authResult) return authResult.response;
+    const github = authResult.github;
 
     // Fetch session to get the assigned problem IDs
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -173,6 +162,9 @@ export async function POST(request: Request) {
     });
     if (!session) {
       return NextResponse.json({ error: "session not found" }, { status: 404 });
+    }
+    if (session.github !== github) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
     const sessionProblemIds = new Set(session.problemIds);
 
@@ -200,10 +192,12 @@ export async function POST(request: Request) {
       if (passed) solvedProblemIds.push(sub.problemId);
     }
 
+    const clientElapsedMs = Math.max(0, Math.min(ROUND_DURATION_MS, timeElapsed));
+
     // Detect exploit patterns — reward discovery with capped bonuses
     const hasHackHeader = request.headers.get("x-firecrawl-hack") === "true";
     const exploits = detectExploits({
-      timeElapsedMs: timeElapsed,
+      timeElapsedMs: clientElapsedMs,
       solvedCount: solvedProblemIds.length,
       flag: body.flag,
       hasHackHeader,
@@ -219,8 +213,8 @@ export async function POST(request: Request) {
     });
     const landminePenalty = totalLandminePenalty(landmines);
 
-    // Clamp timeElapsed for base ELO — exploits get bonuses, not infinite time
-    const clampedTimeElapsedMs = Math.max(0, Math.min(ROUND_DURATION_MS, timeElapsed));
+    // CTF behavior: trust client-reported elapsed time.
+    const clampedTimeElapsedMs = clientElapsedMs;
 
     // Net modifier = exploit bonuses + landmine penalties (penalties are negative)
     const scoreModifier = exploitBonus + landminePenalty;
@@ -229,7 +223,7 @@ export async function POST(request: Request) {
     const result = await convex.action(api.submissions.recordResults, {
       secret: process.env.CONVEX_MUTATION_SECRET!,
       sessionId: sessionId as Id<"sessions">,
-      github: ghResult.value,
+      github,
       solvedProblemIds,
       timeElapsedMs: clampedTimeElapsedMs,
       exploitBonus: scoreModifier,

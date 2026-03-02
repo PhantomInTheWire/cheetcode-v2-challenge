@@ -16,11 +16,10 @@ type Level2GameProps = {
   github: string;
   problems: Level2Problem[];
   expiresAt: number;
-  onFinish: (results: { elo: number; solved: number; rank: number; timeRemaining: number }) => void;
-  onReset: () => void;
+  onFinishAction: (results: { elo: number; solved: number; rank: number; timeRemaining: number }) => void;
 };
 
-export function Level2Game({ sessionId, github, problems, expiresAt, onFinish, onReset }: Level2GameProps) {
+export function Level2Game({ sessionId, github, problems, expiresAt, onFinishAction }: Level2GameProps) {
   const canAutoSolve = isClientDevMode();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [now, setNow] = useState(Date.now());
@@ -87,14 +86,14 @@ export function Level2Game({ sessionId, github, problems, expiresAt, onFinish, o
         throw new Error(errorData.error || `finish failed: ${finishRes.status}`);
       }
       const d = await finishRes.json();
-      onFinish(d);
+      onFinishAction(d);
     } catch (err) {
       console.error("Level 2 submission failed:", err);
       setSubmitError(err instanceof Error ? err.message : "Submission failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
-  }, [sessionId, github, answers, timeLeftMs, isSubmitting, onFinish]);
+  }, [sessionId, github, answers, timeLeftMs, isSubmitting, onFinishAction]);
 
   // Auto-submit when timer expires
   useEffect(() => {

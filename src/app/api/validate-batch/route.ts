@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getQuickJS, type QuickJSWASMModule } from "quickjs-emscripten";
 import { isServerDevMode } from "../../../lib/myEnv";
+import { requireAuthenticatedGithub } from "../../../lib/request-auth";
+import { evalWithDeadline } from "../../../lib/quickjsTimeout";
 
 type TestCase = {
   input: Record<string, unknown>;
@@ -37,6 +39,8 @@ function buildArgs(testCase: TestCase): unknown[] | null {
 }
 
 const FLAG = "🔥{you_found_the_fire}";
+const QUICKJS_TEST_TIMEOUT_MS = 1_000;
+const QUICKJS_SETUP_TIMEOUT_MS = 250;
 
 let _qjs: QuickJSWASMModule | null = null;
 async function getQJS(): Promise<QuickJSWASMModule> {
@@ -45,8 +49,10 @@ async function getQJS(): Promise<QuickJSWASMModule> {
 }
 
 function resolveSubmittedFunction(vm: ReturnType<QuickJSWASMModule["newContext"]>, code: string): boolean {
-  const expressionAttempt = vm.evalCode(
+  const expressionAttempt = evalWithDeadline(
+    vm,
     `globalThis.__fn__ = (${code}); typeof globalThis.__fn__ === "function";`,
+    QUICKJS_SETUP_TIMEOUT_MS,
   );
   if (!("error" in expressionAttempt)) {
     const ok = vm.dump(expressionAttempt.value) === true;
@@ -62,12 +68,14 @@ function resolveSubmittedFunction(vm: ReturnType<QuickJSWASMModule["newContext"]
   const symbol = (nameMatch?.[1] || nameMatch?.[2] || "").trim();
   if (!symbol) return false;
 
-  const scriptAttempt = vm.evalCode(
+  const scriptAttempt = evalWithDeadline(
+    vm,
     `globalThis.__fn__ = (() => {` +
       `${code}\n` +
       `return (typeof ${symbol} === "function") ? ${symbol} : undefined;` +
     `})();\n` +
     `typeof globalThis.__fn__ === "function";`,
+    QUICKJS_SETUP_TIMEOUT_MS,
   );
   if ("error" in scriptAttempt) {
     scriptAttempt.error.dispose();
@@ -83,7 +91,7 @@ function runValidationInContext(
   code: string,
   testCases: TestCase[],
 ): ValidationResult {
-  const reset = vm.evalCode(`globalThis.__fn__ = undefined;`);
+  const reset = evalWithDeadline(vm, `globalThis.__fn__ = undefined;`, QUICKJS_SETUP_TIMEOUT_MS);
   if ("error" in reset) {
     reset.error.dispose();
     return { passed: false, error: "Reset failed", debug: { stage: "reset" } };
@@ -105,10 +113,21 @@ function runValidationInContext(
       };
     }
     const args = JSON.stringify(argsList);
-    const actualResult = vm.evalCode(`JSON.stringify(__fn__(...${args}));`);
+    const actualResult = evalWithDeadline(vm, `JSON.stringify(__fn__(...${args}));`, QUICKJS_TEST_TIMEOUT_MS);
     if ("error" in actualResult) {
+      const errDump = vm.dump(actualResult.error) as { message?: string } | string;
+      const errMessage = typeof errDump === "string" ? errDump : errDump?.message ?? "Runtime error";
       actualResult.error.dispose();
-      return { passed: false, error: "Runtime error", debug: { stage: "runtime", testCaseIndex: i } };
+      const isTimeout = errMessage.toLowerCase().includes("interrupted");
+      return {
+        passed: false,
+        error: isTimeout ? `Time limit exceeded (${QUICKJS_TEST_TIMEOUT_MS}ms per test)` : "Runtime error",
+        debug: {
+          stage: "runtime",
+          testCaseIndex: i,
+          actual: isTimeout ? "TIMEOUT" : undefined,
+        },
+      };
     }
     const actualStr = vm.dump(actualResult.value);
     actualResult.value.dispose();
@@ -142,8 +161,10 @@ function runBatchValidation(
   const debugMode = isServerDevMode();
   const startedAt = Date.now();
   try {
-    const setup = vm.evalCode(
+    const setup = evalWithDeadline(
+      vm,
       `globalThis.console={log(){},warn(){},error(){},info(){}};` + `globalThis.__FIRECRAWL__="${FLAG}";`,
+      QUICKJS_SETUP_TIMEOUT_MS,
     );
     if ("error" in setup) {
       setup.error.dispose();
@@ -182,6 +203,9 @@ function runBatchValidation(
 
 export async function POST(request: Request) {
   try {
+    const authResult = await requireAuthenticatedGithub(request);
+    if ("response" in authResult) return authResult.response;
+
     const body = (await request.json()) as Payload;
     if (!body?.items || !Array.isArray(body.items)) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });

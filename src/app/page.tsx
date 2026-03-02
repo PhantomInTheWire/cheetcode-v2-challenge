@@ -33,10 +33,15 @@ type ResultsData = {
   timeRemaining: number;
   exploits?: ExploitInfo[];
   landmines?: LandmineInfo[];
+  validation?: {
+    compiled: boolean;
+    error: string;
+    results: Array<{ problemId: string; correct: boolean; message: string }>;
+  };
 };
 
 const LEVEL2_TOTAL = 10;
-const LEVEL3_TOTAL = 9;
+const LEVEL3_TOTAL = 20;
 const TOTAL_SOLVE_TARGET = PROBLEMS_PER_SESSION + LEVEL2_TOTAL + LEVEL3_TOTAL;
 
 const MOBILE_BREAKPOINT = 900;
@@ -882,11 +887,10 @@ export default function Home() {
           github={github}
           problems={l2Problems}
           expiresAt={expiresAt}
-          onFinish={(results) => {
+          onFinishAction={(results) => {
             setResults(results);
             setScreen("results");
           }}
-          onReset={resetAll}
         />
       );
     }
@@ -898,11 +902,10 @@ export default function Home() {
           github={github}
           challenge={l3Challenge}
           expiresAt={expiresAt}
-          onFinish={(results) => {
+          onFinishAction={(results) => {
             setResults(results);
             setScreen("results");
           }}
-          onReset={resetAll}
         />
       );
     }
@@ -1405,6 +1408,37 @@ export default function Home() {
               <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: 1 }}>Final Score</span>
               <span style={{ fontSize: 22, fontWeight: 800, color: "#fa5d19" }}>{results.elo.toLocaleString()}</span>
             </div>
+
+            {currentLevel === 3 && results.validation && (
+              <div style={{ marginTop: 14, border: "1px solid #e5e5e5", borderRadius: 10, overflow: "hidden", background: "#fafafa" }}>
+                {(() => {
+                  const passedCount = results.validation.results.filter((r) => r.correct).length;
+                  const failedCount = Math.max(0, results.validation.results.length - passedCount);
+                  return (
+                    <>
+                <div style={{ padding: "10px 18px", borderBottom: "1px solid #e5e5e5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#262626", textTransform: "uppercase", letterSpacing: 1 }}>
+                    Stage 3 Verification
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: results.validation.compiled ? "#1a9338" : "#dc2626" }}>
+                    {passedCount}/{results.validation.results.length} checks passed
+                  </span>
+                </div>
+                {!results.validation.compiled && (
+                  <div style={{ padding: "10px 18px", borderBottom: "1px solid #e5e5e5", fontSize: 12, color: "#dc2626" }}>
+                    Compilation failed.
+                  </div>
+                )}
+                {failedCount > 0 && (
+                  <div style={{ padding: "10px 18px", fontSize: 12, color: "rgba(0,0,0,0.7)" }}>
+                    {failedCount} check{failedCount === 1 ? "" : "s"} failed.
+                  </div>
+                )}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
           </div>
 
           {/* Capture form — inline row */}
