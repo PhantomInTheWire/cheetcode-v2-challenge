@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { validateLevel3Submission } from "../../../../server/level3/validation";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import { SHADOW_BAN_HEADER } from "../../../lib/abuse-guard";
+import { requireOwnedSession } from "../../../lib/session-auth";
+import { clampElapsed, getJsonBody, shadowBanResponse } from "../../../lib/api-route";
 
 type RequestBody = {
   sessionId: string;
@@ -18,7 +19,10 @@ type RequestBody = {
  */
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as RequestBody;
+    const body = await getJsonBody<RequestBody>(request);
+    if (!body) {
+      return NextResponse.json({ error: "invalid request" }, { status: 400 });
+    }
     const { sessionId, code, timeElapsed } = body;
 
     if (!sessionId || typeof code !== "string" || !code.trim() || typeof timeElapsed !== "number") {
@@ -29,36 +33,14 @@ export async function POST(request: Request) {
     if ("response" in authResult) return authResult.response;
     const github = authResult.github;
 
-    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-    const session = await convex.query(api.submissions.getSession, {
-      sessionId: sessionId as Id<"sessions">,
-    });
-    if (!session) {
-      return NextResponse.json({ error: "session not found" }, { status: 404 });
-    }
+    const sessionResult = await requireOwnedSession(sessionId, github, 3);
+    if ("response" in sessionResult) return sessionResult.response;
+    const { session, convex } = sessionResult;
 
-    if (session.github !== github) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-    if ((session.level ?? 1) !== 3) {
-      return NextResponse.json({ error: "session is not level 3" }, { status: 400 });
-    }
-
-    const clientElapsedMs = Math.max(
-      0,
-      Math.min(session.expiresAt - session.startedAt, timeElapsed),
-    );
+    const clientElapsedMs = clampElapsed(timeElapsed, session.expiresAt - session.startedAt);
 
     if (request.headers.get(SHADOW_BAN_HEADER) === "1") {
-      return NextResponse.json({
-        elo: 0,
-        solved: 0,
-        rank: 9999,
-        timeRemaining: Math.max(
-          0,
-          Math.floor((session.expiresAt - session.startedAt - clientElapsedMs) / 1000),
-        ),
-      });
+      return shadowBanResponse(session.expiresAt - session.startedAt, clientElapsedMs);
     }
 
     const firstProblemId = session.problemIds[0];
