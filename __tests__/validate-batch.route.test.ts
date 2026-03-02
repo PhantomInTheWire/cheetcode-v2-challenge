@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { POST } from "../src/app/api/validate-batch/route";
+
+vi.mock("../src/lib/request-auth", () => ({
+  requireAuthenticatedGithub: vi.fn(async () => ({ ok: true, github: "tester" })),
+}));
 
 describe("/api/validate-batch", () => {
   it("validates multiple items independently in one batch", async () => {
@@ -55,5 +59,29 @@ describe("/api/validate-batch", () => {
       results: Record<string, { passed: boolean; error?: string }>;
     };
     expect(body.results["dragon-treasure-count"]?.passed).toBe(true);
+  });
+
+  it("fails with timeout for non-terminating code", async () => {
+    const req = new Request("http://localhost/api/validate-batch", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        items: [
+          {
+            problemId: "loop",
+            code: "() => { while (true) {} }",
+            testCases: [{ input: {}, args: [], expected: 0 }],
+          },
+        ],
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      results: Record<string, { passed: boolean; error?: string }>;
+    };
+    expect(body.results.loop?.passed).toBe(false);
+    expect(body.results.loop?.error).toContain("Time limit exceeded");
   });
 });

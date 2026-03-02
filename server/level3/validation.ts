@@ -122,7 +122,7 @@ function scheduleIdleStop(
       if (runtimeByLanguage.get(language) !== runtime) return;
       runtimeByLanguage.delete(language);
       await runtime.sandbox.stop({ blocking: true }).catch(() => undefined);
-      console.info(`[l3] runtime ${language} stopped after ${RUNTIME_IDLE_SHUTDOWN_MS}ms idle`);
+      console.info(`level3 runtime ${language} stopped after ${RUNTIME_IDLE_SHUTDOWN_MS}ms idle`);
     })();
   }, RUNTIME_IDLE_SHUTDOWN_MS);
 }
@@ -204,7 +204,7 @@ export async function warmLevel3Runtime(language: string): Promise<void> {
     const { runtime } = await getOrCreateRuntime(language);
     scheduleIdleStop(language, runtime);
   } catch (error) {
-    console.warn(`[l3] runtime warmup failed for ${language}:`, error);
+    console.warn(`level3 runtime warmup failed for ${language}:`, error);
   }
 }
 
@@ -215,7 +215,7 @@ export async function validateLevel3Submission(
   const key = cacheKey(challengeId, code);
   const cached = validationCache.get(key);
   if (cached && cached.expiresAt > Date.now()) {
-    console.info(`[l3] validate cache hit for ${challengeId}`);
+    console.info(`level3 validate cache hit for ${challengeId}`);
     return cloneResult(cached.result);
   } else if (cached) {
     validationCache.delete(key);
@@ -344,7 +344,7 @@ export async function validateLevel3Submission(
   } finally {
     const totalMs = Date.now() - t0;
     console.info(
-      `[l3] validate ${challenge.language} total=${totalMs}ms created=${created ? 1 : 0} create=${createMs}ms write=${writeMs}ms run=${runDurationMs}ms read=${readMs}ms`,
+      `level3 validate ${challenge.language} total=${totalMs}ms created=${created ? 1 : 0} create=${createMs}ms write=${writeMs}ms run=${runDurationMs}ms read=${readMs}ms`,
     );
   }
 }

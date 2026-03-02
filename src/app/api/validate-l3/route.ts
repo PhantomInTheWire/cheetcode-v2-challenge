@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateLevel3Submission } from "../../../../server/level3/validation";
+import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 
 /**
  * POST /api/validate-l3
@@ -8,6 +9,9 @@ import { validateLevel3Submission } from "../../../../server/level3/validation";
  */
 export async function POST(request: Request) {
   try {
+    const authResult = await requireAuthenticatedGithub(request);
+    if ("response" in authResult) return authResult.response;
+
     const body = await request.json();
     const { challengeId, code } = body as { challengeId?: string; code?: string };
 

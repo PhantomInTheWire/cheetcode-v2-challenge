@@ -3,7 +3,7 @@ import { internalMutation, query, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { PROBLEM_BANK } from "../server/problems";
 import { computeElo, getDifficultyBonus } from "../src/lib/scoring";
-import { ROUND_DURATION_MS, ROUND_DURATION_SECONDS } from "./constants";
+import { ROUND_DURATION_MS } from "./constants";
 import { sortByEloAndAttempts, calculateRank } from "./helpers";
 import { ROUND_DURATION_L2_MS, ROUND_DURATION_L3_MS } from "./sessions";
 

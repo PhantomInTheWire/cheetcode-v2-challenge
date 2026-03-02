@@ -45,12 +45,6 @@ export const LEVEL2_PROBLEMS: Level2Problem[] = [
     acceptableAnswers: ["create duplicate record", "add duplicate", "duplicate record", "new duplicate record", "create duplicate"],
   },
   {
-    id: "l2_4",
-    question: "When a site attempts to copy text to the system buffer, but an organizational security policy determines the site's address is restricted, what general type of content is placed into the buffer instead of the original text?",
-    answer: "warning message",
-    acceptableAnswers: ["warning message", "warning", "restriction message", "localized warning"],
-  },
-  {
     id: "l2_5",
     question: "When a page attempts to move its audio output to a new speaker but the underlying operating system reports a fatal initialization error for that hardware, what is the specific status name of the resulting hardware state?",
     answer: "OUTPUT_DEVICE_STATUS_ERROR_INTERNAL",
@@ -79,11 +73,5 @@ export const LEVEL2_PROBLEMS: Level2Problem[] = [
     question: "When a long-running background download completes its network phase but fails to save because the site's assigned storage limit is reached, what is the specific internal failure name for the termination of the download job?",
     answer: "QUOTA_EXCEEDED",
     acceptableAnswers: ["QUOTA_EXCEEDED", "6", "quota exceeded"],
-  },
-  {
-    id: "l2_10",
-    question: "When a user logs in using saved credentials from a related but non-identical address (such as a mobile app or a sub-brand domain), what specific modification does the system make to its internal records for the current site's address to improve future login accuracy?",
-    answer: "create duplicate",
-    acceptableAnswers: ["create duplicate", "add duplicate", "duplicate record", "new duplicate record"],
   },
 ];
