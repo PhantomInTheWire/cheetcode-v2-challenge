@@ -1,14 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { GameProblem } from "@/lib/types";
 import type { Id } from "../../convex/_generated/dataModel";
 import { Level2Game } from "@/components/Level2Game";
+import { Level3Game } from "@/components/Level3Game";
 import { validateEmail, validateXHandle } from "@/lib/validation";
 import { ROUND_DURATION_MS, ROUND_DURATION_SECONDS, PROBLEMS_PER_SESSION, SITE_URL } from "@/lib/constants";
+import { isClientDevMode } from "@/lib/myEnv";
 
 type Screen = "landing" | "playing" | "results";
 
@@ -32,6 +34,10 @@ type ResultsData = {
   exploits?: ExploitInfo[];
   landmines?: LandmineInfo[];
 };
+
+const LEVEL2_TOTAL = 10;
+const LEVEL3_TOTAL = 9;
+const TOTAL_SOLVE_TARGET = PROBLEMS_PER_SESSION + LEVEL2_TOTAL + LEVEL3_TOTAL;
 
 const MOBILE_BREAKPOINT = 900;
 
@@ -72,23 +78,38 @@ export default function Home() {
   const [isAutoSolving, setIsAutoSolving] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const lockedTimeElapsedMsRef = useRef<number | null>(null);
   // Inline validation error messages
   const [emailError, setEmailError] = useState("");
   const [xHandleError, setXHandleError] = useState("");
   // Worker removed — validation runs through /api/validate for parity with server
-  const canAutoSolve = process.env.NODE_ENV !== "production";
+  const canAutoSolve = isClientDevMode();
   const isMobile = useIsMobile();
 
   // ── Convex hooks (read-only — all mutations go through authenticated API routes) ──
   const leaderboard = useQuery(api.leaderboard.getAll) ?? [];
   const [lbPage, setLbPage] = useState(0);
   const LB_PAGE_SIZE = 25;
+  const displayedSolveTarget = useMemo(() => {
+    const bestFromBoard = leaderboard.reduce((max, row) => Math.max(max, row.solved), TOTAL_SOLVE_TARGET);
+    const bestFromSession = results ? Math.max(bestFromBoard, results.solved) : bestFromBoard;
+    return Math.max(TOTAL_SOLVE_TARGET, bestFromSession);
+  }, [leaderboard, results]);
 
   // ── Level progression state ──
   const unlockedLevel = useQuery(api.leaderboard.getMyLevel, { github: github || "" }) ?? 1;
-  const isLocalDev = process.env.NODE_ENV === "development";
+  const isLocalDev = isClientDevMode();
   const [currentLevel, setCurrentLevel] = useState(1);
   const [l2Problems, setL2Problems] = useState<{ id: string; question: string }[]>([]);
+  const [l3Challenge, setL3Challenge] = useState<{
+    id: string;
+    title: string;
+    taskName: string;
+    language: string;
+    spec: string;
+    checks: { id: string; name: string }[];
+    starterCode: string;
+  } | null>(null);
 
   // No worker — local validation uses the same QuickJS sandbox as final scoring
   // via /api/validate to guarantee parity between local and server checks
@@ -109,6 +130,10 @@ export default function Home() {
 
   const finishGame = useCallback(async () => {
     if (!sessionId || results || isSubmitting) return;
+    if (lockedTimeElapsedMsRef.current === null) {
+      lockedTimeElapsedMsRef.current = ROUND_DURATION_MS - timeLeftMs;
+    }
+    const lockedTimeElapsedMs = lockedTimeElapsedMsRef.current;
     setIsSubmitting(true);
     try {
       // Call our Next.js API route which validates with QuickJS (in-process)
@@ -119,7 +144,7 @@ export default function Home() {
         body: JSON.stringify({
           sessionId,
           github,
-          timeElapsed: ROUND_DURATION_MS - timeLeftMs,
+          timeElapsed: lockedTimeElapsedMs,
           submissions: problems.map((p) => ({
             problemId: p.id,
             code: codes[p.id] ?? "",
@@ -139,8 +164,8 @@ export default function Home() {
 
   // Auto-submit when timer expires — manual SUBMIT button handles early finish
   useEffect(() => {
-    if (screen === "playing" && timeLeftMs === 0) void finishGame();
-  }, [timeLeftMs, screen, finishGame]);
+    if (screen === "playing" && currentLevel === 1 && timeLeftMs === 0) void finishGame();
+  }, [timeLeftMs, screen, currentLevel, finishGame]);
 
   async function startGame(requestedLevel?: number) {
     if (!isAuthenticated) return;
@@ -167,16 +192,34 @@ export default function Home() {
         // Level 2: Set text problems
         setL2Problems(d.problems as { id: string; question: string }[]);
         setProblems([]);
+        setL3Challenge(null);
+      } else if (d.level === 3) {
+        // Level 3: Set generated systems challenge
+        const challenge = (d.problems as Array<{
+          id: string;
+          title: string;
+          taskName: string;
+          language: string;
+          spec: string;
+          checks: { id: string; name: string }[];
+          starterCode: string;
+        }>)[0];
+        setL3Challenge(challenge);
+        setProblems([]);
+        setL2Problems([]);
       } else {
         // Level 1: Set code problems
         setProblems(d.problems as unknown as GameProblem[]);
         setCodes(Object.fromEntries(d.problems.map((p: { id: string; starterCode: string }) => [p.id, p.starterCode])));
+        setL2Problems([]);
+        setL3Challenge(null);
       }
       
       setLocalPass({});
       setSubmittedLead(false);
       setResults(null);
       setIsSubmitting(false);
+      lockedTimeElapsedMsRef.current = null;
       setScreen("playing");
     } catch (err) {
       console.error("createSession failed:", err);
@@ -234,6 +277,8 @@ export default function Home() {
     setSessionId(null);
     setExpiresAt(0);
     setProblems([]);
+    setL2Problems([]);
+    setL3Challenge(null);
     setCodes({});
     setLocalPass({});
     setResults(null);
@@ -243,6 +288,7 @@ export default function Home() {
     setSubmittedLead(false);
     setEmailError("");
     setXHandleError("");
+    lockedTimeElapsedMsRef.current = null;
   }
 
   async function shareScore() {
@@ -266,21 +312,77 @@ export default function Home() {
         body: JSON.stringify({ problemIds: problems.map((p) => p.id) }),
       });
       if (!r.ok) return;
-      const d = (await r.json()) as { solutions: Record<string, string> };
+      const d = (await r.json()) as {
+        solutions: Record<string, string>;
+      };
       setCodes((cur) => ({ ...cur, ...d.solutions }));
-      // Validate each solution via /api/validate (same QuickJS sandbox as scoring)
-      for (const p of problems) {
-        if (!d.solutions[p.id]) continue;
-        try {
-          const vRes = await fetch("/api/validate", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ code: d.solutions[p.id], testCases: p.testCases }),
+
+      const solvedIds = problems
+        .map((p) => p.id)
+        .filter((id) => Boolean(d.solutions[id]?.trim()));
+
+      if (solvedIds.length > 0) {
+        setLocalPass((cur) => {
+          const next = { ...cur };
+          for (const id of solvedIds) next[id] = null;
+          return next;
+        });
+      }
+
+      const items = problems
+        .map((p) => ({ problemId: p.id, code: d.solutions[p.id] ?? "", testCases: p.testCases }))
+        .filter((x) => x.code.trim().length > 0);
+
+      if (items.length > 0) {
+        const vRes = await fetch("/api/validate-batch", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ items }),
+        });
+
+        if (vRes.ok) {
+          const vData = (await vRes.json()) as {
+            results: Record<string, { passed: boolean; error?: string }>;
+          };
+          setLocalPass((cur) => {
+            const next = { ...cur };
+            for (const p of problems) {
+              const r = vData.results?.[p.id];
+              if (r) {
+                next[p.id] = r.passed === true;
+              } else if (d.solutions[p.id]?.trim()) {
+                next[p.id] = null;
+              }
+            }
+            return next;
           });
-          const vData = await vRes.json();
-          setLocalPass((cur) => ({ ...cur, [p.id]: vData.passed === true }));
-        } catch {
-          setLocalPass((cur) => ({ ...cur, [p.id]: false }));
+        } else {
+          const outcomes = await Promise.all(
+            problems.map(async (p) => {
+              const code = d.solutions[p.id];
+              if (!code?.trim()) return [p.id, null] as const;
+              try {
+                const single = await fetch("/api/validate", {
+                  method: "POST",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify({ code, testCases: p.testCases }),
+                });
+                if (!single.ok) return [p.id, null] as const;
+                const singleData = await single.json();
+                return [p.id, singleData.passed === true] as const;
+              } catch {
+                return [p.id, null] as const;
+              }
+            }),
+          );
+
+          setLocalPass((cur) => {
+            const next = { ...cur };
+            for (const [id, passed] of outcomes) {
+              if (passed !== null) next[id] = passed;
+            }
+            return next;
+          });
         }
       }
     } finally {
@@ -359,8 +461,8 @@ export default function Home() {
                             {rank}
                           </td>
                           <td style={{ padding: "10px 14px", fontSize: 13, color: "#262626" }}>@{row.github}</td>
-                          <td style={{ padding: "10px 14px", fontSize: 13, color: row.solved === 25 ? "#1a9338" : "rgba(0,0,0,0.4)" }}>
-                            {row.solved}/25
+                          <td style={{ padding: "10px 14px", fontSize: 13, color: row.solved >= TOTAL_SOLVE_TARGET ? "#1a9338" : "rgba(0,0,0,0.4)" }}>
+                            {row.solved}/{displayedSolveTarget}
                           </td>
                           <td style={{ padding: "10px 14px", fontSize: 13, color: "rgba(0,0,0,0.35)" }}>
                             {row.attempts ?? 1}
@@ -578,6 +680,39 @@ export default function Home() {
                   >
                     START
                   </button>
+                ) : unlockedLevel < 3 && !isLocalDev ? (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => startGame(1)}
+                      className="btn-heat"
+                      style={{
+                        flex: 1,
+                        height: 52,
+                        borderRadius: 12,
+                        fontSize: 17,
+                        fontWeight: 800,
+                        letterSpacing: 2,
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      PLAY LEVEL 1
+                    </button>
+                    <button
+                      onClick={() => startGame(2)}
+                      className="btn-heat"
+                      style={{
+                        flex: 1,
+                        height: 52,
+                        borderRadius: 12,
+                        fontSize: 17,
+                        fontWeight: 800,
+                        letterSpacing: 2,
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      PLAY LEVEL 2
+                    </button>
+                  </div>
                 ) : (
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
@@ -609,6 +744,21 @@ export default function Home() {
                       }}
                     >
                       PLAY LEVEL 2
+                    </button>
+                    <button
+                      onClick={() => startGame(3)}
+                      className="btn-heat"
+                      style={{
+                        flex: 1,
+                        height: 52,
+                        borderRadius: 12,
+                        fontSize: 17,
+                        fontWeight: 800,
+                        letterSpacing: 2,
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      PLAY LEVEL 3
                     </button>
                   </div>
                 )}
@@ -676,8 +826,8 @@ export default function Home() {
                               {rank}
                             </td>
                             <td style={{ padding: "10px 18px", fontSize: 13, color: "#262626" }}>@{row.github}</td>
-                            <td style={{ padding: "10px 18px", fontSize: 13, color: row.solved === 25 ? "#1a9338" : "rgba(0,0,0,0.4)" }}>
-                              {row.solved}/25
+                            <td style={{ padding: "10px 18px", fontSize: 13, color: row.solved >= TOTAL_SOLVE_TARGET ? "#1a9338" : "rgba(0,0,0,0.4)" }}>
+                              {row.solved}/{displayedSolveTarget}
                             </td>
                             <td style={{ padding: "10px 18px", fontSize: 13, color: "rgba(0,0,0,0.35)" }}>
                               {row.attempts ?? 1}
@@ -731,6 +881,22 @@ export default function Home() {
           sessionId={sessionId!}
           github={github}
           problems={l2Problems}
+          expiresAt={expiresAt}
+          onFinish={(results) => {
+            setResults(results);
+            setScreen("results");
+          }}
+          onReset={resetAll}
+        />
+      );
+    }
+
+    if (currentLevel === 3 && l3Challenge) {
+      return (
+        <Level3Game
+          sessionId={sessionId!}
+          github={github}
+          challenge={l3Challenge}
           expiresAt={expiresAt}
           onFinish={(results) => {
             setResults(results);
@@ -835,7 +1001,7 @@ export default function Home() {
             {/* ── Big SUBMIT button ── */}
             <button
               onClick={() => void finishGame()}
-              disabled={isSubmitting || timeUp}
+              disabled={isSubmitting}
               className="btn-heat"
               style={{
                 height: 32,
@@ -845,7 +1011,7 @@ export default function Home() {
                 fontWeight: 800,
                 fontFamily: "inherit",
                 letterSpacing: 1,
-                cursor: isSubmitting || timeUp ? "not-allowed" : "pointer",
+                cursor: isSubmitting ? "not-allowed" : "pointer",
                 opacity: isSubmitting ? 0.7 : 1,
                 whiteSpace: "nowrap",
               }}
@@ -860,11 +1026,13 @@ export default function Home() {
           style={{
             flex: 1,
             display: "grid",
-            gridTemplateColumns: "repeat(5, 1fr)",
-            gridTemplateRows: "repeat(2, 1fr)",
-            gap: 6,
-            padding: 6,
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gridAutoRows: "minmax(560px, auto)",
+            alignContent: "start",
+            gap: 8,
+            padding: 8,
             minHeight: 0,
+            overflowY: "auto",
           }}
         >
           {problems.map((problem, idx) => {
@@ -942,16 +1110,16 @@ export default function Home() {
                 </div>
 
                 {/* Description */}
-                <div style={{ padding: "5px 8px", flexShrink: 0 }}>
+                <div style={{ padding: "8px 10px", flexShrink: 0 }}>
                   <p style={{ fontSize: 10, color: "rgba(0,0,0,0.5)", lineHeight: 1.4, margin: 0 }}>
-                    {problem.description.length > 120
-                      ? problem.description.slice(0, 120) + "..."
+                    {problem.description.length > 520
+                      ? problem.description.slice(0, 520) + "..."
                       : problem.description}
                   </p>
                 </div>
 
                 {/* Code textarea */}
-                <div style={{ flex: "1 1 auto", display: "flex", flexDirection: "column", minHeight: 0, padding: "0 8px" }}>
+                <div style={{ flex: "1 1 auto", display: "flex", flexDirection: "column", minHeight: 0, padding: "0 10px" }}>
                   <textarea
                     value={codes[problem.id] ?? ""}
                     onChange={(e) => setCodes((cur) => ({ ...cur, [problem.id]: e.target.value }))}
@@ -960,7 +1128,7 @@ export default function Home() {
                     spellCheck={false}
                     style={{
                       flex: "1 1 auto",
-                      minHeight: 40,
+                      minHeight: 320,
                       width: "100%",
                       resize: "none",
                       background: "#fafafa",
@@ -1123,7 +1291,7 @@ export default function Home() {
               fontWeight: 800,
               margin: 0,
               lineHeight: 1.1,
-              color: results.solved === 25 ? "#fa5d19" : "#262626",
+              color: results.solved >= TOTAL_SOLVE_TARGET ? "#fa5d19" : "#262626",
             }}
           >
             {results.solved <= 2
@@ -1138,7 +1306,7 @@ export default function Home() {
               You probably need a different approach.
             </p>
           )}
-          {results.solved === 25 && (
+          {results.solved >= TOTAL_SOLVE_TARGET && (
             <p style={{ marginTop: 16, fontSize: 15, fontWeight: 600, color: "#fa5d19" }}>
               We want to talk to you.
             </p>
@@ -1157,7 +1325,7 @@ export default function Home() {
             }}
           >
             {[
-              { label: "Solved", value: `${results.solved}/25`, color: "#262626" },
+              { label: "Solved", value: `${results.solved}/${displayedSolveTarget}`, color: "#262626" },
               { label: "Score", value: results.elo.toLocaleString(), color: "#fa5d19" },
               { label: "Rank", value: `#${results.rank}`, color: "#262626" },
             ].map((stat, i) => (
@@ -1189,7 +1357,7 @@ export default function Home() {
             {/* Base score */}
             <div style={{ background: "#f3f3f3", borderRadius: 10, padding: "14px 18px", marginBottom: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                <span style={{ color: "rgba(0,0,0,0.5)" }}>Base score ({results.solved}/25 solved, {results.timeRemaining}s remaining)</span>
+                <span style={{ color: "rgba(0,0,0,0.5)" }}>Base score ({results.solved}/{displayedSolveTarget} solved, {results.timeRemaining}s remaining)</span>
                 <span style={{ fontWeight: 700, color: "#262626" }}>
                   {results.elo - (results.exploits ?? []).reduce((s, e) => s + e.bonus, 0) - (results.landmines ?? []).reduce((s, l) => s + l.penalty, 0)}
                 </span>
@@ -1339,7 +1507,7 @@ export default function Home() {
           </div>
 
           {/* Continue to Level 2 after perfect Level 1 */}
-          {results.solved === 25 && (
+          {currentLevel === 1 && results.solved >= PROBLEMS_PER_SESSION && (
             <button
               onClick={() => startGame(2)}
               className="btn-heat"
@@ -1356,6 +1524,26 @@ export default function Home() {
               }}
             >
               CONTINUE TO LEVEL 2 →
+            </button>
+          )}
+
+          {currentLevel === 2 && (unlockedLevel >= 3 || results.solved >= PROBLEMS_PER_SESSION + LEVEL2_TOTAL) && (
+            <button
+              onClick={() => startGame(3)}
+              className="btn-heat"
+              style={{
+                width: "100%",
+                height: 52,
+                borderRadius: 12,
+                fontSize: 17,
+                fontWeight: 800,
+                letterSpacing: 2,
+                fontFamily: "inherit",
+                marginTop: 20,
+                background: "#fa5d19",
+              }}
+            >
+              CONTINUE TO LEVEL 3 →
             </button>
           )}
         </div>

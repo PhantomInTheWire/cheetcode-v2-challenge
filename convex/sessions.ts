@@ -4,13 +4,16 @@ import { internal } from "./_generated/api";
 import {
   selectSessionProblems,
   stripSolution,
+  injectDescriptionCanary,
 } from "../server/problems";
 import { validateGithub } from "../src/lib/validation";
 import { ROUND_DURATION_MS } from "./constants";
 import { LEVEL2_PROBLEMS } from "../server/level2/problems";
+import { generateLevel3Challenge } from "../server/level3/problems";
 
 const SESSION_COOLDOWN_MS = 5_000;
 export const ROUND_DURATION_L2_MS = 45_000;
+export const ROUND_DURATION_L3_MS = 120_000;
 
 export const createInternal = internalMutation({
   args: { github: v.string(), requestedLevel: v.optional(v.number()), isDev: v.optional(v.boolean()) },
@@ -54,10 +57,29 @@ export const createInternal = internalMutation({
         id: p.id,
         question: p.question,
       }));
+    } else if (level === 3) {
+      expiresAt = startedAt + ROUND_DURATION_L3_MS;
+      const challenge = generateLevel3Challenge();
+      problemIds = challenge.checks.map((c) => c.id);
+      problemsToReturn = [
+        {
+          id: challenge.id,
+          title: challenge.title,
+          taskId: challenge.taskId,
+          taskName: challenge.taskName,
+          language: challenge.language,
+          spec: challenge.spec,
+          starterCode: challenge.starterCode,
+          checks: challenge.checks.map((c) => ({
+            id: c.id,
+            name: c.name,
+          })),
+        },
+      ];
     } else {
       const picked = selectSessionProblems();
       problemIds = picked.map((problem) => problem.id);
-      problemsToReturn = picked.map(stripSolution);
+      problemsToReturn = injectDescriptionCanary(picked.map(stripSolution));
     }
 
     const sessionId = await ctx.db.insert("sessions", {

@@ -26,6 +26,7 @@ import { ROUND_DURATION_MS } from "../../../lib/constants";
 type TestCase = {
   input: Record<string, unknown>;
   expected: unknown;
+  args?: unknown[];
 };
 
 type Submission = {
@@ -43,11 +44,45 @@ type RequestBody = {
 
 const FLAG = "🔥{you_found_the_fire}";
 
+function buildArgs(testCase: TestCase): unknown[] | null {
+  if (Array.isArray(testCase.args)) return testCase.args;
+  return null;
+}
+
 // Cache the WASM module at module scope — loaded once, reused across requests
 let _qjs: QuickJSWASMModule | null = null;
 async function getQJS(): Promise<QuickJSWASMModule> {
   if (!_qjs) _qjs = await getQuickJS();
   return _qjs;
+}
+
+function resolveSubmittedFunction(vm: ReturnType<QuickJSWASMModule["newContext"]>, code: string): boolean {
+  const expressionAttempt = vm.evalCode(`const __fn__ = (${code}); typeof __fn__ === "function";`);
+  if (!("error" in expressionAttempt)) {
+    const ok = vm.dump(expressionAttempt.value) === true;
+    expressionAttempt.value.dispose();
+    if (ok) return true;
+  } else {
+    expressionAttempt.error.dispose();
+  }
+
+  const nameMatch = code.match(
+    /\bfunction\s+([A-Za-z_$][\w$]*)\s*\(|\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=/,
+  );
+  const symbol = (nameMatch?.[1] || nameMatch?.[2] || "").trim();
+  if (!symbol) return false;
+
+  const scriptAttempt = vm.evalCode(
+    `${code}\n;globalThis.__fn__ = (typeof ${symbol} === "function") ? ${symbol} : undefined;\n` +
+      `typeof globalThis.__fn__ === "function";`,
+  );
+  if ("error" in scriptAttempt) {
+    scriptAttempt.error.dispose();
+    return false;
+  }
+  const ok = vm.dump(scriptAttempt.value) === true;
+  scriptAttempt.value.dispose();
+  return ok;
 }
 
 /**
@@ -58,6 +93,7 @@ function validateSubmission(
   qjs: QuickJSWASMModule,
   code: string,
   testCases: TestCase[],
+  problemId?: string,
 ): boolean {
   const vm = qjs.newContext();
   try {
@@ -69,14 +105,18 @@ function validateSubmission(
     if ("error" in setup) { setup.error.dispose(); return false; }
     setup.value.dispose();
 
-    // Define the user's function once
-    const fnResult = vm.evalCode(`const __fn__ = (${code}); __fn__;`);
-    if ("error" in fnResult) { fnResult.error.dispose(); return false; }
-    fnResult.value.dispose();
+    if (!resolveSubmittedFunction(vm, code)) return false;
 
     // Run each test case against the already-defined function
     for (const tc of testCases) {
-      const args = JSON.stringify(Object.values(tc.input));
+      const argsList = buildArgs(tc);
+      if (!argsList) {
+        if (problemId) {
+          console.error(`[finish] missing testcase args for problemId=${problemId}`);
+        }
+        return false;
+      }
+      const args = JSON.stringify(argsList);
       const expected = JSON.stringify(tc.expected);
       const testScript = `JSON.stringify(__fn__(...${args})) === ${JSON.stringify(expected)};`;
 
@@ -156,7 +196,7 @@ export async function POST(request: Request) {
       const codeResult = validateCode(sub.code);
       if (codeResult.ok === false) continue;
 
-      const passed = validateSubmission(qjs, codeResult.value, problem.testCases);
+      const passed = validateSubmission(qjs, codeResult.value, problem.testCases, problem.id);
       if (passed) solvedProblemIds.push(sub.problemId);
     }
 

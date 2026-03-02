@@ -22,6 +22,8 @@ export default defineSchema({
     level1BestElo: v.optional(v.number()),
     level2BestSolved: v.optional(v.number()),
     level2BestElo: v.optional(v.number()),
+    level3BestSolved: v.optional(v.number()),
+    level3BestElo: v.optional(v.number()),
   })
     .index("by_elo", ["elo"])
     .index("by_github", ["github"]),

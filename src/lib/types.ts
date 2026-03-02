@@ -3,6 +3,7 @@ export type ProblemTier = "easy" | "medium" | "hard" | "competitive";
 export type ProblemTestCase = {
   input: Record<string, unknown>;
   expected: unknown;
+  args?: unknown[];
 };
 
 export type GameProblem = {
