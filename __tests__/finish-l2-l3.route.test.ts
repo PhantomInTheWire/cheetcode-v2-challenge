@@ -65,7 +65,7 @@ describe("finish l2/l3 routes", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         sessionId: "s1",
-        solvedProblemIds: ["l2_1"],
+        answers: { l2_1: "kOperationAborted", l2_2: "wrong" },
         timeElapsed: 3000,
       }),
     });
@@ -73,6 +73,10 @@ describe("finish l2/l3 routes", () => {
     const res = await POST(req);
     expect(res.status).toBe(200);
     expect(hoisted.actionMock).toHaveBeenCalled();
+    const actionCall = hoisted.actionMock.mock.calls[0]?.[1] as
+      | { solvedProblemIds: string[] }
+      | undefined;
+    expect(actionCall?.solvedProblemIds).toEqual(["l2_1"]);
   });
 
   it("/api/finish-l3 validates and records all 20 solved checks for full L3 scoring input", async () => {

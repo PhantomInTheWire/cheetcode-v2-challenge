@@ -164,17 +164,16 @@ export async function POST(request: Request) {
       if (passed) solvedProblemIds.push(sub.problemId);
     }
 
-    const clientElapsedMs = Math.max(0, Math.min(ROUND_DURATION_MS, timeElapsed));
-
     // Detect exploit patterns — reward discovery with capped bonuses
     const hasHackHeader = request.headers.get("x-firecrawl-hack") === "true";
     const exploits = detectExploits({
-      timeElapsedMs: clientElapsedMs,
+      timeElapsedMs: timeElapsed,
       solvedCount: solvedProblemIds.length,
       flag: body.flag,
       hasHackHeader,
       extraSubmissions,
     });
+    const clientElapsedMs = Math.max(0, Math.min(ROUND_DURATION_MS, timeElapsed));
     const exploitBonus = totalExploitBonus(exploits);
 
     // Detect landmines — penalize unsafe agent behavior

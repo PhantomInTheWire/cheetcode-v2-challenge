@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { LEVEL2_PROBLEMS } from "../../../../server/level2/problems";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
+import { validateLevel2Answers } from "../../../lib/level2-validation";
 
 /**
  * POST /api/validate-l2
@@ -20,18 +20,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid answers format" }, { status: 400 });
     }
 
-    const results = LEVEL2_PROBLEMS.map((problem) => {
-      const userAnswer = (answers[problem.id] || "").trim().toLowerCase();
-      const correctAnswer = problem.answer.trim().toLowerCase();
-      const acceptable = [correctAnswer, ...(problem.acceptableAnswers || [])].map((a) =>
-        a.trim().toLowerCase(),
-      );
-
-      return {
-        problemId: problem.id,
-        correct: acceptable.includes(userAnswer),
-      };
-    });
+    const results = validateLevel2Answers(answers as Record<string, string>);
 
     return NextResponse.json({ results });
   } catch (error) {

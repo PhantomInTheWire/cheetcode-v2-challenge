@@ -2,10 +2,10 @@ import { v } from "convex/values";
 import { internalMutation, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { selectSessionProblems, stripSolution, injectDescriptionCanary } from "../server/problems";
+import { generateLevel3ChallengeMeta } from "../server/level3/catalog";
 import { validateGithub } from "../src/lib/validation";
 import { ROUND_DURATION_MS } from "../src/lib/constants";
 import { LEVEL2_PROBLEMS } from "../server/level2/problems";
-import { generateLevel3Challenge } from "../server/level3/problems";
 
 const SESSION_COOLDOWN_MS = 5_000;
 export const ROUND_DURATION_L2_MS = 45_000;
@@ -62,7 +62,7 @@ export const createInternal = internalMutation({
       }));
     } else if (level === 3) {
       expiresAt = startedAt + ROUND_DURATION_L3_MS;
-      const challenge = generateLevel3Challenge();
+      const challenge = generateLevel3ChallengeMeta();
       problemIds = challenge.checks.map((c) => c.id);
       problemsToReturn = [
         {
@@ -71,8 +71,6 @@ export const createInternal = internalMutation({
           taskId: challenge.taskId,
           taskName: challenge.taskName,
           language: challenge.language,
-          spec: challenge.spec,
-          starterCode: challenge.starterCode,
           checks: challenge.checks.map((c) => ({
             id: c.id,
             name: c.name,
