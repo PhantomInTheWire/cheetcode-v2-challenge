@@ -3,10 +3,12 @@ import { isIP } from "is-ip";
 export type AbuseRoute =
   | "session"
   | "validate"
+  | "validate-l1"
   | "validate-batch"
   | "validate-l2"
   | "validate-l3"
   | "finish"
+  | "finish-l1"
   | "finish-l2"
   | "finish-l3";
 
@@ -34,6 +36,12 @@ const SWEEP_INTERVAL_MS = 60_000;
 const routeConfigs: Record<AbuseRoute, RouteConfig> = {
   session: { windowMs: 60_000, maxHits: 8, shadowWindowMs: 10 * 60_000, shadowThreshold: 40 },
   validate: { windowMs: 60_000, maxHits: 150, shadowWindowMs: 10 * 60_000, shadowThreshold: 900 },
+  "validate-l1": {
+    windowMs: 60_000,
+    maxHits: 150,
+    shadowWindowMs: 10 * 60_000,
+    shadowThreshold: 900,
+  },
   "validate-batch": {
     windowMs: 60_000,
     maxHits: 80,
@@ -53,6 +61,7 @@ const routeConfigs: Record<AbuseRoute, RouteConfig> = {
     shadowThreshold: 300,
   },
   finish: { windowMs: 60_000, maxHits: 20, shadowWindowMs: 10 * 60_000, shadowThreshold: 80 },
+  "finish-l1": { windowMs: 60_000, maxHits: 20, shadowWindowMs: 10 * 60_000, shadowThreshold: 80 },
   "finish-l2": { windowMs: 60_000, maxHits: 20, shadowWindowMs: 10 * 60_000, shadowThreshold: 80 },
   "finish-l3": { windowMs: 60_000, maxHits: 20, shadowWindowMs: 10 * 60_000, shadowThreshold: 80 },
 };
@@ -64,10 +73,12 @@ export function getRouteConfig(route: AbuseRoute): RouteConfig {
 export const API_ROUTE_TO_ABUSE_ROUTE: Record<string, AbuseRoute> = {
   "/api/session": "session",
   "/api/validate": "validate",
+  "/api/validate-l1": "validate-l1",
   "/api/validate-batch": "validate-batch",
   "/api/validate-l2": "validate-l2",
   "/api/validate-l3": "validate-l3",
   "/api/finish": "finish",
+  "/api/finish-l1": "finish-l1",
   "/api/finish-l2": "finish-l2",
   "/api/finish-l3": "finish-l3",
 };

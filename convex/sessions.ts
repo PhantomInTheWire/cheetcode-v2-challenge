@@ -1,7 +1,11 @@
 import { v } from "convex/values";
 import { internalMutation, action } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { selectSessionProblems, stripSolution, injectDescriptionCanary } from "../server/problems";
+import {
+  selectSessionProblems,
+  stripSolution,
+  injectDescriptionCanary,
+} from "../server/level1/problems";
 import { generateLevel3ChallengeMeta } from "../server/level3/catalog";
 import { validateGithub } from "../src/lib/validation";
 import { ROUND_DURATION_MS } from "../src/lib/constants";

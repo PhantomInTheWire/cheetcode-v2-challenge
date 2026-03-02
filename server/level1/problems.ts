@@ -1,5 +1,5 @@
 export type ProblemTier = "easy" | "medium" | "hard" | "competitive";
-import { normalizeTestCasesWithArgs } from "../src/lib/testcaseArgs";
+import { normalizeTestCasesWithArgs } from "../../src/lib/testcaseArgs";
 
 type ProblemTestCase = {
   input: Record<string, unknown>;
@@ -20,7 +20,7 @@ type Problem = {
 
 type PublicProblem = Omit<Problem, "solution">;
 
-import problemsData from "../data/problems.json";
+import problemsData from "../../data/problems.json";
 
 const typedProblemsData = problemsData as {
   version: string;

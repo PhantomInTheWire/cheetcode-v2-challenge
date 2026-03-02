@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PROBLEM_BANK } from "../server/problems";
+import { PROBLEM_BANK } from "../server/level1/problems";
 import vm from "node:vm";
 
 describe("problems", () => {

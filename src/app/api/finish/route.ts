@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getQuickJS, type QuickJSWASMModule } from "quickjs-emscripten";
 import { api } from "../../../../convex/_generated/api";
-import { PROBLEM_BANK } from "../../../../server/problems";
+import { PROBLEM_BANK } from "../../../../server/level1/problems";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { validateCode } from "../../../lib/validation";
 import {

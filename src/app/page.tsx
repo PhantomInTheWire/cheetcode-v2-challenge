@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { Level2Game } from "@/components/Level2Game";
-import { Level3Game } from "@/components/Level3Game";
+import { LeaderboardTable } from "@/components/LeaderboardTable";
 import { validateEmail, validateXHandle } from "@/lib/validation";
 import {
   ROUND_DURATION_MS,
@@ -66,6 +66,8 @@ const LEVEL3_TOTAL = 20;
 const TOTAL_SOLVE_TARGET = PROBLEMS_PER_SESSION + LEVEL2_TOTAL + LEVEL3_TOTAL;
 
 const MOBILE_BREAKPOINT = 900;
+const Level2Game = dynamic(() => import("@/components/Level2Game").then((m) => m.Level2Game));
+const Level3Game = dynamic(() => import("@/components/Level3Game").then((m) => m.Level3Game));
 
 /** Original announcement tweet — every share quote-tweets this to amplify it. */
 const ORIGINAL_TWEET_URL = "https://x.com/CalebPeffer/status/2024167056372097131";
@@ -117,8 +119,6 @@ export default function Home() {
   // ── Convex hooks (read-only — all mutations go through authenticated API routes) ──
   const leaderboardQuery = useQuery(api.leaderboard.getAll);
   const leaderboard = useMemo(() => leaderboardQuery ?? [], [leaderboardQuery]);
-  const [lbPage, setLbPage] = useState(0);
-  const LB_PAGE_SIZE = 25;
   const displayedSolveTarget = useMemo(() => {
     const bestFromBoard = leaderboard.reduce(
       (max, row) => Math.max(max, row.solved),
@@ -172,7 +172,7 @@ export default function Home() {
     try {
       // Call our Next.js API route which validates with QuickJS (in-process)
       // then updates Convex leaderboard — no cross-origin issues
-      const res = await clientFetch("/api/finish", {
+      const res = await clientFetch("/api/finish-l1", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -270,7 +270,7 @@ export default function Home() {
   async function runLocalCheck(problem: GameProblem) {
     setLocalPass((cur) => ({ ...cur, [problem.id]: null }));
     try {
-      const res = await clientFetch("/api/validate", {
+      const res = await clientFetch("/api/validate-l1", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -352,7 +352,7 @@ export default function Home() {
     setIsAutoSolving(true);
     try {
       // Auto-solve uses a local API route (dev-only) — pass problem IDs directly
-      const r = await clientFetch("/api/dev/auto-solve", {
+      const r = await clientFetch("/api/dev/auto-solve-l1", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ problemIds: problems.map((p) => p.id) }),
@@ -406,7 +406,7 @@ export default function Home() {
               const code = d.solutions[p.id];
               if (!code?.trim()) return [p.id, null] as const;
               try {
-                const single = await clientFetch("/api/validate", {
+                const single = await clientFetch("/api/validate-l1", {
                   method: "POST",
                   headers: { "content-type": "application/json" },
                   body: JSON.stringify({ code, testCases: p.testCases }),
@@ -463,156 +463,11 @@ export default function Home() {
           This challenge requires a full-sized screen. Open it on your desktop or laptop to play.
         </p>
 
-        {/* Leaderboard always shown on mobile */}
-        {(() => {
-          const totalPages = Math.max(1, Math.ceil(leaderboard.length / LB_PAGE_SIZE));
-          const page = Math.min(lbPage, totalPages - 1);
-          const slice = leaderboard.slice(page * LB_PAGE_SIZE, (page + 1) * LB_PAGE_SIZE);
-          return (
-            <div style={{ width: "100%", maxWidth: 520 }}>
-              <div
-                style={{
-                  background: "#ffffff",
-                  border: "1px solid #e5e5e5",
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                }}
-              >
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ borderBottom: "1px solid #e5e5e5" }}>
-                      {["#", "Player", "Solved", "Tries", "Score"].map((h) => (
-                        <th
-                          key={h}
-                          style={{
-                            padding: "12px 14px",
-                            textAlign: "left",
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: "rgba(0,0,0,0.4)",
-                          }}
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {slice.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={5}
-                          style={{ padding: "16px 14px", fontSize: 13, color: "rgba(0,0,0,0.4)" }}
-                        >
-                          No entries yet.
-                        </td>
-                      </tr>
-                    )}
-                    {slice.map((row, i) => {
-                      const rank = page * LB_PAGE_SIZE + i + 1;
-                      return (
-                        <tr key={row.github} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                          <td
-                            style={{
-                              padding: "10px 14px",
-                              fontSize: 13,
-                              fontWeight: 700,
-                              color: rank <= 3 ? "#fa5d19" : "rgba(0,0,0,0.3)",
-                            }}
-                          >
-                            {rank}
-                          </td>
-                          <td style={{ padding: "10px 14px", fontSize: 13, color: "#262626" }}>
-                            @{row.github}
-                          </td>
-                          <td
-                            style={{
-                              padding: "10px 14px",
-                              fontSize: 13,
-                              color:
-                                row.solved >= TOTAL_SOLVE_TARGET ? "#1a9338" : "rgba(0,0,0,0.4)",
-                            }}
-                          >
-                            {row.solved}/{displayedSolveTarget}
-                          </td>
-                          <td
-                            style={{
-                              padding: "10px 14px",
-                              fontSize: 13,
-                              color: "rgba(0,0,0,0.35)",
-                            }}
-                          >
-                            {row.attempts ?? 1}
-                          </td>
-                          <td
-                            style={{
-                              padding: "10px 14px",
-                              fontSize: 13,
-                              fontWeight: 600,
-                              color: row.elo > 1000 ? "#fa5d19" : "rgba(0,0,0,0.4)",
-                            }}
-                          >
-                            {row.elo.toLocaleString()}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              {totalPages > 1 && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 16,
-                    marginTop: 12,
-                  }}
-                >
-                  <button
-                    onClick={() => setLbPage((p) => Math.max(0, p - 1))}
-                    disabled={page === 0}
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      fontFamily: "inherit",
-                      background: "none",
-                      border: "1px solid #e5e5e5",
-                      borderRadius: 6,
-                      padding: "6px 14px",
-                      cursor: page === 0 ? "not-allowed" : "pointer",
-                      color: page === 0 ? "rgba(0,0,0,0.2)" : "#262626",
-                    }}
-                  >
-                    Prev
-                  </button>
-                  <span style={{ fontSize: 12, color: "rgba(0,0,0,0.4)" }}>
-                    {page + 1} / {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setLbPage((p) => Math.min(totalPages - 1, p + 1))}
-                    disabled={page >= totalPages - 1}
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      fontFamily: "inherit",
-                      background: "none",
-                      border: "1px solid #e5e5e5",
-                      borderRadius: 6,
-                      padding: "6px 14px",
-                      cursor: page >= totalPages - 1 ? "not-allowed" : "pointer",
-                      color: page >= totalPages - 1 ? "rgba(0,0,0,0.2)" : "#262626",
-                    }}
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })()}
+        <LeaderboardTable
+          rows={leaderboard}
+          totalSolveTarget={TOTAL_SOLVE_TARGET}
+          displayedSolveTarget={displayedSolveTarget}
+        />
       </div>
     );
   }
@@ -964,162 +819,15 @@ export default function Home() {
             {showLeaderboard ? "hide leaderboard" : "view leaderboard"}
           </button>
 
-          {showLeaderboard &&
-            (() => {
-              const totalPages = Math.max(1, Math.ceil(leaderboard.length / LB_PAGE_SIZE));
-              const page = Math.min(lbPage, totalPages - 1);
-              const slice = leaderboard.slice(page * LB_PAGE_SIZE, (page + 1) * LB_PAGE_SIZE);
-              return (
-                <div style={{ maxWidth: 520, margin: "20px auto 0" }}>
-                  <div
-                    style={{
-                      background: "#ffffff",
-                      border: "1px solid #e5e5e5",
-                      borderRadius: 12,
-                      overflow: "hidden",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                    }}
-                  >
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                      <thead>
-                        <tr style={{ borderBottom: "1px solid #e5e5e5" }}>
-                          {["#", "Player", "Solved", "Tries", "Score"].map((h) => (
-                            <th
-                              key={h}
-                              style={{
-                                padding: "12px 18px",
-                                textAlign: "left",
-                                fontSize: 11,
-                                fontWeight: 600,
-                                color: "rgba(0,0,0,0.4)",
-                              }}
-                            >
-                              {h}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {slice.length === 0 && (
-                          <tr>
-                            <td
-                              colSpan={5}
-                              style={{
-                                padding: "16px 18px",
-                                fontSize: 13,
-                                color: "rgba(0,0,0,0.4)",
-                              }}
-                            >
-                              No entries yet.
-                            </td>
-                          </tr>
-                        )}
-                        {slice.map((row, i) => {
-                          const rank = page * LB_PAGE_SIZE + i + 1;
-                          return (
-                            <tr key={row.github} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                              <td
-                                style={{
-                                  padding: "10px 18px",
-                                  fontSize: 13,
-                                  fontWeight: 700,
-                                  color: rank <= 3 ? "#fa5d19" : "rgba(0,0,0,0.3)",
-                                }}
-                              >
-                                {rank}
-                              </td>
-                              <td style={{ padding: "10px 18px", fontSize: 13, color: "#262626" }}>
-                                @{row.github}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "10px 18px",
-                                  fontSize: 13,
-                                  color:
-                                    row.solved >= TOTAL_SOLVE_TARGET
-                                      ? "#1a9338"
-                                      : "rgba(0,0,0,0.4)",
-                                }}
-                              >
-                                {row.solved}/{displayedSolveTarget}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "10px 18px",
-                                  fontSize: 13,
-                                  color: "rgba(0,0,0,0.35)",
-                                }}
-                              >
-                                {row.attempts ?? 1}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "10px 18px",
-                                  fontSize: 13,
-                                  fontWeight: 600,
-                                  color: row.elo > 1000 ? "#fa5d19" : "rgba(0,0,0,0.4)",
-                                }}
-                              >
-                                {row.elo.toLocaleString()}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                  {totalPages > 1 && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 16,
-                        marginTop: 12,
-                      }}
-                    >
-                      <button
-                        onClick={() => setLbPage((p) => Math.max(0, p - 1))}
-                        disabled={page === 0}
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          fontFamily: "inherit",
-                          background: "none",
-                          border: "1px solid #e5e5e5",
-                          borderRadius: 6,
-                          padding: "6px 14px",
-                          cursor: page === 0 ? "not-allowed" : "pointer",
-                          color: page === 0 ? "rgba(0,0,0,0.2)" : "#262626",
-                        }}
-                      >
-                        Prev
-                      </button>
-                      <span style={{ fontSize: 12, color: "rgba(0,0,0,0.4)" }}>
-                        {page + 1} / {totalPages}
-                      </span>
-                      <button
-                        onClick={() => setLbPage((p) => Math.min(totalPages - 1, p + 1))}
-                        disabled={page >= totalPages - 1}
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          fontFamily: "inherit",
-                          background: "none",
-                          border: "1px solid #e5e5e5",
-                          borderRadius: 6,
-                          padding: "6px 14px",
-                          cursor: page >= totalPages - 1 ? "not-allowed" : "pointer",
-                          color: page >= totalPages - 1 ? "rgba(0,0,0,0.2)" : "#262626",
-                        }}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
+          {showLeaderboard && (
+            <div style={{ marginTop: 20, display: "flex", justifyContent: "center" }}>
+              <LeaderboardTable
+                rows={leaderboard}
+                totalSolveTarget={TOTAL_SOLVE_TARGET}
+                displayedSolveTarget={displayedSolveTarget}
+              />
+            </div>
+          )}
         </div>
       </div>
     );

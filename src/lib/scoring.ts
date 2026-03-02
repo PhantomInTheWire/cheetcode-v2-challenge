@@ -1,4 +1,4 @@
-import { DIFFICULTY_BONUS, type ProblemTier } from "../../server/problems";
+import { DIFFICULTY_BONUS, type ProblemTier } from "../../server/level1/problems";
 import { ROUND_DURATION_SECONDS } from "./constants";
 
 type SubmissionScoreInput = {

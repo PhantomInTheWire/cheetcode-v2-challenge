@@ -4,7 +4,7 @@ import {
   injectDescriptionCanary,
   selectSessionProblems,
   stripSolution,
-} from "../server/problems";
+} from "../server/level1/problems";
 
 describe("sessions", () => {
   it("selects the configured number of level 1 problems by tier", () => {
