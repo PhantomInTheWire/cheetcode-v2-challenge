@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, query, action } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { PROBLEM_BANK } from "../server/problems";
+import { PROBLEM_BANK } from "../server/level1/problems";
 import { computeElo, getDifficultyBonus } from "../src/lib/scoring";
 import { ROUND_DURATION_MS } from "../src/lib/constants";
 import { sortByEloAndAttempts, calculateRank } from "./helpers";

@@ -36,7 +36,7 @@ npm run lint
 
 - Next.js app in `src/`
 - Convex functions and schema in `convex/`
-- Problem bank in `server/problems.ts`
+- Problem bank in `server/level1/problems.ts`
 - QuickJS-based validation in API routes
 
 ## Notes

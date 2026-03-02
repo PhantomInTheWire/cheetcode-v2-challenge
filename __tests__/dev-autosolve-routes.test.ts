@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { PROBLEM_BANK } from "../server/problems";
+import { PROBLEM_BANK } from "../server/level1/problems";
 import { LEVEL2_PROBLEMS } from "../server/level2/problems";
 
 vi.mock("../src/lib/myEnv", () => ({

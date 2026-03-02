@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { PROBLEM_BANK } from "../../../../../server/problems";
+import { PROBLEM_BANK } from "../../../../../server/level1/problems";
 import { isServerDevMode } from "../../../../lib/myEnv";
 
 export async function POST(request: Request) {
