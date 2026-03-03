@@ -55,7 +55,7 @@ export const createInternal = internalMutation({
 
     // In dev mode, allow playing any level for local/testing workflows.
     if (!isServerDevMode() && level > unlockedLevel) {
-      level = unlockedLevel;
+      throw new Error(`level ${level} is locked`);
     }
 
     const recent = await ctx.db
