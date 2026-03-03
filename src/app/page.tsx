@@ -65,6 +65,11 @@ const TOTAL_SOLVE_TARGET = PROBLEMS_PER_SESSION + LEVEL2_TOTAL + LEVEL3_TOTAL;
 const MOBILE_BREAKPOINT = 900;
 const Level2Game = dynamic(() => import("@/components/Level2Game").then((m) => m.Level2Game));
 const Level3Game = dynamic(() => import("@/components/Level3Game").then((m) => m.Level3Game));
+const ACTIVE_SESSION_STORAGE_KEY = "cheetcode.activeSession";
+const LEVEL1_DRAFTS_STORAGE_KEY = "cheetcode.level1Drafts";
+const LEVEL2_DRAFTS_STORAGE_KEY = "cheetcode.level2Drafts";
+const LEVEL3_DRAFTS_STORAGE_KEY = "cheetcode.level3Drafts";
+const DRAFT_PERSIST_DEBOUNCE_MS = 250;
 
 /** Original announcement tweet — every share quote-tweets this to amplify it. */
 const ORIGINAL_TWEET_URL = "https://x.com/CalebPeffer/status/2024167056372097131";
@@ -99,6 +104,7 @@ export default function Home() {
   } | null>(null);
   const [level3PreviewLoading, setLevel3PreviewLoading] = useState(false);
   const [level3PreviewError, setLevel3PreviewError] = useState<string | null>(null);
+  const [isRestoringSession, setIsRestoringSession] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [sessionId, setSessionId] = useState<Id<"sessions"> | null>(null);
   const [expiresAt, setExpiresAt] = useState(0);
@@ -115,6 +121,9 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const lockedTimeElapsedMsRef = useRef<number | null>(null);
+  const level1DraftsRef = useRef<Record<string, Record<string, string>> | null>(null);
+  const level2DraftsRef = useRef<Record<string, Record<string, string>> | null>(null);
+  const level3DraftsRef = useRef<Record<string, string> | null>(null);
   // Inline validation error messages
   const [emailError, setEmailError] = useState("");
   const [xHandleError, setXHandleError] = useState("");
@@ -139,6 +148,7 @@ export default function Home() {
   const isLocalDev = isClientDevMode();
   const [currentLevel, setCurrentLevel] = useState(1);
   const [l2Problems, setL2Problems] = useState<{ id: string; question: string }[]>([]);
+  const [l2Answers, setL2Answers] = useState<Record<string, string>>({});
   const [l3Challenge, setL3Challenge] = useState<{
     id: string;
     title: string;
@@ -148,6 +158,7 @@ export default function Home() {
     checks: { id: string; name: string }[];
     starterCode: string;
   } | null>(null);
+  const [l3CodeDraft, setL3CodeDraft] = useState("");
 
   // No worker — local validation uses the same QuickJS sandbox as final scoring
   // via /api/validate-l1 to guarantee parity between local and server checks
@@ -193,6 +204,9 @@ export default function Home() {
         throw new Error(data.error || `finish failed: ${res.status}`);
       }
       const d = await res.json();
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+      }
       setResults(d);
       setScreen("results");
     } catch (err) {
@@ -231,12 +245,28 @@ export default function Home() {
       setCurrentLevel(d.level);
       setSessionId(d.sessionId);
       setExpiresAt(d.expiresAt);
+      setPendingLevel(null);
+      setLevel3Preview(null);
+      setLevel3PreviewError(null);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          ACTIVE_SESSION_STORAGE_KEY,
+          JSON.stringify({ sessionId: d.sessionId, level: d.level, expiresAt: d.expiresAt }),
+        );
+      }
 
       if (d.level === 2) {
         // Level 2: Set text problems
         setL2Problems(d.problems as { id: string; question: string }[]);
         setProblems([]);
         setL3Challenge(null);
+        const drafts = getDraftCache(
+          LEVEL2_DRAFTS_STORAGE_KEY,
+          level2DraftsRef,
+          {} as Record<string, Record<string, string>>,
+        );
+        setL2Answers(drafts[d.sessionId] ?? {});
+        setL3CodeDraft("");
       } else if (d.level === 3) {
         // Level 3: Set generated systems challenge
         const challenge = (
@@ -253,16 +283,31 @@ export default function Home() {
         setL3Challenge(challenge);
         setProblems([]);
         setL2Problems([]);
+        setL2Answers({});
+        const drafts = getDraftCache(
+          LEVEL3_DRAFTS_STORAGE_KEY,
+          level3DraftsRef,
+          {} as Record<string, string>,
+        );
+        setL3CodeDraft(drafts[d.sessionId] ?? challenge.starterCode);
       } else {
         // Level 1: Set code problems
-        setProblems(d.problems as unknown as GameProblem[]);
+        const level1Problems = d.problems as unknown as GameProblem[];
+        setProblems(level1Problems);
+        const drafts = getDraftCache(
+          LEVEL1_DRAFTS_STORAGE_KEY,
+          level1DraftsRef,
+          {} as Record<string, Record<string, string>>,
+        );
         setCodes(
           Object.fromEntries(
-            d.problems.map((p: { id: string; starterCode: string }) => [p.id, p.starterCode]),
+            level1Problems.map((p) => [p.id, drafts[d.sessionId]?.[p.id] ?? p.starterCode]),
           ),
         );
         setL2Problems([]);
         setL3Challenge(null);
+        setL2Answers({});
+        setL3CodeDraft("");
       }
 
       setLocalPass({});
@@ -295,6 +340,112 @@ export default function Home() {
     }
     await launchLevel(level);
   }
+
+  useEffect(() => {
+    if (!isAuthenticated || screen !== "landing" || results || isRestoringSession) return;
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY);
+    if (!raw) return;
+
+    let persisted: { sessionId: string; level: number; expiresAt: number } | null = null;
+    try {
+      persisted = JSON.parse(raw) as { sessionId: string; level: number; expiresAt: number };
+    } catch {
+      window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+      return;
+    }
+    if (!persisted?.sessionId || persisted.expiresAt <= Date.now()) {
+      window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+      return;
+    }
+
+    let cancelled = false;
+    async function restoreSession() {
+      setIsRestoringSession(true);
+      try {
+        const res = await clientFetch("/api/session/restore", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ sessionId: persisted?.sessionId }),
+        });
+        if (!res.ok) {
+          window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+          return;
+        }
+        const d = await res.json();
+        if (cancelled) return;
+        setCurrentLevel(d.level);
+        setSessionId(d.sessionId);
+        setExpiresAt(d.expiresAt);
+        setResults(null);
+        setSubmittedLead(false);
+        setLocalPass({});
+
+        if (d.level === 2) {
+          setL2Problems(d.problems as { id: string; question: string }[]);
+          setProblems([]);
+          setL3Challenge(null);
+          const drafts = getDraftCache(
+            LEVEL2_DRAFTS_STORAGE_KEY,
+            level2DraftsRef,
+            {} as Record<string, Record<string, string>>,
+          );
+          setL2Answers(drafts[d.sessionId] ?? {});
+          setL3CodeDraft("");
+        } else if (d.level === 3) {
+          const challenge = d.problems[0] as {
+            id: string;
+            title: string;
+            taskName: string;
+            language: string;
+            spec: string;
+            checks: { id: string; name: string }[];
+            starterCode: string;
+          };
+          setL3Challenge(challenge);
+          setProblems([]);
+          setL2Problems([]);
+          const drafts = getDraftCache(
+            LEVEL3_DRAFTS_STORAGE_KEY,
+            level3DraftsRef,
+            {} as Record<string, string>,
+          );
+          setL3CodeDraft(drafts[d.sessionId] ?? challenge.starterCode);
+          setL2Answers({});
+        } else {
+          const restoredProblems = d.problems as GameProblem[];
+          setProblems(restoredProblems);
+          setL2Problems([]);
+          setL3Challenge(null);
+          const drafts = getDraftCache(
+            LEVEL1_DRAFTS_STORAGE_KEY,
+            level1DraftsRef,
+            {} as Record<string, Record<string, string>>,
+          );
+          setCodes(
+            Object.fromEntries(
+              restoredProblems.map((p) => [p.id, drafts[d.sessionId]?.[p.id] ?? p.starterCode]),
+            ),
+          );
+          setL2Answers({});
+          setL3CodeDraft("");
+        }
+
+        lockedTimeElapsedMsRef.current = null;
+        setScreen("playing");
+      } catch (err) {
+        console.error("restore failed:", err);
+        window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+      } finally {
+        if (!cancelled) setIsRestoringSession(false);
+      }
+    }
+
+    void restoreSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, screen, results, isRestoringSession]);
 
   useEffect(() => {
     if (screen !== "level3-prereq") return;
@@ -388,6 +539,12 @@ export default function Home() {
   }
 
   function resetAll() {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+    }
+    level1DraftsRef.current = null;
+    level2DraftsRef.current = null;
+    level3DraftsRef.current = null;
     setScreen("landing");
     setPendingLevel(null);
     setLevel3Preview(null);
@@ -397,6 +554,8 @@ export default function Home() {
     setProblems([]);
     setL2Problems([]);
     setL3Challenge(null);
+    setL2Answers({});
+    setL3CodeDraft("");
     setCodes({});
     setLocalPass({});
     setResults(null);
@@ -506,6 +665,66 @@ export default function Home() {
     }
   }
 
+  function getDraftCache<T>(storageKey: string, ref: { current: T | null }, fallback: T): T {
+    if (ref.current) return ref.current;
+    if (typeof window === "undefined") {
+      ref.current = fallback;
+      return fallback;
+    }
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      ref.current = raw ? (JSON.parse(raw) as T) : fallback;
+    } catch {
+      ref.current = fallback;
+    }
+    return ref.current;
+  }
+
+  useEffect(() => {
+    if (typeof window === "undefined" || currentLevel !== 1 || !sessionId || screen !== "playing")
+      return;
+    const drafts = getDraftCache(
+      LEVEL1_DRAFTS_STORAGE_KEY,
+      level1DraftsRef,
+      {} as Record<string, Record<string, string>>,
+    );
+    drafts[sessionId] = codes;
+    const timeoutId = window.setTimeout(() => {
+      window.localStorage.setItem(LEVEL1_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+    }, DRAFT_PERSIST_DEBOUNCE_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [codes, currentLevel, sessionId, screen]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || currentLevel !== 2 || !sessionId || screen !== "playing")
+      return;
+    const drafts = getDraftCache(
+      LEVEL2_DRAFTS_STORAGE_KEY,
+      level2DraftsRef,
+      {} as Record<string, Record<string, string>>,
+    );
+    drafts[sessionId] = l2Answers;
+    const timeoutId = window.setTimeout(() => {
+      window.localStorage.setItem(LEVEL2_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+    }, DRAFT_PERSIST_DEBOUNCE_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [l2Answers, currentLevel, sessionId, screen]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || currentLevel !== 3 || !sessionId || screen !== "playing")
+      return;
+    const drafts = getDraftCache(
+      LEVEL3_DRAFTS_STORAGE_KEY,
+      level3DraftsRef,
+      {} as Record<string, string>,
+    );
+    drafts[sessionId] = l3CodeDraft;
+    const timeoutId = window.setTimeout(() => {
+      window.localStorage.setItem(LEVEL3_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+    }, DRAFT_PERSIST_DEBOUNCE_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [l3CodeDraft, currentLevel, sessionId, screen]);
+
   async function copyToClipboard(text: string) {
     try {
       await navigator.clipboard.writeText(text);
@@ -587,7 +806,12 @@ export default function Home() {
           github={github}
           problems={l2Problems}
           expiresAt={expiresAt}
+          initialAnswers={l2Answers}
+          onAnswersChange={setL2Answers}
           onFinishAction={(results) => {
+            if (typeof window !== "undefined") {
+              window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+            }
             setResults(results);
             setScreen("results");
           }}
@@ -602,7 +826,12 @@ export default function Home() {
           github={github}
           challenge={l3Challenge}
           expiresAt={expiresAt}
+          initialCode={l3CodeDraft}
+          onCodeChange={setL3CodeDraft}
           onFinishAction={(results) => {
+            if (typeof window !== "undefined") {
+              window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+            }
             setResults(results);
             setScreen("results");
           }}
@@ -678,8 +907,8 @@ git checkout 69c7c0a024efdc5bec0a9075e306e180b51e4278`;
               codebase directly.
             </li>
             <li>
-              <strong>Option B:</strong> Use Firecrawl tooling with source.chromium.org for
-              web-based exploration.
+              <strong>Option B:</strong> Use Firecrawl cli and skill with your favourite ai agent
+              and source.chromium.org for web-based exploration.
             </li>
           </ol>
           <div
@@ -711,19 +940,32 @@ git checkout 69c7c0a024efdc5bec0a9075e306e180b51e4278`;
               <button
                 onClick={() => void copyToClipboard(chromiumCloneCommand)}
                 className="btn-ghost"
+                aria-label="Copy command"
+                title="Copy command"
                 style={{
                   position: "absolute",
                   top: 8,
                   right: 8,
                   height: 24,
-                  padding: "0 8px",
+                  width: 24,
+                  padding: 0,
                   borderRadius: 6,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  fontFamily: "inherit",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                Copy
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="9" y="9" width="11" height="11" rx="2" />
+                  <rect x="4" y="4" width="11" height="11" rx="2" />
+                </svg>
               </button>
               <code>{chromiumCloneCommand}</code>
             </pre>
@@ -747,19 +989,32 @@ git checkout 69c7c0a024efdc5bec0a9075e306e180b51e4278`;
               <button
                 onClick={() => void copyToClipboard(firecrawlCommand)}
                 className="btn-ghost"
+                aria-label="Copy command"
+                title="Copy command"
                 style={{
                   position: "absolute",
                   top: 8,
                   right: 8,
                   height: 24,
-                  padding: "0 8px",
+                  width: 24,
+                  padding: 0,
                   borderRadius: 6,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  fontFamily: "inherit",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                Copy
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="9" y="9" width="11" height="11" rx="2" />
+                  <rect x="4" y="4" width="11" height="11" rx="2" />
+                </svg>
               </button>
               <code>{firecrawlCommand}</code>
             </pre>
@@ -869,19 +1124,32 @@ git checkout 69c7c0a024efdc5bec0a9075e306e180b51e4278`;
               <button
                 onClick={() => void copyToClipboard(level3CompilerCommand)}
                 className="btn-ghost"
+                aria-label="Copy command"
+                title="Copy command"
                 style={{
                   position: "absolute",
                   top: 8,
                   right: 8,
                   height: 24,
-                  padding: "0 8px",
+                  width: 24,
+                  padding: 0,
                   borderRadius: 6,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  fontFamily: "inherit",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                Copy
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="9" y="9" width="11" height="11" rx="2" />
+                  <rect x="4" y="4" width="11" height="11" rx="2" />
+                </svg>
               </button>
               <code>{level3CompilerCommand}</code>
             </pre>

@@ -16,7 +16,6 @@ import { ROUND_DURATION_MS } from "../src/lib/constants";
 import { isServerDevMode } from "../src/lib/myEnv";
 import { LEVEL2_PROBLEMS } from "../server/level2/problems";
 
-const SESSION_COOLDOWN_MS = 5_000;
 export const ROUND_DURATION_L2_MS = 60_000;
 export const ROUND_DURATION_L3_MS = 120_000;
 
@@ -30,16 +29,6 @@ export const createInternal = internalMutation({
     const ghResult = validateGithub(args.github);
     if (ghResult.ok === false) throw new Error(ghResult.error);
     const github = ghResult.value;
-
-    // Rate limit
-    const recent = await ctx.db
-      .query("sessions")
-      .withIndex("by_github", (q) => q.eq("github", github))
-      .order("desc")
-      .first();
-    if (recent && Date.now() - recent.startedAt < SESSION_COOLDOWN_MS) {
-      throw new Error("rate limited — wait a few seconds");
-    }
 
     const leaderboard = await ctx.db
       .query("leaderboard")
@@ -57,6 +46,28 @@ export const createInternal = internalMutation({
       level = unlockedLevel;
     }
 
+    const recent = await ctx.db
+      .query("sessions")
+      .withIndex("by_github", (q) => q.eq("github", github))
+      .order("desc")
+      .first();
+    const recentLevel = recent?.level ?? 1;
+
+    // Reuse an active session only for the same level. Otherwise progression
+    // gets stuck by resurrecting the previous round instead of launching the
+    // requested one.
+    if (recent && recent.expiresAt > Date.now() && recentLevel === level) {
+      const restoredProblems = recent.publicPayloadJson
+        ? ((JSON.parse(recent.publicPayloadJson) as Record<string, unknown>[]) ?? [])
+        : [];
+      return {
+        sessionId: recent._id,
+        startedAt: recent.startedAt,
+        expiresAt: recent.expiresAt,
+        problems: restoredProblems,
+        level: recentLevel,
+      };
+    }
     const startedAt = Date.now();
     let expiresAt = startedAt + ROUND_DURATION_MS;
     let problemsToReturn: Record<string, unknown>[] = [];
@@ -104,6 +115,7 @@ export const createInternal = internalMutation({
       startedAt,
       expiresAt,
       level,
+      publicPayloadJson: JSON.stringify(problemsToReturn),
     });
 
     return {

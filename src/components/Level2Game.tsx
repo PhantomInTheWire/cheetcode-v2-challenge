@@ -17,6 +17,8 @@ type Level2GameProps = {
   github: string;
   problems: Level2Problem[];
   expiresAt: number;
+  initialAnswers?: Record<string, string>;
+  onAnswersChange?: (answers: Record<string, string>) => void;
   onFinishAction: (results: {
     elo: number;
     solved: number;
@@ -30,10 +32,12 @@ export function Level2Game({
   github,
   problems,
   expiresAt,
+  initialAnswers,
+  onAnswersChange,
   onFinishAction,
 }: Level2GameProps) {
   const canAutoSolve = isClientDevMode();
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, string>>(initialAnswers ?? {});
   const [now, setNow] = useState(Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -48,7 +52,11 @@ export function Level2Game({
   useEffect(() => {
     lockedTimeElapsedMsRef.current = null;
     autoSubmittedRef.current = false;
+    setAnswers(initialAnswers ?? {});
   }, [sessionId]);
+  useEffect(() => {
+    onAnswersChange?.(answers);
+  }, [answers, onAnswersChange]);
 
   const timeLeftMs = useMemo(() => Math.max(0, expiresAt - now), [expiresAt, now]);
   const secondsLeft = Math.ceil(timeLeftMs / 1000);

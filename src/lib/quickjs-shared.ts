@@ -6,7 +6,7 @@ export type { QuickJSWASMModule } from "quickjs-emscripten";
 export const SANDBOX_FLAG = "🔥{you_found_the_fire}";
 
 /** Per-test-case execution timeout inside QuickJS VM */
-export const QUICKJS_TEST_TIMEOUT_MS = 1_000;
+export const QUICKJS_TEST_TIMEOUT_MS = 2_000;
 
 /** Timeout for VM setup operations (console injection, function resolution) */
 export const QUICKJS_SETUP_TIMEOUT_MS = 250;

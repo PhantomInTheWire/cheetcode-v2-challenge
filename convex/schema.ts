@@ -8,6 +8,7 @@ export default defineSchema({
     startedAt: v.number(),
     expiresAt: v.number(),
     level: v.optional(v.number()), // Default to 1 in code
+    publicPayloadJson: v.optional(v.string()),
   }).index("by_github", ["github"]),
 
   leaderboard: defineTable({
