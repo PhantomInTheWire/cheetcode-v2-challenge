@@ -5,9 +5,6 @@
 /** Site URL */
 export const SITE_URL = "https://cheetcode-ctf.firecrawl.dev";
 
-/** FingerprintJS CDN URL */
-export const FINGERPRINT_JS_URL = "https://openfpcdn.io/fingerprintjs/v4";
-
 /** Round duration in milliseconds (60 seconds) */
 export const ROUND_DURATION_MS = 60_000;
 

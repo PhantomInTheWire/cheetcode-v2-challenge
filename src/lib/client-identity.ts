@@ -1,14 +1,6 @@
 "use client";
 
-declare global {
-  interface Window {
-    FingerprintJS?: {
-      load: () => Promise<{
-        get: () => Promise<{ visitorId: string }>;
-      }>;
-    };
-  }
-}
+import FingerprintJS from "@fingerprintjs/fingerprintjs";
 
 const FP_STORAGE_KEY = "ctf:fp:visitor-id";
 let fpPromise: Promise<string> | null = null;
@@ -42,9 +34,7 @@ export async function getClientFingerprint(): Promise<string> {
   if (!fpPromise) {
     fpPromise = (async () => {
       try {
-        const fpjs = window.FingerprintJS;
-        if (!fpjs) return fallbackFingerprint();
-        const agent = await fpjs.load();
+        const agent = await FingerprintJS.load();
         const { visitorId } = await agent.get();
         if (!visitorId) return fallbackFingerprint();
         safeWriteStoredFingerprint(visitorId);
