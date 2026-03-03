@@ -6,6 +6,7 @@ import { isClientDevMode } from "../lib/myEnv";
 import { clientFetch } from "../lib/client-identity";
 
 const ROUND_DURATION_L2_MS = 60_000;
+const LEVEL2_STATUS_STORAGE_KEY = "cheetcode.level2Status";
 
 type Level2Problem = {
   id: string;
@@ -59,10 +60,38 @@ export function Level2Game({
     lockedTimeElapsedMsRef.current = null;
     autoSubmittedRef.current = false;
     setAnswers(initialAnswersRef.current);
+    if (typeof window === "undefined") {
+      setLocalCorrect({});
+      return;
+    }
+    try {
+      const raw = window.localStorage.getItem(LEVEL2_STATUS_STORAGE_KEY);
+      const persisted = raw
+        ? (JSON.parse(raw) as Record<string, Record<string, boolean | null>>)
+        : {};
+      setLocalCorrect(persisted[sessionId] ?? {});
+    } catch {
+      setLocalCorrect({});
+    }
   }, [sessionId]);
+
   useEffect(() => {
     onAnswersChange?.(answers);
   }, [answers, onAnswersChange]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(LEVEL2_STATUS_STORAGE_KEY);
+      const persisted = raw
+        ? (JSON.parse(raw) as Record<string, Record<string, boolean | null>>)
+        : {};
+      persisted[sessionId] = localCorrect;
+      window.localStorage.setItem(LEVEL2_STATUS_STORAGE_KEY, JSON.stringify(persisted));
+    } catch {
+      // Ignore local persistence failures.
+    }
+  }, [localCorrect, sessionId]);
 
   const timeLeftMs = useMemo(() => Math.max(0, expiresAt - now), [expiresAt, now]);
   const secondsLeft = Math.ceil(timeLeftMs / 1000);
