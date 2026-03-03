@@ -58,6 +58,29 @@ type ResultsData = {
   };
 };
 
+type Level2Problem = { id: string; question: string };
+type Level3ChallengeState = {
+  id: string;
+  title: string;
+  taskName: string;
+  language: string;
+  spec: string;
+  checks: { id: string; name: string }[];
+  starterCode: string;
+};
+type RestoredSessionPayload = {
+  sessionId: Id<"sessions">;
+  level: number;
+  expiresAt: number;
+  problems: unknown[];
+};
+type StoredSessionSnapshot = {
+  sessionId: Id<"sessions">;
+  level: number;
+  expiresAt: number;
+  problems: unknown[];
+};
+
 const LEVEL2_TOTAL = 10;
 const LEVEL3_TOTAL = 20;
 const TOTAL_SOLVE_TARGET = PROBLEMS_PER_SESSION + LEVEL2_TOTAL + LEVEL3_TOTAL;
@@ -66,10 +89,13 @@ const MOBILE_BREAKPOINT = 900;
 const Level2Game = dynamic(() => import("@/components/Level2Game").then((m) => m.Level2Game));
 const Level3Game = dynamic(() => import("@/components/Level3Game").then((m) => m.Level3Game));
 const ACTIVE_SESSION_STORAGE_KEY = "cheetcode.activeSession";
+const SESSION_SNAPSHOT_STORAGE_KEY = "cheetcode.sessionSnapshot";
 const LEVEL1_DRAFTS_STORAGE_KEY = "cheetcode.level1Drafts";
 const LEVEL2_DRAFTS_STORAGE_KEY = "cheetcode.level2Drafts";
 const LEVEL3_DRAFTS_STORAGE_KEY = "cheetcode.level3Drafts";
+const LEVEL1_PASS_STORAGE_KEY = "cheetcode.level1Pass";
 const DRAFT_PERSIST_DEBOUNCE_MS = 250;
+const RESTORE_REQUEST_TIMEOUT_MS = 8_000;
 
 /** Original announcement tweet — every share quote-tweets this to amplify it. */
 const ORIGINAL_TWEET_URL = "https://x.com/CalebPeffer/status/2024167056372097131";
@@ -105,6 +131,9 @@ export default function Home() {
   const [level3PreviewLoading, setLevel3PreviewLoading] = useState(false);
   const [level3PreviewError, setLevel3PreviewError] = useState<string | null>(null);
   const [isRestoringSession, setIsRestoringSession] = useState(false);
+  const [didBootstrapSession, setDidBootstrapSession] = useState(false);
+  const [needsRestoreVerification, setNeedsRestoreVerification] = useState(false);
+  const [hasStoredActiveSession, setHasStoredActiveSession] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [sessionId, setSessionId] = useState<Id<"sessions"> | null>(null);
   const [expiresAt, setExpiresAt] = useState(0);
@@ -121,9 +150,11 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const lockedTimeElapsedMsRef = useRef<number | null>(null);
+  const restoreAbortRef = useRef<AbortController | null>(null);
   const level1DraftsRef = useRef<Record<string, Record<string, string>> | null>(null);
   const level2DraftsRef = useRef<Record<string, Record<string, string>> | null>(null);
   const level3DraftsRef = useRef<Record<string, string> | null>(null);
+  const level1PassRef = useRef<Record<string, Record<string, boolean | null>> | null>(null);
   // Inline validation error messages
   const [emailError, setEmailError] = useState("");
   const [xHandleError, setXHandleError] = useState("");
@@ -147,26 +178,197 @@ export default function Home() {
   const unlockedLevel = useQuery(api.leaderboard.getMyLevel, { github: github || "" }) ?? 1;
   const isLocalDev = isClientDevMode();
   const [currentLevel, setCurrentLevel] = useState(1);
-  const [l2Problems, setL2Problems] = useState<{ id: string; question: string }[]>([]);
+  const [l2Problems, setL2Problems] = useState<Level2Problem[]>([]);
   const [l2Answers, setL2Answers] = useState<Record<string, string>>({});
-  const [l3Challenge, setL3Challenge] = useState<{
-    id: string;
-    title: string;
-    taskName: string;
-    language: string;
-    spec: string;
-    checks: { id: string; name: string }[];
-    starterCode: string;
-  } | null>(null);
+  const [l3Challenge, setL3Challenge] = useState<Level3ChallengeState | null>(null);
   const [l3CodeDraft, setL3CodeDraft] = useState("");
 
   // No worker — local validation uses the same QuickJS sandbox as final scoring
   // via /api/validate-l1 to guarantee parity between local and server checks
 
+  const getDraftCache = useCallback(
+    <T,>(storageKey: string, ref: { current: T | null }, fallback: T): T => {
+      if (ref.current) return ref.current;
+      if (typeof window === "undefined") {
+        ref.current = fallback;
+        return fallback;
+      }
+      try {
+        const raw = window.localStorage.getItem(storageKey);
+        ref.current = raw ? (JSON.parse(raw) as T) : fallback;
+      } catch {
+        ref.current = fallback;
+      }
+      return ref.current;
+    },
+    [],
+  );
+
+  const persistActiveSession = useCallback(
+    (nextSessionId: Id<"sessions">, level: number, nextExpiresAt: number) => {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          ACTIVE_SESSION_STORAGE_KEY,
+          JSON.stringify({ sessionId: nextSessionId, level, expiresAt: nextExpiresAt }),
+        );
+      }
+      setHasStoredActiveSession(true);
+    },
+    [],
+  );
+
+  const persistSessionSnapshot = useCallback((snapshot: StoredSessionSnapshot) => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(SESSION_SNAPSHOT_STORAGE_KEY, JSON.stringify(snapshot));
+  }, []);
+
+  const clearStoredSession = useCallback(() => {
+    restoreAbortRef.current?.abort();
+    restoreAbortRef.current = null;
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+      window.localStorage.removeItem(SESSION_SNAPSHOT_STORAGE_KEY);
+    }
+    setHasStoredActiveSession(false);
+    setNeedsRestoreVerification(false);
+    setIsRestoringSession(false);
+  }, []);
+
+  const clearFlowState = useCallback(() => {
+    setPendingLevel(null);
+    setLevel3Preview(null);
+    setLevel3PreviewError(null);
+    setSubmittedLead(false);
+    setResults(null);
+    setIsSubmitting(false);
+    lockedTimeElapsedMsRef.current = null;
+  }, []);
+
+  const applySessionPayload = useCallback(
+    (payload: RestoredSessionPayload) => {
+      setCurrentLevel(payload.level);
+      setSessionId(payload.sessionId);
+      setExpiresAt(payload.expiresAt);
+
+      if (payload.level === 2) {
+        setL2Problems(payload.problems as Level2Problem[]);
+        setProblems([]);
+        setL3Challenge(null);
+        const drafts = getDraftCache(
+          LEVEL2_DRAFTS_STORAGE_KEY,
+          level2DraftsRef,
+          {} as Record<string, Record<string, string>>,
+        );
+        setL2Answers(drafts[payload.sessionId] ?? {});
+        setCodes({});
+        setL3CodeDraft("");
+        setLocalPass({});
+        return;
+      }
+
+      if (payload.level === 3) {
+        const challenge = payload.problems[0] as Level3ChallengeState;
+        setL3Challenge(challenge);
+        setProblems([]);
+        setL2Problems([]);
+        setL2Answers({});
+        setCodes({});
+        const drafts = getDraftCache(
+          LEVEL3_DRAFTS_STORAGE_KEY,
+          level3DraftsRef,
+          {} as Record<string, string>,
+        );
+        setL3CodeDraft(drafts[payload.sessionId] ?? challenge.starterCode);
+        setLocalPass({});
+        return;
+      }
+
+      const level1Problems = payload.problems as GameProblem[];
+      setProblems(level1Problems);
+      setL2Problems([]);
+      setL3Challenge(null);
+      setL2Answers({});
+      setL3CodeDraft("");
+      const drafts = getDraftCache(
+        LEVEL1_DRAFTS_STORAGE_KEY,
+        level1DraftsRef,
+        {} as Record<string, Record<string, string>>,
+      );
+      setCodes(
+        Object.fromEntries(
+          level1Problems.map((p) => [p.id, drafts[payload.sessionId]?.[p.id] ?? p.starterCode]),
+        ),
+      );
+      const passState = getDraftCache(
+        LEVEL1_PASS_STORAGE_KEY,
+        level1PassRef,
+        {} as Record<string, Record<string, boolean | null>>,
+      );
+      setLocalPass(passState[payload.sessionId] ?? {});
+    },
+    [getDraftCache],
+  );
+
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 100);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY);
+      if (!raw) {
+        setHasStoredActiveSession(false);
+        setDidBootstrapSession(true);
+        return;
+      }
+      const persisted = JSON.parse(raw) as {
+        sessionId?: string;
+        level?: number;
+        expiresAt?: number;
+      };
+      const hasActive = !!persisted.sessionId && Number(persisted.expiresAt) > Date.now();
+      setHasStoredActiveSession(hasActive);
+      if (!hasActive) {
+        clearStoredSession();
+        setDidBootstrapSession(true);
+        return;
+      }
+
+      const snapshotRaw = window.localStorage.getItem(SESSION_SNAPSHOT_STORAGE_KEY);
+      if (!snapshotRaw) {
+        setNeedsRestoreVerification(true);
+        setDidBootstrapSession(true);
+        return;
+      }
+      const snapshot = JSON.parse(snapshotRaw) as StoredSessionSnapshot;
+      if (
+        snapshot.sessionId !== persisted.sessionId ||
+        snapshot.level !== persisted.level ||
+        snapshot.expiresAt <= Date.now()
+      ) {
+        setNeedsRestoreVerification(true);
+        setDidBootstrapSession(true);
+        return;
+      }
+
+      applySessionPayload(snapshot);
+      clearFlowState();
+      setScreen("playing");
+      setNeedsRestoreVerification(true);
+      setDidBootstrapSession(true);
+    } catch {
+      clearStoredSession();
+      setDidBootstrapSession(true);
+    }
+  }, [applySessionPayload, clearFlowState, clearStoredSession]);
+
+  useEffect(() => {
+    if (authStatus !== "unauthenticated") return;
+    clearStoredSession();
+    setIsRestoringSession(false);
+  }, [authStatus, clearStoredSession]);
 
   const timeLeftMs = useMemo(() => Math.max(0, expiresAt - now), [expiresAt, now]);
   const secondsLeft = Math.ceil(timeLeftMs / 1000);
@@ -204,9 +406,7 @@ export default function Home() {
         throw new Error(data.error || `finish failed: ${res.status}`);
       }
       const d = await res.json();
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
-      }
+      clearStoredSession();
       setResults(d);
       setScreen("results");
     } catch (err) {
@@ -215,7 +415,17 @@ export default function Home() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [sessionId, results, isSubmitting, github, timeLeftMs, problems, codes, flag]);
+  }, [
+    sessionId,
+    results,
+    isSubmitting,
+    github,
+    timeLeftMs,
+    problems,
+    codes,
+    flag,
+    clearStoredSession,
+  ]);
 
   // Auto-submit when timer expires — manual SUBMIT button handles early finish
   useEffect(() => {
@@ -241,80 +451,17 @@ export default function Home() {
       });
       if (!res.ok) throw new Error(`session creation failed: ${res.status}`);
       const d = await res.json();
-
-      setCurrentLevel(d.level);
-      setSessionId(d.sessionId);
-      setExpiresAt(d.expiresAt);
-      setPendingLevel(null);
-      setLevel3Preview(null);
-      setLevel3PreviewError(null);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(
-          ACTIVE_SESSION_STORAGE_KEY,
-          JSON.stringify({ sessionId: d.sessionId, level: d.level, expiresAt: d.expiresAt }),
-        );
-      }
-
-      if (d.level === 2) {
-        // Level 2: Set text problems
-        setL2Problems(d.problems as { id: string; question: string }[]);
-        setProblems([]);
-        setL3Challenge(null);
-        const drafts = getDraftCache(
-          LEVEL2_DRAFTS_STORAGE_KEY,
-          level2DraftsRef,
-          {} as Record<string, Record<string, string>>,
-        );
-        setL2Answers(drafts[d.sessionId] ?? {});
-        setL3CodeDraft("");
-      } else if (d.level === 3) {
-        // Level 3: Set generated systems challenge
-        const challenge = (
-          d.problems as Array<{
-            id: string;
-            title: string;
-            taskName: string;
-            language: string;
-            spec: string;
-            checks: { id: string; name: string }[];
-            starterCode: string;
-          }>
-        )[0];
-        setL3Challenge(challenge);
-        setProblems([]);
-        setL2Problems([]);
-        setL2Answers({});
-        const drafts = getDraftCache(
-          LEVEL3_DRAFTS_STORAGE_KEY,
-          level3DraftsRef,
-          {} as Record<string, string>,
-        );
-        setL3CodeDraft(drafts[d.sessionId] ?? challenge.starterCode);
-      } else {
-        // Level 1: Set code problems
-        const level1Problems = d.problems as unknown as GameProblem[];
-        setProblems(level1Problems);
-        const drafts = getDraftCache(
-          LEVEL1_DRAFTS_STORAGE_KEY,
-          level1DraftsRef,
-          {} as Record<string, Record<string, string>>,
-        );
-        setCodes(
-          Object.fromEntries(
-            level1Problems.map((p) => [p.id, drafts[d.sessionId]?.[p.id] ?? p.starterCode]),
-          ),
-        );
-        setL2Problems([]);
-        setL3Challenge(null);
-        setL2Answers({});
-        setL3CodeDraft("");
-      }
-
-      setLocalPass({});
-      setSubmittedLead(false);
-      setResults(null);
-      setIsSubmitting(false);
-      lockedTimeElapsedMsRef.current = null;
+      const payload = {
+        sessionId: d.sessionId as Id<"sessions">,
+        level: d.level,
+        expiresAt: d.expiresAt,
+        problems: d.problems as unknown[],
+      };
+      applySessionPayload(payload);
+      clearFlowState();
+      persistActiveSession(payload.sessionId, payload.level, payload.expiresAt);
+      persistSessionSnapshot(payload);
+      setNeedsRestoreVerification(false);
       setScreen("playing");
     } catch (err) {
       console.error("createSession failed:", err);
@@ -342,7 +489,8 @@ export default function Home() {
   }
 
   useEffect(() => {
-    if (!isAuthenticated || screen !== "landing" || results || isRestoringSession) return;
+    if (!didBootstrapSession || !isAuthenticated || !needsRestoreVerification || isRestoringSession)
+      return;
     if (typeof window === "undefined") return;
     const raw = window.localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY);
     if (!raw) return;
@@ -351,92 +499,68 @@ export default function Home() {
     try {
       persisted = JSON.parse(raw) as { sessionId: string; level: number; expiresAt: number };
     } catch {
-      window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+      clearStoredSession();
       return;
     }
     if (!persisted?.sessionId || persisted.expiresAt <= Date.now()) {
-      window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+      clearStoredSession();
       return;
     }
 
     let cancelled = false;
+    function abortRestoreRequest() {
+      const controller = restoreAbortRef.current;
+      if (!controller) return;
+      restoreAbortRef.current = null;
+      if (controller.signal.aborted) return;
+      try {
+        controller.abort();
+      } catch {
+        // Ignore cleanup abort failures from the fetch implementation.
+      }
+    }
+
     async function restoreSession() {
       setIsRestoringSession(true);
+      const controller = new AbortController();
+      restoreAbortRef.current = controller;
+      const timeoutId = window.setTimeout(() => controller.abort(), RESTORE_REQUEST_TIMEOUT_MS);
       try {
         const res = await clientFetch("/api/session/restore", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ sessionId: persisted?.sessionId }),
+          signal: controller.signal,
         });
         if (!res.ok) {
-          window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+          clearStoredSession();
+          if (!cancelled) setScreen("landing");
           return;
         }
         const d = await res.json();
         if (cancelled) return;
-        setCurrentLevel(d.level);
-        setSessionId(d.sessionId);
-        setExpiresAt(d.expiresAt);
-        setResults(null);
-        setSubmittedLead(false);
-        setLocalPass({});
-
-        if (d.level === 2) {
-          setL2Problems(d.problems as { id: string; question: string }[]);
-          setProblems([]);
-          setL3Challenge(null);
-          const drafts = getDraftCache(
-            LEVEL2_DRAFTS_STORAGE_KEY,
-            level2DraftsRef,
-            {} as Record<string, Record<string, string>>,
-          );
-          setL2Answers(drafts[d.sessionId] ?? {});
-          setL3CodeDraft("");
-        } else if (d.level === 3) {
-          const challenge = d.problems[0] as {
-            id: string;
-            title: string;
-            taskName: string;
-            language: string;
-            spec: string;
-            checks: { id: string; name: string }[];
-            starterCode: string;
-          };
-          setL3Challenge(challenge);
-          setProblems([]);
-          setL2Problems([]);
-          const drafts = getDraftCache(
-            LEVEL3_DRAFTS_STORAGE_KEY,
-            level3DraftsRef,
-            {} as Record<string, string>,
-          );
-          setL3CodeDraft(drafts[d.sessionId] ?? challenge.starterCode);
-          setL2Answers({});
-        } else {
-          const restoredProblems = d.problems as GameProblem[];
-          setProblems(restoredProblems);
-          setL2Problems([]);
-          setL3Challenge(null);
-          const drafts = getDraftCache(
-            LEVEL1_DRAFTS_STORAGE_KEY,
-            level1DraftsRef,
-            {} as Record<string, Record<string, string>>,
-          );
-          setCodes(
-            Object.fromEntries(
-              restoredProblems.map((p) => [p.id, drafts[d.sessionId]?.[p.id] ?? p.starterCode]),
-            ),
-          );
-          setL2Answers({});
-          setL3CodeDraft("");
-        }
-
-        lockedTimeElapsedMsRef.current = null;
+        const payload = {
+          sessionId: d.sessionId as Id<"sessions">,
+          level: d.level,
+          expiresAt: d.expiresAt,
+          problems: d.problems as unknown[],
+        };
+        applySessionPayload(payload);
+        clearFlowState();
+        persistActiveSession(payload.sessionId, payload.level, payload.expiresAt);
+        persistSessionSnapshot(payload);
+        setNeedsRestoreVerification(false);
         setScreen("playing");
       } catch (err) {
+        if (controller.signal.aborted) return;
         console.error("restore failed:", err);
-        window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+        clearStoredSession();
+        if (!cancelled) setScreen("landing");
       } finally {
+        window.clearTimeout(timeoutId);
+        if (restoreAbortRef.current === controller) {
+          restoreAbortRef.current = null;
+        }
         if (!cancelled) setIsRestoringSession(false);
       }
     }
@@ -444,8 +568,19 @@ export default function Home() {
     void restoreSession();
     return () => {
       cancelled = true;
+      abortRestoreRequest();
     };
-  }, [isAuthenticated, screen, results, isRestoringSession]);
+  }, [
+    applySessionPayload,
+    clearFlowState,
+    clearStoredSession,
+    didBootstrapSession,
+    isAuthenticated,
+    isRestoringSession,
+    needsRestoreVerification,
+    persistActiveSession,
+    persistSessionSnapshot,
+  ]);
 
   useEffect(() => {
     if (screen !== "level3-prereq") return;
@@ -539,12 +674,11 @@ export default function Home() {
   }
 
   function resetAll() {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
-    }
+    clearStoredSession();
     level1DraftsRef.current = null;
     level2DraftsRef.current = null;
     level3DraftsRef.current = null;
+    level1PassRef.current = null;
     setScreen("landing");
     setPendingLevel(null);
     setLevel3Preview(null);
@@ -665,21 +799,6 @@ export default function Home() {
     }
   }
 
-  function getDraftCache<T>(storageKey: string, ref: { current: T | null }, fallback: T): T {
-    if (ref.current) return ref.current;
-    if (typeof window === "undefined") {
-      ref.current = fallback;
-      return fallback;
-    }
-    try {
-      const raw = window.localStorage.getItem(storageKey);
-      ref.current = raw ? (JSON.parse(raw) as T) : fallback;
-    } catch {
-      ref.current = fallback;
-    }
-    return ref.current;
-  }
-
   useEffect(() => {
     if (typeof window === "undefined" || currentLevel !== 1 || !sessionId || screen !== "playing")
       return;
@@ -693,7 +812,22 @@ export default function Home() {
       window.localStorage.setItem(LEVEL1_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
     }, DRAFT_PERSIST_DEBOUNCE_MS);
     return () => window.clearTimeout(timeoutId);
-  }, [codes, currentLevel, sessionId, screen]);
+  }, [codes, currentLevel, getDraftCache, sessionId, screen]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || currentLevel !== 1 || !sessionId || screen !== "playing")
+      return;
+    const passState = getDraftCache(
+      LEVEL1_PASS_STORAGE_KEY,
+      level1PassRef,
+      {} as Record<string, Record<string, boolean | null>>,
+    );
+    passState[sessionId] = localPass;
+    const timeoutId = window.setTimeout(() => {
+      window.localStorage.setItem(LEVEL1_PASS_STORAGE_KEY, JSON.stringify(passState));
+    }, DRAFT_PERSIST_DEBOUNCE_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [currentLevel, getDraftCache, localPass, sessionId, screen]);
 
   useEffect(() => {
     if (typeof window === "undefined" || currentLevel !== 2 || !sessionId || screen !== "playing")
@@ -708,7 +842,7 @@ export default function Home() {
       window.localStorage.setItem(LEVEL2_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
     }, DRAFT_PERSIST_DEBOUNCE_MS);
     return () => window.clearTimeout(timeoutId);
-  }, [l2Answers, currentLevel, sessionId, screen]);
+  }, [currentLevel, getDraftCache, l2Answers, sessionId, screen]);
 
   useEffect(() => {
     if (typeof window === "undefined" || currentLevel !== 3 || !sessionId || screen !== "playing")
@@ -723,7 +857,35 @@ export default function Home() {
       window.localStorage.setItem(LEVEL3_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
     }, DRAFT_PERSIST_DEBOUNCE_MS);
     return () => window.clearTimeout(timeoutId);
-  }, [l3CodeDraft, currentLevel, sessionId, screen]);
+  }, [currentLevel, getDraftCache, l3CodeDraft, sessionId, screen]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !sessionId || screen !== "playing") return;
+    const problemsSnapshot =
+      currentLevel === 1
+        ? problems
+        : currentLevel === 2
+          ? l2Problems
+          : l3Challenge
+            ? [l3Challenge]
+            : [];
+    if (problemsSnapshot.length === 0) return;
+    persistSessionSnapshot({
+      sessionId,
+      level: currentLevel,
+      expiresAt,
+      problems: problemsSnapshot,
+    });
+  }, [
+    currentLevel,
+    expiresAt,
+    l2Problems,
+    l3Challenge,
+    persistSessionSnapshot,
+    problems,
+    screen,
+    sessionId,
+  ]);
 
   async function copyToClipboard(text: string) {
     try {
@@ -771,6 +933,44 @@ export default function Home() {
     );
   }
 
+  if (
+    !didBootstrapSession ||
+    (hasStoredActiveSession && isRestoringSession && screen === "landing")
+  ) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#f9f9f9",
+          padding: "24px",
+          fontFamily: "var(--font-geist-mono), monospace",
+        }}
+      >
+        <div
+          style={{
+            width: "min(520px, 100%)",
+            background: "#ffffff",
+            border: "1px solid #e5e5e5",
+            borderRadius: 18,
+            padding: "28px 24px",
+            textAlign: "center",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+          }}
+        >
+          <p style={{ margin: 0, fontSize: 14, color: "#fa5d19", fontWeight: 800 }}>
+            Restoring session
+          </p>
+          <p style={{ margin: "10px 0 0", fontSize: 12, color: "rgba(0,0,0,0.55)" }}>
+            Returning you to your active level with saved progress.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   /* ═══════════════════════════════════════════════════════════
      LANDING
      ═══════════════════════════════════════════════════════════ */
@@ -809,9 +1009,7 @@ export default function Home() {
           initialAnswers={l2Answers}
           onAnswersChange={setL2Answers}
           onFinishAction={(results) => {
-            if (typeof window !== "undefined") {
-              window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
-            }
+            clearStoredSession();
             setResults(results);
             setScreen("results");
           }}
@@ -829,9 +1027,7 @@ export default function Home() {
           initialCode={l3CodeDraft}
           onCodeChange={setL3CodeDraft}
           onFinishAction={(results) => {
-            if (typeof window !== "undefined") {
-              window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
-            }
+            clearStoredSession();
             setResults(results);
             setScreen("results");
           }}
@@ -1193,7 +1389,6 @@ git checkout 69c7c0a024efdc5bec0a9075e306e180b51e4278`;
         results={results}
         displayedSolveTarget={displayedSolveTarget}
         currentLevel={currentLevel}
-        unlockedLevel={unlockedLevel}
         github={github}
         email={email}
         setEmail={setEmail}

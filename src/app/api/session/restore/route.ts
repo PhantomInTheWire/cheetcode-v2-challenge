@@ -5,7 +5,10 @@ import type { Id } from "../../../../../convex/_generated/dataModel";
 import { ENV } from "../../../../lib/env-vars";
 import { requireAuthenticatedGithub } from "../../../../lib/request-auth";
 import { normalizeTestCasesWithArgs } from "../../../../lib/testcaseArgs";
-import { PROBLEM_BANK } from "../../../../../server/level1/problems";
+import {
+  PROBLEM_BANK,
+  injectDescriptionCanaryAtProblemId,
+} from "../../../../../server/level1/problems";
 import { LEVEL2_PROBLEMS } from "../../../../../server/level2/problems";
 import { getLevel3ChallengeFromId } from "../../../../../server/level3/problems";
 import { warmLevel3Runtime } from "../../../../../server/level3/validation";
@@ -17,6 +20,7 @@ type StoredSession = {
   expiresAt: number;
   level?: number;
   publicPayloadJson?: string;
+  level1CanaryProblemId?: string;
 };
 
 export async function POST(request: Request) {
@@ -51,17 +55,8 @@ export async function POST(request: Request) {
       : null;
 
     if (level === 1) {
-      if (restoredPayload) {
-        return NextResponse.json({
-          sessionId: body.sessionId,
-          startedAt: session.startedAt,
-          expiresAt: session.expiresAt,
-          level,
-          problems: restoredPayload,
-        });
-      }
       const byId = new Map(PROBLEM_BANK.map((problem) => [problem.id, problem]));
-      const problems = session.problemIds
+      const baseProblems = session.problemIds
         .map((id) => byId.get(id))
         .filter(Boolean)
         .map((problem) => ({
@@ -73,6 +68,9 @@ export async function POST(request: Request) {
           starterCode: problem!.starterCode,
           testCases: normalizeTestCasesWithArgs(problem!.signature, problem!.testCases),
         }));
+      const problems = session.level1CanaryProblemId
+        ? injectDescriptionCanaryAtProblemId(baseProblems, session.level1CanaryProblemId)
+        : baseProblems;
 
       return NextResponse.json({
         sessionId: body.sessionId,

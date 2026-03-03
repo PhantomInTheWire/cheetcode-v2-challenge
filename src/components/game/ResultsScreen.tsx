@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TOTAL_SOLVE_TARGET, PROBLEMS_PER_SESSION, LEVEL2_TOTAL } from "@/lib/constants";
+import { TOTAL_SOLVE_TARGET } from "@/lib/constants";
 
 type ResultsData = {
   elo: number;
@@ -21,7 +21,6 @@ type ResultsScreenProps = {
   results: ResultsData;
   displayedSolveTarget: number;
   currentLevel: number;
-  unlockedLevel: number;
   github: string;
   email: string;
   setEmail: (v: string) => void;
@@ -45,7 +44,6 @@ export function ResultsScreen({
   results,
   displayedSolveTarget,
   currentLevel,
-  unlockedLevel,
   github,
   email,
   setEmail,
