@@ -6,90 +6,46 @@ import dynamic from "next/dynamic";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { LeaderboardTable } from "@/components/LeaderboardTable";
 import { LandingScreen } from "@/components/game/LandingScreen";
 import { Level1Game } from "@/components/game/Level1Game";
+import { Level2PrereqScreen } from "@/components/game/Level2PrereqScreen";
+import { Level3PrereqScreen } from "@/components/game/Level3PrereqScreen";
+import { MobileGateScreen } from "@/components/game/MobileGateScreen";
+import { RestoreScreen } from "@/components/game/RestoreScreen";
 import { ResultsScreen } from "@/components/game/ResultsScreen";
 import { validateEmail, validateXHandle } from "@/lib/validation";
 import { ROUND_DURATION_MS, ROUND_DURATION_SECONDS, PROBLEMS_PER_SESSION } from "@/lib/constants";
+import {
+  TOTAL_SOLVE_TARGET,
+  type GameProblem,
+  type Level2Problem,
+  type Level3ChallengeState,
+  type ResultsData,
+  type RestoredSessionPayload,
+  type Screen,
+  type StoredFlowScreen,
+  type StoredSessionSnapshot,
+} from "@/lib/gameTypes";
 import { isClientDevMode } from "@/lib/myEnv";
 import { clientFetch } from "@/lib/client-identity";
 
-type Screen = "landing" | "level2-prereq" | "level3-prereq" | "playing" | "results";
-type ProblemTier = "easy" | "medium" | "hard" | "competitive";
-type ProblemTestCase = {
-  input: Record<string, unknown>;
-  expected: unknown;
-  args?: unknown[];
+type StoredResultsScreen = {
+  screen: "results";
+  currentLevel: number;
+  results: ResultsData;
+  email: string;
+  xHandle: string;
+  flag: string;
+  submittedLead: boolean;
 };
-type GameProblem = {
-  id: string;
-  title: string;
-  tier: ProblemTier;
-  description: string;
-  signature: string;
-  starterCode: string;
-  testCases: ProblemTestCase[];
-};
-
-type ExploitInfo = {
-  id: string;
-  bonus: number;
-  message: string;
-};
-
-type LandmineInfo = {
-  id: string;
-  penalty: number;
-  message: string;
-};
-
-type ResultsData = {
-  elo: number;
-  solved: number;
-  rank: number;
-  timeRemaining: number;
-  exploits?: ExploitInfo[];
-  landmines?: LandmineInfo[];
-  validation?: {
-    compiled: boolean;
-    error: string;
-    results: Array<{ problemId: string; correct: boolean; message: string }>;
-  };
-};
-
-type Level2Problem = { id: string; question: string };
-type Level3ChallengeState = {
-  id: string;
-  title: string;
-  taskName: string;
-  language: string;
-  spec: string;
-  checks: { id: string; name: string }[];
-  starterCode: string;
-};
-type RestoredSessionPayload = {
-  sessionId: Id<"sessions">;
-  level: number;
-  expiresAt: number;
-  problems: unknown[];
-};
-type StoredSessionSnapshot = {
-  sessionId: Id<"sessions">;
-  level: number;
-  expiresAt: number;
-  problems: unknown[];
-};
-
-const LEVEL2_TOTAL = 10;
-const LEVEL3_TOTAL = 20;
-const TOTAL_SOLVE_TARGET = PROBLEMS_PER_SESSION + LEVEL2_TOTAL + LEVEL3_TOTAL;
 
 const MOBILE_BREAKPOINT = 900;
 const Level2Game = dynamic(() => import("@/components/Level2Game").then((m) => m.Level2Game));
 const Level3Game = dynamic(() => import("@/components/Level3Game").then((m) => m.Level3Game));
 const ACTIVE_SESSION_STORAGE_KEY = "cheetcode.activeSession";
 const SESSION_SNAPSHOT_STORAGE_KEY = "cheetcode.sessionSnapshot";
+const FLOW_SCREEN_STORAGE_KEY = "cheetcode.flowScreen";
+const RESULTS_SCREEN_STORAGE_KEY = "cheetcode.resultsScreen";
 const LEVEL1_DRAFTS_STORAGE_KEY = "cheetcode.level1Drafts";
 const LEVEL2_DRAFTS_STORAGE_KEY = "cheetcode.level2Drafts";
 const LEVEL3_DRAFTS_STORAGE_KEY = "cheetcode.level3Drafts";
@@ -173,6 +129,7 @@ export default function Home() {
     const bestFromSession = results ? Math.max(bestFromBoard, results.solved) : bestFromBoard;
     return Math.max(TOTAL_SOLVE_TARGET, bestFromSession);
   }, [leaderboard, results]);
+  const sessionSolveTarget = TOTAL_SOLVE_TARGET;
 
   // ── Level progression state ──
   const unlockedLevel = useQuery(api.leaderboard.getMyLevel, { github: github || "" }) ?? 1;
@@ -222,6 +179,29 @@ export default function Home() {
     window.localStorage.setItem(SESSION_SNAPSHOT_STORAGE_KEY, JSON.stringify(snapshot));
   }, []);
 
+  const persistFlowScreen = useCallback((nextScreen: StoredFlowScreen["screen"], level: 2 | 3) => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      FLOW_SCREEN_STORAGE_KEY,
+      JSON.stringify({ screen: nextScreen, pendingLevel: level } satisfies StoredFlowScreen),
+    );
+  }, []);
+
+  const clearStoredFlowScreen = useCallback(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.removeItem(FLOW_SCREEN_STORAGE_KEY);
+  }, []);
+
+  const persistResultsScreen = useCallback((snapshot: StoredResultsScreen) => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(RESULTS_SCREEN_STORAGE_KEY, JSON.stringify(snapshot));
+  }, []);
+
+  const clearStoredResults = useCallback(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.removeItem(RESULTS_SCREEN_STORAGE_KEY);
+  }, []);
+
   const clearStoredSession = useCallback(() => {
     restoreAbortRef.current?.abort();
     restoreAbortRef.current = null;
@@ -235,6 +215,8 @@ export default function Home() {
   }, []);
 
   const clearFlowState = useCallback(() => {
+    clearStoredFlowScreen();
+    clearStoredResults();
     setPendingLevel(null);
     setLevel3Preview(null);
     setLevel3PreviewError(null);
@@ -242,7 +224,7 @@ export default function Home() {
     setResults(null);
     setIsSubmitting(false);
     lockedTimeElapsedMsRef.current = null;
-  }, []);
+  }, [clearStoredFlowScreen, clearStoredResults]);
 
   const applySessionPayload = useCallback(
     (payload: RestoredSessionPayload) => {
@@ -320,6 +302,38 @@ export default function Home() {
       const raw = window.localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY);
       if (!raw) {
         setHasStoredActiveSession(false);
+        const flowRaw = window.localStorage.getItem(FLOW_SCREEN_STORAGE_KEY);
+        if (flowRaw) {
+          const flow = JSON.parse(flowRaw) as Partial<StoredFlowScreen>;
+          if (
+            (flow.screen === "level2-prereq" || flow.screen === "level3-prereq") &&
+            (flow.pendingLevel === 2 || flow.pendingLevel === 3)
+          ) {
+            setPendingLevel(flow.pendingLevel);
+            setScreen(flow.screen);
+            setDidBootstrapSession(true);
+            return;
+          } else {
+            clearStoredFlowScreen();
+          }
+        }
+        const resultsRaw = window.localStorage.getItem(RESULTS_SCREEN_STORAGE_KEY);
+        if (resultsRaw) {
+          const storedResults = JSON.parse(resultsRaw) as Partial<StoredResultsScreen>;
+          if (storedResults.screen === "results" && storedResults.results) {
+            setCurrentLevel(
+              typeof storedResults.currentLevel === "number" ? storedResults.currentLevel : 1,
+            );
+            setResults(storedResults.results);
+            setEmail(storedResults.email ?? "");
+            setXHandle(storedResults.xHandle ?? "");
+            setFlag(storedResults.flag ?? "");
+            setSubmittedLead(storedResults.submittedLead === true);
+            setScreen("results");
+          } else {
+            clearStoredResults();
+          }
+        }
         setDidBootstrapSession(true);
         return;
       }
@@ -362,13 +376,21 @@ export default function Home() {
       clearStoredSession();
       setDidBootstrapSession(true);
     }
-  }, [applySessionPayload, clearFlowState, clearStoredSession]);
+  }, [
+    applySessionPayload,
+    clearFlowState,
+    clearStoredFlowScreen,
+    clearStoredResults,
+    clearStoredSession,
+  ]);
 
   useEffect(() => {
     if (authStatus !== "unauthenticated") return;
+    clearStoredFlowScreen();
+    clearStoredResults();
     clearStoredSession();
     setIsRestoringSession(false);
-  }, [authStatus, clearStoredSession]);
+  }, [authStatus, clearStoredFlowScreen, clearStoredResults, clearStoredSession]);
 
   const timeLeftMs = useMemo(() => Math.max(0, expiresAt - now), [expiresAt, now]);
   const secondsLeft = Math.ceil(timeLeftMs / 1000);
@@ -473,8 +495,10 @@ export default function Home() {
 
   async function startGame(requestedLevel?: number) {
     const level = requestedLevel ?? 1;
+    clearStoredResults();
     if (level === 2) {
       setPendingLevel(2);
+      persistFlowScreen("level2-prereq", 2);
       setScreen("level2-prereq");
       return;
     }
@@ -482,6 +506,7 @@ export default function Home() {
       setPendingLevel(3);
       setLevel3Preview(null);
       setLevel3PreviewError(null);
+      persistFlowScreen("level3-prereq", 3);
       setScreen("level3-prereq");
       return;
     }
@@ -675,6 +700,7 @@ export default function Home() {
 
   function resetAll() {
     clearStoredSession();
+    clearStoredResults();
     level1DraftsRef.current = null;
     level2DraftsRef.current = null;
     level3DraftsRef.current = null;
@@ -887,6 +913,19 @@ export default function Home() {
     sessionId,
   ]);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || screen !== "results" || !results) return;
+    persistResultsScreen({
+      screen: "results",
+      currentLevel,
+      results,
+      email,
+      xHandle,
+      flag,
+      submittedLead,
+    });
+  }, [currentLevel, email, flag, persistResultsScreen, results, screen, submittedLead, xHandle]);
+
   async function copyToClipboard(text: string) {
     try {
       await navigator.clipboard.writeText(text);
@@ -900,36 +939,11 @@ export default function Home() {
      ═══════════════════════════════════════════════════════════ */
   if (isMobile) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#f9f9f9",
-          padding: "60px 24px",
-          fontFamily: "var(--font-geist-mono), monospace",
-          textAlign: "center",
-        }}
-      >
-        <span style={{ fontSize: 48, marginBottom: 20 }}>🔥</span>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: "#fa5d19", margin: "0 0 12px" }}>
-          FIRECRAWL CTF
-        </h1>
-        <p style={{ fontSize: 22, fontWeight: 700, color: "#262626", margin: "0 0 8px" }}>
-          Play on your computer
-        </p>
-        <p style={{ fontSize: 14, color: "rgba(0,0,0,0.45)", maxWidth: 360, margin: "0 0 36px" }}>
-          This challenge requires a full-sized screen. Open it on your desktop or laptop to play.
-        </p>
-
-        <LeaderboardTable
-          rows={leaderboard}
-          totalSolveTarget={TOTAL_SOLVE_TARGET}
-          displayedSolveTarget={displayedSolveTarget}
-        />
-      </div>
+      <MobileGateScreen
+        leaderboard={leaderboard}
+        totalSolveTarget={TOTAL_SOLVE_TARGET}
+        displayedSolveTarget={displayedSolveTarget}
+      />
     );
   }
 
@@ -937,38 +951,7 @@ export default function Home() {
     !didBootstrapSession ||
     (hasStoredActiveSession && isRestoringSession && screen === "landing")
   ) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#f9f9f9",
-          padding: "24px",
-          fontFamily: "var(--font-geist-mono), monospace",
-        }}
-      >
-        <div
-          style={{
-            width: "min(520px, 100%)",
-            background: "#ffffff",
-            border: "1px solid #e5e5e5",
-            borderRadius: 18,
-            padding: "28px 24px",
-            textAlign: "center",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-          }}
-        >
-          <p style={{ margin: 0, fontSize: 14, color: "#fa5d19", fontWeight: 800 }}>
-            Restoring session
-          </p>
-          <p style={{ margin: "10px 0 0", fontSize: 12, color: "rgba(0,0,0,0.55)" }}>
-            Returning you to your active level with saved progress.
-          </p>
-        </div>
-      </div>
-    );
+    return <RestoreScreen />;
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -1064,181 +1047,17 @@ export default function Home() {
   }
 
   if (screen === "level2-prereq") {
-    const chromiumCloneCommand = `git clone https://github.com/chromium/chromium.git
-cd chromium
-git checkout 69c7c0a024efdc5bec0a9075e306e180b51e4278`;
-    const firecrawlCommand = "npx -y firecrawl-cli@latest init --all --browser";
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(140deg, #fff7f2 0%, #fff 100%)",
-          padding: 24,
-          fontFamily: "'SF Mono', 'Fira Code', var(--font-geist-mono), monospace",
+      <Level2PrereqScreen
+        pendingLevel={pendingLevel}
+        onCopy={copyToClipboard}
+        onStart={launchLevel}
+        onBack={() => {
+          clearStoredFlowScreen();
+          setPendingLevel(null);
+          setScreen("landing");
         }}
-      >
-        <div
-          style={{
-            width: "min(880px, 100%)",
-            background: "#fff",
-            border: "1px solid #ffd5c0",
-            borderRadius: 16,
-            padding: 24,
-            boxShadow: "0 12px 30px rgba(250, 93, 25, 0.08)",
-          }}
-        >
-          <h2 style={{ margin: 0, color: "#fa5d19", fontSize: 24, fontWeight: 800 }}>
-            Before Level 2: Setup Chromium Access
-          </h2>
-          <p style={{ margin: "10px 0 0", fontSize: 13, color: "rgba(0,0,0,0.7)" }}>
-            Level 2 expects your agent to reason over Chromium source code. Choose one setup path
-            (Option A or Option B):
-          </p>
-          <ol style={{ margin: "14px 0 0", paddingLeft: 20, fontSize: 13, color: "#262626" }}>
-            <li>
-              <strong>Option A:</strong> Clone Chromium locally so your agent can search the
-              codebase directly.
-            </li>
-            <li>
-              <strong>Option B:</strong> Use Firecrawl cli and skill with your favourite ai agent
-              and source.chromium.org for web-based exploration.
-            </li>
-          </ol>
-          <div
-            style={{
-              marginTop: 14,
-              background: "#fff7f2",
-              border: "1px solid #ffd5c0",
-              borderRadius: 12,
-              padding: 12,
-            }}
-          >
-            <p style={{ margin: 0, fontSize: 12, color: "rgba(0,0,0,0.7)" }}>
-              If you choose Option A, run:
-            </p>
-            <pre
-              style={{
-                margin: "8px 0 0",
-                fontSize: 12,
-                color: "#262626",
-                whiteSpace: "pre-wrap",
-                background: "#fff",
-                border: "1px solid #ffd5c0",
-                borderRadius: 8,
-                padding: "10px 12px",
-                overflowX: "auto",
-                position: "relative",
-              }}
-            >
-              <button
-                onClick={() => void copyToClipboard(chromiumCloneCommand)}
-                className="btn-ghost"
-                aria-label="Copy command"
-                title="Copy command"
-                style={{
-                  position: "absolute",
-                  top: 8,
-                  right: 8,
-                  height: 24,
-                  width: 24,
-                  padding: 0,
-                  borderRadius: 6,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <rect x="9" y="9" width="11" height="11" rx="2" />
-                  <rect x="4" y="4" width="11" height="11" rx="2" />
-                </svg>
-              </button>
-              <code>{chromiumCloneCommand}</code>
-            </pre>
-            <p style={{ margin: 0, fontSize: 12, color: "rgba(0,0,0,0.7)" }}>
-              If you choose Option B, run:
-            </p>
-            <pre
-              style={{
-                margin: "8px 0 0",
-                fontSize: 12,
-                color: "#262626",
-                whiteSpace: "pre-wrap",
-                background: "#fff",
-                border: "1px solid #ffd5c0",
-                borderRadius: 8,
-                padding: "10px 12px",
-                overflowX: "auto",
-                position: "relative",
-              }}
-            >
-              <button
-                onClick={() => void copyToClipboard(firecrawlCommand)}
-                className="btn-ghost"
-                aria-label="Copy command"
-                title="Copy command"
-                style={{
-                  position: "absolute",
-                  top: 8,
-                  right: 8,
-                  height: 24,
-                  width: 24,
-                  padding: 0,
-                  borderRadius: 6,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <rect x="9" y="9" width="11" height="11" rx="2" />
-                  <rect x="4" y="4" width="11" height="11" rx="2" />
-                </svg>
-              </button>
-              <code>{firecrawlCommand}</code>
-            </pre>
-            <p style={{ margin: "8px 0 0", fontSize: 12, color: "rgba(0,0,0,0.7)" }}>
-              Then search Chromium at: https://source.chromium.org
-            </p>
-          </div>
-          <div style={{ marginTop: 20, display: "flex", gap: 10 }}>
-            <button
-              className="btn-heat"
-              onClick={() => void launchLevel(pendingLevel ?? 2)}
-              style={{ height: 36, padding: "0 16px", borderRadius: 8, fontWeight: 700 }}
-            >
-              I&apos;m Ready, Start Level 2
-            </button>
-            <button
-              className="btn-ghost"
-              onClick={() => {
-                setPendingLevel(null);
-                setScreen("landing");
-              }}
-              style={{ height: 36, padding: "0 16px", borderRadius: 8, fontWeight: 700 }}
-            >
-              Back
-            </button>
-          </div>
-        </div>
-      </div>
+      />
     );
   }
 
@@ -1252,131 +1071,20 @@ git checkout 69c7c0a024efdc5bec0a9075e306e180b51e4278`;
             ? "cc --version"
             : "cc --version\nc++ --version\nrustc --version";
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(140deg, #fff7f2 0%, #fff 100%)",
-          padding: 24,
-          fontFamily: "'SF Mono', 'Fira Code', var(--font-geist-mono), monospace",
+      <Level3PrereqScreen
+        pendingLevel={pendingLevel}
+        level3Preview={level3Preview}
+        level3PreviewLoading={level3PreviewLoading}
+        level3PreviewError={level3PreviewError}
+        compilerCommand={level3CompilerCommand}
+        onCopy={copyToClipboard}
+        onStart={launchLevel}
+        onBack={() => {
+          clearStoredFlowScreen();
+          setPendingLevel(null);
+          setScreen("landing");
         }}
-      >
-        <div
-          style={{
-            width: "min(760px, 100%)",
-            background: "#fff",
-            border: "1px solid #ffd5c0",
-            borderRadius: 16,
-            padding: 24,
-            boxShadow: "0 12px 30px rgba(250, 93, 25, 0.08)",
-          }}
-        >
-          <h2 style={{ margin: 0, color: "#fa5d19", fontSize: 24, fontWeight: 800 }}>
-            Before Level 3: Compiler Readiness
-          </h2>
-          <p style={{ margin: "10px 0 0", fontSize: 13, color: "rgba(0,0,0,0.7)" }}>
-            {level3PreviewLoading ? (
-              "Loading your next Level 3 challenge details..."
-            ) : level3Preview ? (
-              <>
-                Your next Level 3 challenge is <strong>{level3Preview.taskName}</strong> in{" "}
-                <strong>{level3Preview.language}</strong>. Confirm your compiler is ready.
-              </>
-            ) : (
-              <>
-                Confirm you have a <strong>C</strong>, <strong>C++</strong>, or{" "}
-                <strong>Rust</strong> compiler ready for the Level 3 systems challenge.
-              </>
-            )}
-          </p>
-          <div
-            style={{
-              marginTop: 14,
-              background: "#fff7f2",
-              border: "1px solid #ffd5c0",
-              borderRadius: 12,
-              padding: 12,
-            }}
-          >
-            <p style={{ margin: 0, fontSize: 12, color: "rgba(0,0,0,0.7)" }}>
-              Suggested local check:
-            </p>
-            <pre
-              style={{
-                margin: "8px 0 0",
-                fontSize: 12,
-                color: "#262626",
-                whiteSpace: "pre-wrap",
-                background: "#fff",
-                border: "1px solid #ffd5c0",
-                borderRadius: 8,
-                padding: "10px 12px",
-                overflowX: "auto",
-                position: "relative",
-              }}
-            >
-              <button
-                onClick={() => void copyToClipboard(level3CompilerCommand)}
-                className="btn-ghost"
-                aria-label="Copy command"
-                title="Copy command"
-                style={{
-                  position: "absolute",
-                  top: 8,
-                  right: 8,
-                  height: 24,
-                  width: 24,
-                  padding: 0,
-                  borderRadius: 6,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <rect x="9" y="9" width="11" height="11" rx="2" />
-                  <rect x="4" y="4" width="11" height="11" rx="2" />
-                </svg>
-              </button>
-              <code>{level3CompilerCommand}</code>
-            </pre>
-          </div>
-          {level3PreviewError && (
-            <p style={{ margin: "10px 0 0", fontSize: 12, color: "#dc2626" }}>
-              {level3PreviewError}
-            </p>
-          )}
-          <div style={{ marginTop: 20, display: "flex", gap: 10 }}>
-            <button
-              className="btn-heat"
-              onClick={() => void launchLevel(pendingLevel ?? 3, level3Preview?.challengeId)}
-              disabled={level3PreviewLoading}
-              style={{ height: 36, padding: "0 16px", borderRadius: 8, fontWeight: 700 }}
-            >
-              {level3PreviewLoading ? "Loading..." : "Compiler Ready, Start Level 3"}
-            </button>
-            <button
-              className="btn-ghost"
-              onClick={() => {
-                setPendingLevel(null);
-                setScreen("landing");
-              }}
-              style={{ height: 36, padding: "0 16px", borderRadius: 8, fontWeight: 700 }}
-            >
-              Back
-            </button>
-          </div>
-        </div>
-      </div>
+      />
     );
   }
 
@@ -1387,7 +1095,7 @@ git checkout 69c7c0a024efdc5bec0a9075e306e180b51e4278`;
     return (
       <ResultsScreen
         results={results}
-        displayedSolveTarget={displayedSolveTarget}
+        displayedSolveTarget={sessionSolveTarget}
         currentLevel={currentLevel}
         github={github}
         email={email}
