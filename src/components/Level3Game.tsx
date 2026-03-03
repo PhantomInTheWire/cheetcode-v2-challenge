@@ -12,6 +12,7 @@ import { cpp } from "@codemirror/lang-cpp";
 import { rust } from "@codemirror/lang-rust";
 
 const ROUND_DURATION_L3_MS = 120_000;
+const LEVEL3_STATUS_STORAGE_KEY = "cheetcode.level3Status";
 
 type Level3Check = {
   id: string;
@@ -98,14 +99,49 @@ export function Level3Game({
 
   useEffect(() => {
     setCode(initialCodeRef.current);
-    setLocalCorrect({});
-    setCompileError(null);
+    if (typeof window === "undefined") {
+      setLocalCorrect({});
+      setCompileError(null);
+    } else {
+      try {
+        const raw = window.localStorage.getItem(LEVEL3_STATUS_STORAGE_KEY);
+        const persisted = raw
+          ? (JSON.parse(raw) as Record<
+              string,
+              { localCorrect: Record<string, boolean | null>; compileError: string | null }
+            >)
+          : {};
+        setLocalCorrect(persisted[sessionId]?.localCorrect ?? {});
+        setCompileError(persisted[sessionId]?.compileError ?? null);
+      } catch {
+        setLocalCorrect({});
+        setCompileError(null);
+      }
+    }
     lockedTimeElapsedMsRef.current = null;
     autoSubmittedRef.current = false;
   }, [challenge.id, challenge.starterCode, sessionId]);
+
   useEffect(() => {
     onCodeChange?.(code);
   }, [code, onCodeChange]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(LEVEL3_STATUS_STORAGE_KEY);
+      const persisted = raw
+        ? (JSON.parse(raw) as Record<
+            string,
+            { localCorrect: Record<string, boolean | null>; compileError: string | null }
+          >)
+        : {};
+      persisted[sessionId] = { localCorrect, compileError };
+      window.localStorage.setItem(LEVEL3_STATUS_STORAGE_KEY, JSON.stringify(persisted));
+    } catch {
+      // Ignore local persistence failures.
+    }
+  }, [compileError, localCorrect, sessionId]);
 
   const timeLeftMs = useMemo(() => Math.max(0, expiresAt - now), [expiresAt, now]);
   const secondsLeft = Math.ceil(timeLeftMs / 1000);
