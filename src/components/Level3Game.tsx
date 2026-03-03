@@ -45,6 +45,8 @@ type Level3GameProps = {
   github: string;
   challenge: Level3Challenge;
   expiresAt: number;
+  initialCode?: string;
+  onCodeChange?: (code: string) => void;
   onFinishAction: (results: Level3FinishResult) => void;
 };
 
@@ -65,10 +67,12 @@ export function Level3Game({
   github,
   challenge,
   expiresAt,
+  initialCode,
+  onCodeChange,
   onFinishAction,
 }: Level3GameProps) {
   const canAutoSolve = isClientDevMode();
-  const [code, setCode] = useState(challenge.starterCode);
+  const [code, setCode] = useState(initialCode ?? challenge.starterCode);
   const [now, setNow] = useState(Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
@@ -88,12 +92,15 @@ export function Level3Game({
   }, []);
 
   useEffect(() => {
-    setCode(challenge.starterCode);
+    setCode(initialCode ?? challenge.starterCode);
     setLocalCorrect({});
     setCompileError(null);
     lockedTimeElapsedMsRef.current = null;
     autoSubmittedRef.current = false;
-  }, [challenge.id, challenge.starterCode]);
+  }, [challenge.id, challenge.starterCode, sessionId]);
+  useEffect(() => {
+    onCodeChange?.(code);
+  }, [code, onCodeChange]);
 
   const timeLeftMs = useMemo(() => Math.max(0, expiresAt - now), [expiresAt, now]);
   const secondsLeft = Math.ceil(timeLeftMs / 1000);

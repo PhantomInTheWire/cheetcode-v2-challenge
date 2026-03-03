@@ -44,7 +44,7 @@ export function LandingScreen({
   submitError,
 }: LandingScreenProps) {
   const totalSeconds = ROUND_DURATION_SECONDS + 60 + 120;
-  const totalMinutesLabel = `${Math.floor(totalSeconds / 60)}m ${String(totalSeconds % 60).padStart(2, "0")}s`;
+  const totalTimeLabel = `${totalSeconds} secs`;
   const availableLevels =
     unlockedLevel < 2 && !isLocalDev ? [1] : unlockedLevel < 3 && !isLocalDev ? [1, 2] : [1, 2, 3];
 
@@ -119,7 +119,7 @@ export function LandingScreen({
               letterSpacing: -0.5,
             }}
           >
-            3 levels. {totalMinutesLabel}.
+            3 levels. {totalTimeLabel}.
           </p>
           <p
             style={{
@@ -145,7 +145,7 @@ export function LandingScreen({
         >
           {[
             `${PROBLEMS_PER_SESSION + LEVEL2_TOTAL + LEVEL3_TOTAL} total tasks`,
-            `${totalMinutesLabel} total time`,
+            `${totalTimeLabel} total time`,
           ].map((t) => (
             <span
               key={t}

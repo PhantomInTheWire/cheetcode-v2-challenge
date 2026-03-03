@@ -459,9 +459,9 @@ export function ResultsScreen({
             <div
               style={{
                 display: "grid",
-                gap: 8,
-                alignItems: "center",
-                gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                gap: 12,
+                alignItems: "start",
+                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
               }}
             >
               <input
@@ -507,15 +507,22 @@ export function ResultsScreen({
                 value={flag}
                 onChange={(e) => setFlag(e.target.value)}
                 placeholder="🔥{...}"
-                style={{ ...inputStyle, width: "100%", minWidth: 0 }}
+                style={{
+                  ...inputStyle,
+                  width: "100%",
+                  minWidth: 0,
+                }}
                 onFocus={(e) => (e.target.style.borderColor = "#fa5d19")}
                 onBlur={(e) => (e.target.style.borderColor = "#e5e5e5")}
               />
+            </div>
+            <div style={{ marginTop: 12 }}>
               <button
                 disabled={!email.trim()}
                 onClick={submitLeadForm}
                 className="btn-heat"
                 style={{
+                  width: "100%",
                   height: 44,
                   padding: "0 24px",
                   borderRadius: 10,
@@ -523,9 +530,6 @@ export function ResultsScreen({
                   fontWeight: 800,
                   fontFamily: "inherit",
                   whiteSpace: "nowrap",
-                  minWidth: 110,
-                  width: "100%",
-                  gridColumn: "1 / -1",
                 }}
               >
                 SUBMIT
