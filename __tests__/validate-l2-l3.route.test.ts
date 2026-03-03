@@ -4,6 +4,19 @@ const hoisted = vi.hoisted(() => ({
   requireAuthMock: vi.fn(async () => ({ ok: true, github: "tester" })),
   actionMock: vi.fn(),
   requireOwnedSessionMock: vi.fn(),
+  validateL3Mock: vi.fn(async () => ({
+    compiled: true,
+    error: "",
+    results: [{ problemId: "p1", correct: true, message: "ok" }],
+  })),
+  sanitizeL3Mock: vi.fn((result) => ({
+    ...result,
+    error: result.compiled ? "" : "redacted",
+    results: (result.results ?? []).map((row: { problemId: string; correct: boolean }) => ({
+      ...row,
+      message: row.correct ? "pass" : "fail",
+    })),
+  })),
 }));
 
 vi.mock("../src/lib/request-auth", () => ({
@@ -21,11 +34,8 @@ vi.mock("../src/lib/env-vars", () => ({
 }));
 
 vi.mock("../server/level3/validation", () => ({
-  validateLevel3Submission: vi.fn(async () => ({
-    compiled: true,
-    error: "",
-    results: [{ problemId: "p1", correct: true, message: "ok" }],
-  })),
+  validateLevel3Submission: hoisted.validateL3Mock,
+  sanitizeLevel3ValidationForClient: hoisted.sanitizeL3Mock,
 }));
 
 describe("validate l2/l3 routes", () => {
@@ -33,6 +43,8 @@ describe("validate l2/l3 routes", () => {
     hoisted.requireAuthMock.mockReset();
     hoisted.actionMock.mockReset();
     hoisted.requireOwnedSessionMock.mockReset();
+    hoisted.validateL3Mock.mockClear();
+    hoisted.sanitizeL3Mock.mockClear();
     hoisted.requireAuthMock.mockResolvedValue({ ok: true, github: "tester" });
     hoisted.requireOwnedSessionMock.mockResolvedValue({
       session: {
@@ -109,5 +121,36 @@ describe("validate l2/l3 routes", () => {
       | undefined;
     expect(telemetryCall?.eventType).toBe("validate_l3");
     expect(telemetryCall?.status).toBe("passed");
+  });
+
+  it("/api/validate-l3 redacts compile errors from client response", async () => {
+    hoisted.requireOwnedSessionMock.mockResolvedValueOnce({
+      session: {
+        github: "tester",
+        level: 3,
+        startedAt: 1_000,
+        expiresAt: 121_000,
+        problemIds: ["p1"],
+      },
+      convex: { action: hoisted.actionMock },
+    });
+    hoisted.validateL3Mock.mockResolvedValueOnce({
+      compiled: false,
+      error: "secret harness details",
+      results: [{ problemId: "p1", correct: false, message: "leak" }],
+    });
+
+    const { POST } = await import("../src/app/api/validate-l3/route");
+    const req = new Request("http://localhost/api/validate-l3", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sessionId: "s3", challengeId: "any", code: "bad" }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { error: string; results: Array<{ message: string }> };
+    expect(body.error).toBe("redacted");
+    expect(body.results[0]?.message).toBe("fail");
   });
 });

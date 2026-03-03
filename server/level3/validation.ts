@@ -6,7 +6,7 @@ import { getLevel3ChallengeFromId } from "./problems";
 import { buildCpuSandboxRuntimeRunner } from "./sandboxRunner";
 import { getKvJson, setKvJson } from "@/lib/abuse/kv";
 
-type Level3ValidationResult = {
+export type Level3ValidationResult = {
   compiled: boolean;
   staleSession?: boolean;
   error: string;
@@ -16,6 +16,32 @@ type Level3ValidationResult = {
     message: string;
   }>;
 };
+
+const CLIENT_COMPILE_ERROR = "Compilation failed. Fix build issues and retry.";
+const CLIENT_INFRA_ERROR = "Validation infrastructure unavailable. Please retry shortly.";
+
+export function sanitizeLevel3ValidationForClient(
+  result: Level3ValidationResult,
+): Level3ValidationResult {
+  if (result.staleSession) return cloneResult(result);
+
+  const loweredError = result.error.toLowerCase();
+  const infraFailure =
+    loweredError.includes("sandbox") ||
+    loweredError.includes("infrastructure") ||
+    loweredError.includes("tool install");
+
+  return {
+    compiled: result.compiled,
+    staleSession: result.staleSession,
+    error: result.compiled ? "" : infraFailure ? CLIENT_INFRA_ERROR : CLIENT_COMPILE_ERROR,
+    results: result.results.map((row) => ({
+      problemId: row.problemId,
+      correct: row.correct,
+      message: row.correct ? "pass" : "fail",
+    })),
+  };
+}
 
 function extensionForLanguage(language: string): string {
   if (language === "C") return "c";
@@ -45,6 +71,7 @@ function configuredSnapshotIdForLanguage(language: string): string | undefined {
 
 const RUNTIME_TIMEOUT_MS = 300_000;
 const RUNTIME_IDLE_SHUTDOWN_MS = 300_000;
+const USER_CODE_NETWORK_POLICY = "deny-all" as const;
 const assetsDir = path.join(process.cwd(), "server", "level3", "assets");
 const harnessSource = fs.readFileSync(path.join(assetsDir, "harness.c"), "utf8");
 const runtimeByLanguage = new Map<
@@ -121,6 +148,7 @@ async function createSandboxForLanguage(language: string): Promise<Sandbox & Asy
         snapshotId,
       },
       timeout: RUNTIME_TIMEOUT_MS,
+      networkPolicy: USER_CODE_NETWORK_POLICY,
       ...(credentials ?? {}),
     });
     snapshotIdByLanguage.set(language, snapshotId);
@@ -255,6 +283,12 @@ async function ensureRuntimePrepared(
   language: string,
 ): Promise<void> {
   if (runtime.prepared) return;
+  try {
+    await runtime.sandbox.updateNetworkPolicy(USER_CODE_NETWORK_POLICY);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`failed to enforce sandbox network policy: ${message}`);
+  }
   await runtime.sandbox.writeFiles([
     { path: "harness.c", content: Buffer.from(harnessSource, "utf8") },
     {

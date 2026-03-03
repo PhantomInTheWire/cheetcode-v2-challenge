@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { validateLevel3Submission } from "../../../../server/level3/validation";
+import {
+  sanitizeLevel3ValidationForClient,
+  validateLevel3Submission,
+} from "../../../../server/level3/validation";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import { requireOwnedSession } from "../../../lib/session-auth";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -38,6 +41,7 @@ export async function POST(request: Request) {
 
     const { convex } = sessionResult;
     const result = await validateLevel3Submission(challengeId, code);
+    const clientResult = sanitizeLevel3ValidationForClient(result);
 
     const passCount = result.results.filter((row) => row.correct).length;
     const status =
@@ -73,7 +77,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json(clientResult);
   } catch (error) {
     console.error("/api/validate-l3 error:", error);
     return NextResponse.json({ error: "Validation failed" }, { status: 500 });

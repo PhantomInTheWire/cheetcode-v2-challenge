@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import { validateLevel3Submission } from "../../../../server/level3/validation";
+import {
+  sanitizeLevel3ValidationForClient,
+  validateLevel3Submission,
+} from "../../../../server/level3/validation";
 import { SHADOW_BAN_HEADER } from "../../../lib/abuse";
 import { clampElapsed, shadowBanResponse } from "../../../lib/api-route";
 import { ENV } from "../../../lib/env-vars";
@@ -54,6 +57,7 @@ export async function POST(request: Request) {
       const challengeId = firstProblemId.split(":").slice(0, 3).join(":");
 
       const validation = await validateLevel3Submission(challengeId, code);
+      const clientValidation = sanitizeLevel3ValidationForClient(validation);
       if (validation.staleSession) {
         await recordBuiltTelemetry({
           convex,
@@ -100,9 +104,7 @@ export async function POST(request: Request) {
         });
         return NextResponse.json(
           {
-            error:
-              validation.error ||
-              "Level 3 validation infrastructure is currently unavailable. Please retry in a moment.",
+            error: clientValidation.error,
           },
           { status: 503 },
         );
@@ -149,7 +151,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         ...result,
-        validation,
+        validation: clientValidation,
       });
     },
   );

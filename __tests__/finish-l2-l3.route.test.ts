@@ -12,6 +12,14 @@ const hoisted = vi.hoisted(() => {
       error: "",
       results: l3CheckIds.map((id) => ({ problemId: id, correct: true, message: "ok" })),
     })),
+    sanitizeL3Mock: vi.fn((result) => ({
+      ...result,
+      error: result.compiled ? "" : "redacted",
+      results: (result.results ?? []).map((row: { problemId: string; correct: boolean }) => ({
+        ...row,
+        message: row.correct ? "pass" : "fail",
+      })),
+    })),
   };
 });
 
@@ -35,6 +43,7 @@ vi.mock("../src/lib/request-auth", () => ({
 
 vi.mock("../server/level3/validation", () => ({
   validateLevel3Submission: hoisted.validateL3Mock,
+  sanitizeLevel3ValidationForClient: hoisted.sanitizeL3Mock,
 }));
 
 describe("finish l2/l3 routes", () => {
@@ -42,6 +51,7 @@ describe("finish l2/l3 routes", () => {
     hoisted.queryMock.mockReset();
     hoisted.actionMock.mockReset();
     hoisted.validateL3Mock.mockClear();
+    hoisted.sanitizeL3Mock.mockClear();
     hoisted.queryMock.mockResolvedValue({
       github: "tester",
       level: 3,
@@ -217,5 +227,33 @@ describe("finish l2/l3 routes", () => {
       | undefined;
     expect(telemetryCall?.eventType).toBe("finish_l3");
     expect(telemetryCall?.status).toBe("shadow_banned");
+  });
+
+  it("/api/finish-l3 redacts compile errors in response", async () => {
+    hoisted.validateL3Mock.mockResolvedValueOnce({
+      compiled: false,
+      error: "secret harness details",
+      results: hoisted.l3CheckIds.map((id: string) => ({
+        problemId: id,
+        correct: false,
+        message: "leak",
+      })),
+    });
+
+    const { POST } = await import("../src/app/api/finish-l3/route");
+    const req = new Request("http://localhost/api/finish-l3", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        sessionId: "s3",
+        code: "broken",
+        timeElapsed: 5000,
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(503);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe("redacted");
   });
 });

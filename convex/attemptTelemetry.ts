@@ -195,7 +195,8 @@ export const recordEvent = action({
       throw new Error("unauthorized");
     }
 
-    return await ctx.runMutation(internal.attemptTelemetry.recordEventInternal, args);
+    const { secret: _secret, ...eventArgs } = args;
+    return await ctx.runMutation(internal.attemptTelemetry.recordEventInternal, eventArgs);
   },
 });
 
