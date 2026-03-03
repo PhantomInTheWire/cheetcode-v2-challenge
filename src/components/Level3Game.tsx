@@ -85,6 +85,7 @@ export function Level3Game({
   const autoSubmittedRef = useRef(false);
   const dragStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const verticalDragStateRef = useRef<{ startY: number; startRatio: number } | null>(null);
+  const initialCodeRef = useRef(initialCode ?? challenge.starterCode);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 100);
@@ -92,7 +93,11 @@ export function Level3Game({
   }, []);
 
   useEffect(() => {
-    setCode(initialCode ?? challenge.starterCode);
+    initialCodeRef.current = initialCode ?? challenge.starterCode;
+  }, [initialCode, challenge.starterCode]);
+
+  useEffect(() => {
+    setCode(initialCodeRef.current);
     setLocalCorrect({});
     setCompileError(null);
     lockedTimeElapsedMsRef.current = null;

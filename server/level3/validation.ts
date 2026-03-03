@@ -31,8 +31,17 @@ function resolveSandboxCredentials():
   return undefined;
 }
 
+function snapshotEnvKey(language: string): string {
+  return language === "Rust" ? "VERCEL_SANDBOX_SNAPSHOT_RUST" : "VERCEL_SANDBOX_SNAPSHOT_CLANG";
+}
+
+function configuredSnapshotIdForLanguage(language: string): string | undefined {
+  const snapshotId = process.env[snapshotEnvKey(language)]?.trim();
+  return snapshotId ? snapshotId : undefined;
+}
+
 const RUNTIME_TIMEOUT_MS = 300_000;
-const RUNTIME_IDLE_SHUTDOWN_MS = 20_000;
+const RUNTIME_IDLE_SHUTDOWN_MS = 300_000;
 const runtimeByLanguage = new Map<
   string,
   {
@@ -42,6 +51,8 @@ const runtimeByLanguage = new Map<
   }
 >();
 const creatingRuntimeByLanguage = new Map<string, Promise<Sandbox & AsyncDisposable>>();
+const snapshotIdByLanguage = new Map<string, string>();
+const creatingSnapshotByLanguage = new Map<string, Promise<string>>();
 const VALIDATION_CACHE_TTL_MS = 90_000;
 const validationCache = new Map<string, { expiresAt: number; result: Level3ValidationResult }>();
 
@@ -86,19 +97,63 @@ async function ensureToolchain(sandbox: Sandbox, language: string): Promise<stri
 
 async function createSandboxForLanguage(language: string): Promise<Sandbox & AsyncDisposable> {
   const credentials = resolveSandboxCredentials();
+  const snapshotId =
+    (await ensureSnapshotId(language)) ??
+    snapshotIdByLanguage.get(language) ??
+    configuredSnapshotIdForLanguage(language);
 
-  const sandbox = await Sandbox.create({
-    runtime: "node24",
-    timeout: RUNTIME_TIMEOUT_MS,
-    ...(credentials ?? {}),
-  });
-
-  const setupError = await ensureToolchain(sandbox, language);
-  if (setupError) {
-    await sandbox.stop({ blocking: true }).catch(() => undefined);
-    throw new Error(`sandbox tool install failed: ${setupError}`);
+  if (snapshotId) {
+    const sandbox = await Sandbox.create({
+      source: {
+        type: "snapshot",
+        snapshotId,
+      },
+      timeout: RUNTIME_TIMEOUT_MS,
+      ...(credentials ?? {}),
+    });
+    snapshotIdByLanguage.set(language, snapshotId);
+    return sandbox;
   }
-  return sandbox;
+  throw new Error(`no sandbox snapshot available for ${language}`);
+}
+
+async function ensureSnapshotId(language: string): Promise<string | undefined> {
+  const existing = snapshotIdByLanguage.get(language) ?? configuredSnapshotIdForLanguage(language);
+  if (existing) {
+    snapshotIdByLanguage.set(language, existing);
+    return existing;
+  }
+
+  const pending = creatingSnapshotByLanguage.get(language);
+  if (pending) return pending;
+
+  const createPromise = (async () => {
+    const credentials = resolveSandboxCredentials();
+    const sandbox = await Sandbox.create({
+      runtime: "node24",
+      timeout: RUNTIME_TIMEOUT_MS,
+      ...(credentials ?? {}),
+    });
+    try {
+      const setupError = await ensureToolchain(sandbox, language);
+      if (setupError) {
+        throw new Error(`sandbox tool install failed: ${setupError}`);
+      }
+      const snapshot = await sandbox.snapshot();
+      snapshotIdByLanguage.set(language, snapshot.snapshotId);
+      console.info(`level3 bootstrap snapshot for ${language}: ${snapshot.snapshotId}`);
+      return snapshot.snapshotId;
+    } finally {
+      await sandbox.stop({ blocking: true }).catch(() => undefined);
+    }
+  })();
+
+  creatingSnapshotByLanguage.set(language, createPromise);
+  try {
+    return await createPromise;
+  } finally {
+    creatingSnapshotByLanguage.delete(language);
+  }
 }
 
 function clearIdleTimer(runtime: { idleTimer: ReturnType<typeof setTimeout> | null }) {

@@ -44,15 +44,21 @@ export function Level2Game({
   const [localCorrect, setLocalCorrect] = useState<Record<string, boolean | null>>({});
   const lockedTimeElapsedMsRef = useRef<number | null>(null);
   const autoSubmittedRef = useRef(false);
+  const initialAnswersRef = useRef(initialAnswers ?? {});
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 100);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    initialAnswersRef.current = initialAnswers ?? {};
+  }, [initialAnswers]);
+
   useEffect(() => {
     lockedTimeElapsedMsRef.current = null;
     autoSubmittedRef.current = false;
-    setAnswers(initialAnswers ?? {});
+    setAnswers(initialAnswersRef.current);
   }, [sessionId]);
   useEffect(() => {
     onAnswersChange?.(answers);

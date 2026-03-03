@@ -2,9 +2,11 @@ import { v } from "convex/values";
 import { internalMutation, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import {
+  PROBLEM_BANK,
   selectSessionProblems,
   stripSolution,
   injectDescriptionCanary,
+  injectDescriptionCanaryAtProblemId,
 } from "../server/level1/problems";
 import {
   type Level3ChallengeMeta,
@@ -57,9 +59,21 @@ export const createInternal = internalMutation({
     // gets stuck by resurrecting the previous round instead of launching the
     // requested one.
     if (recent && recent.expiresAt > Date.now() && recentLevel === level) {
-      const restoredProblems = recent.publicPayloadJson
-        ? ((JSON.parse(recent.publicPayloadJson) as Record<string, unknown>[]) ?? [])
-        : [];
+      let restoredProblems: Record<string, unknown>[] = [];
+      if (recentLevel === 1) {
+        const byId = new Map(PROBLEM_BANK.map((problem) => [problem.id, problem]));
+        const baseProblems = recent.problemIds
+          .map((id) => byId.get(id))
+          .filter(Boolean)
+          .map((problem) => stripSolution(problem!));
+        restoredProblems = recent.level1CanaryProblemId
+          ? injectDescriptionCanaryAtProblemId(baseProblems, recent.level1CanaryProblemId)
+          : injectDescriptionCanary(baseProblems);
+      } else {
+        restoredProblems = recent.publicPayloadJson
+          ? ((JSON.parse(recent.publicPayloadJson) as Record<string, unknown>[]) ?? [])
+          : [];
+      }
       return {
         sessionId: recent._id,
         startedAt: recent.startedAt,
@@ -72,6 +86,8 @@ export const createInternal = internalMutation({
     let expiresAt = startedAt + ROUND_DURATION_MS;
     let problemsToReturn: Record<string, unknown>[] = [];
     let problemIds: string[] = [];
+    let publicPayloadJson: string | undefined;
+    let level1CanaryProblemId: string | undefined;
 
     if (level === 2) {
       expiresAt = startedAt + ROUND_DURATION_L2_MS;
@@ -107,6 +123,16 @@ export const createInternal = internalMutation({
       const picked = selectSessionProblems();
       problemIds = picked.map((problem) => problem.id);
       problemsToReturn = injectDescriptionCanary(picked.map(stripSolution));
+      const canaryProblem = problemsToReturn.find(
+        (problem) =>
+          typeof problem.description === "string" &&
+          problem.description.includes("// @ai-generated"),
+      );
+      level1CanaryProblemId = typeof canaryProblem?.id === "string" ? canaryProblem.id : undefined;
+    }
+
+    if (level !== 1) {
+      publicPayloadJson = JSON.stringify(problemsToReturn);
     }
 
     const sessionId = await ctx.db.insert("sessions", {
@@ -115,7 +141,8 @@ export const createInternal = internalMutation({
       startedAt,
       expiresAt,
       level,
-      publicPayloadJson: JSON.stringify(problemsToReturn),
+      publicPayloadJson,
+      level1CanaryProblemId,
     });
 
     return {
