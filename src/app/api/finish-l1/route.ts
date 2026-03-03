@@ -25,6 +25,7 @@ import {
 } from "../../../lib/quickjs-shared";
 import { ENV } from "../../../lib/env-vars";
 import { withAuthenticatedSession } from "../../../lib/route-handler";
+import { recordBuiltTelemetry } from "../../../lib/attempt-telemetry";
 
 type TestCase = {
   input: Record<string, unknown>;
@@ -151,10 +152,35 @@ export async function POST(request: Request) {
       const scoreModifier = exploitBonus + landminePenalty;
 
       if (request.headers.get(SHADOW_BAN_HEADER) === "1") {
-        return shadowBanResponse(ROUND_DURATION_MS, clampedTimeElapsedMs, {
+        const response = shadowBanResponse(ROUND_DURATION_MS, clampedTimeElapsedMs, {
           exploits: exploits.map((e) => ({ id: e.id, bonus: e.bonus, message: e.message })),
           landmines: landmines.map((l) => ({ id: l.id, penalty: l.penalty, message: l.message })),
         });
+        await recordBuiltTelemetry({
+          convex,
+          sessionId: sessionId as Id<"sessions">,
+          github,
+          level: 1,
+          eventType: "finish_l1",
+          elapsedMs: clampedTimeElapsedMs,
+          route: "/api/finish-l1",
+          status: "shadow_banned",
+          errorType: "shadow_ban",
+          solvedCount: solvedProblemIds.length,
+          summary: {
+            exploitIds: exploits.map((e) => e.id),
+            landmineIds: landmines.map((l) => l.id),
+          },
+          artifact: {
+            sessionId,
+            submissions,
+            flag: body.flag,
+            solvedProblemIds,
+            exploits,
+            landmines,
+          },
+        });
+        return response;
       }
 
       const result = await convex.action(api.submissions.recordResults, {
@@ -164,6 +190,40 @@ export async function POST(request: Request) {
         solvedProblemIds,
         timeElapsedMs: clampedTimeElapsedMs,
         exploitBonus: scoreModifier,
+      });
+
+      const status =
+        solvedProblemIds.length === 0
+          ? "failed"
+          : solvedProblemIds.length === session.problemIds.length
+            ? "passed"
+            : "partial";
+
+      await recordBuiltTelemetry({
+        convex,
+        sessionId: sessionId as Id<"sessions">,
+        github,
+        level: 1,
+        eventType: "finish_l1",
+        elapsedMs: clampedTimeElapsedMs,
+        route: "/api/finish-l1",
+        status,
+        solvedCount: solvedProblemIds.length,
+        passCount: solvedProblemIds.length,
+        failCount: session.problemIds.length - solvedProblemIds.length,
+        summary: {
+          exploitIds: exploits.map((e) => e.id),
+          landmineIds: landmines.map((l) => l.id),
+        },
+        artifact: {
+          sessionId,
+          submissions,
+          flag: body.flag,
+          solvedProblemIds,
+          exploits,
+          landmines,
+          result,
+        },
       });
 
       return NextResponse.json({

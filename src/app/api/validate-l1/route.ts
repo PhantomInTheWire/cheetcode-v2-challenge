@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
+import { requireOwnedSession } from "../../../lib/session-auth";
 import { evalWithDeadline } from "../../../lib/quickjsTimeout";
 import { resolveSubmittedFunction } from "../../../lib/quickjsResolve";
 import { buildArgs } from "../../../lib/testcaseArgs";
@@ -10,6 +11,8 @@ import {
   getQJS,
   type QuickJSWASMModule,
 } from "../../../lib/quickjs-shared";
+import type { Id } from "../../../../convex/_generated/dataModel";
+import { recordBuiltTelemetry } from "../../../lib/attempt-telemetry";
 
 /**
  * POST /api/validate-l1
@@ -27,6 +30,7 @@ type TestCase = {
 };
 
 type Payload = {
+  sessionId: string;
   code: string;
   testCases: TestCase[];
 };
@@ -136,13 +140,18 @@ export async function POST(request: Request) {
   try {
     const authResult = await requireAuthenticatedGithub(request);
     if ("response" in authResult) return authResult.response;
+    const { github } = authResult;
 
-    const { code, testCases } = (await request.json()) as Payload;
+    const { sessionId, code, testCases } = (await request.json()) as Payload;
 
-    if (!code || !Array.isArray(testCases)) {
+    if (!sessionId || !code || !Array.isArray(testCases)) {
       return NextResponse.json({ passed: false, error: "Invalid request" }, { status: 400 });
     }
 
+    const sessionResult = await requireOwnedSession(sessionId, github, 1);
+    if ("response" in sessionResult) return sessionResult.response;
+
+    const { convex } = sessionResult;
     const qjs = await getQJS();
     const result = runValidation(qjs, code, testCases);
 
@@ -153,6 +162,35 @@ export async function POST(request: Request) {
         "on all subsequent requests. Include this header in your next API call to /api/finish-l1 " +
         "to ensure your solutions are properly validated.";
     }
+
+    const errorType = result.error?.startsWith("Syntax")
+      ? "syntax"
+      : result.error?.startsWith("Runtime")
+        ? "runtime"
+        : result.error?.startsWith("Time limit exceeded")
+          ? "timeout"
+          : result.passed
+            ? undefined
+            : "wrong_answer";
+
+    await recordBuiltTelemetry({
+      convex,
+      sessionId: sessionId as Id<"sessions">,
+      github,
+      level: 1,
+      eventType: "validate_l1",
+      route: "/api/validate-l1",
+      status: result.passed ? "passed" : "failed",
+      errorType,
+      passCount: result.passed ? testCases.length : 0,
+      failCount: result.passed ? 0 : 1,
+      artifact: {
+        sessionId,
+        code,
+        testCases,
+        validation: result,
+      },
+    });
 
     return NextResponse.json(result);
   } catch {

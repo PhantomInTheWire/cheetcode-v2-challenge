@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { getLevel3ChallengeFromId } from "./problems";
 import { buildCpuSandboxRuntimeRunner } from "./sandboxRunner";
+import { getKvJson, setKvJson } from "@/lib/abuse/kv";
 
 type Level3ValidationResult = {
   compiled: boolean;
@@ -59,11 +60,17 @@ const creatingRuntimeByLanguage = new Map<string, Promise<Sandbox & AsyncDisposa
 const snapshotIdByLanguage = new Map<string, string>();
 const creatingSnapshotByLanguage = new Map<string, Promise<string>>();
 const VALIDATION_CACHE_TTL_MS = 90_000;
+const VALIDATION_CACHE_TTL_SECONDS = Math.ceil(VALIDATION_CACHE_TTL_MS / 1000);
+const FAILURE_CACHE_TTL_SECONDS = 15;
 const validationCache = new Map<string, { expiresAt: number; result: Level3ValidationResult }>();
 
 function cacheKey(challengeId: string, code: string): string {
   const hash = createHash("sha256").update(code, "utf8").digest("hex");
   return `${challengeId}:${hash}`;
+}
+
+function kvCacheKey(challengeId: string, code: string): string {
+  return `ctf:level3:validation:v1:${cacheKey(challengeId, code)}`;
 }
 
 function cloneResult(result: Level3ValidationResult): Level3ValidationResult {
@@ -293,12 +300,23 @@ export async function validateLevel3Submission(
   code: string,
 ): Promise<Level3ValidationResult> {
   const key = cacheKey(challengeId, code);
+  const sharedKey = kvCacheKey(challengeId, code);
   const cached = validationCache.get(key);
   if (cached && cached.expiresAt > Date.now()) {
     console.info(`level3 validate cache hit for ${challengeId}`);
     return cloneResult(cached.result);
   } else if (cached) {
     validationCache.delete(key);
+  }
+
+  const kvCached = await getKvJson<Level3ValidationResult>(sharedKey);
+  if (kvCached) {
+    console.info(`level3 validate KV cache hit for ${challengeId}`);
+    validationCache.set(key, {
+      expiresAt: Date.now() + VALIDATION_CACHE_TTL_MS,
+      result: cloneResult(kvCached),
+    });
+    return cloneResult(kvCached);
   }
 
   const challenge = getLevel3ChallengeFromId(challengeId);
@@ -403,6 +421,7 @@ export async function validateLevel3Submission(
       expiresAt: Date.now() + VALIDATION_CACHE_TTL_MS,
       result: cloneResult(finalResult),
     });
+    await setKvJson(sharedKey, finalResult, VALIDATION_CACHE_TTL_SECONDS);
     return finalResult;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -421,6 +440,7 @@ export async function validateLevel3Submission(
       expiresAt: Date.now() + Math.min(15_000, VALIDATION_CACHE_TTL_MS),
       result: cloneResult(failureResult),
     });
+    await setKvJson(sharedKey, failureResult, FAILURE_CACHE_TTL_SECONDS);
     return failureResult;
   } finally {
     const totalMs = Date.now() - t0;

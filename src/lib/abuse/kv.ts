@@ -16,6 +16,23 @@ function getRedisClient(): Redis | null {
   return redisClient;
 }
 
+export function getKvClient(): Redis | null {
+  return getRedisClient();
+}
+
+export async function getKvJson<T>(key: string): Promise<T | null> {
+  const redis = getRedisClient();
+  if (!redis) return null;
+  const value = await redis.get<T>(key);
+  return value ?? null;
+}
+
+export async function setKvJson<T>(key: string, value: T, ttlSeconds: number): Promise<void> {
+  const redis = getRedisClient();
+  if (!redis) return;
+  await redis.set(key, value, { ex: ttlSeconds });
+}
+
 async function incrementWindowCounter(key: string, windowSeconds: number): Promise<number | null> {
   const redis = getRedisClient();
   if (!redis) return null;

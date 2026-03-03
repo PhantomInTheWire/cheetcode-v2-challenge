@@ -1,45 +1,150 @@
-# CheetCode
+# CheetCode v2
 
-CheetCode is a fast coding game built to evaluate how well AI agents can solve and orchestrate under pressure.
+CheetCode v2 is a Next.js + Convex challenge app for evaluating how well candidates run agents under pressure.
 
-This repository contains the original CheetCode implementation used in hiring experiments and now serves as the base for the next challenge iteration.
+## Stack
 
-## CheetCode v2 Candidate Challenge
+- Next.js 16
+- React 19
+- Convex
+- Auth.js / NextAuth GitHub OAuth
+- `@vercel/sandbox` for Level 3 native execution
+- Vitest + Playwright
 
-If you were invited to the take-home challenge, read [CHALLENGE.md](./CHALLENGE.md) first.
+## Prerequisites
 
-The challenge asks candidates to fork this repository and design a better CheetCode variant that:
+- Node.js 24.x
+- Yarn or npm
+- A Convex account/project
+- A GitHub OAuth app
+- A Vercel account/project
+- Vercel Sandbox credentials or snapshot configuration for Level 3
 
-- is harder for agents to game
-- better identifies strong agent orchestrators
-- is fully deployed and runnable
+## Environment Variables
 
-## Quick start
+Copy `.env.example` to `.env.local`:
 
 ```bash
-npm install
 cp .env.example .env.local
-npm run dev
 ```
 
-Open `http://localhost:3000`.
+Required:
 
-## Scripts
+- `NEXT_PUBLIC_CONVEX_URL`
+- `CONVEX_MUTATION_SECRET`
+- `AUTH_GITHUB_ID`
+- `AUTH_GITHUB_SECRET`
+- `AUTH_SECRET`
+- `MY_ENV`
+
+Recommended for abuse/rate-limit persistence:
+
+- `KV_REST_API_URL`
+- `KV_REST_API_TOKEN`
+
+Level 3:
+
+- `VERCEL_TOKEN`
+- `VERCEL_TEAM_ID`
+- `VERCEL_PROJECT_ID`
+- optionally `VERCEL_SANDBOX_SNAPSHOT_CLANG`
+- optionally `VERCEL_SANDBOX_SNAPSHOT_RUST`
+
+## Local Development
+
+### 1. Install dependencies
 
 ```bash
-npm run dev
-npm run test
-npm run lint
+yarn install
 ```
 
-## Tech stack
+### 2. Create a Convex dev deployment
 
-- Next.js app in `src/`
-- Convex functions and schema in `convex/`
-- Problem bank in `server/level1/problems.ts`
-- QuickJS-based validation in API routes
+```bash
+npx convex dev
+```
 
-## Notes
+This provisions a Convex dev deployment and updates `.env.local` with:
 
-- Use environment variables for secrets and deployment config.
-- Do not commit `.env` files.
+- `CONVEX_DEPLOYMENT`
+- `NEXT_PUBLIC_CONVEX_URL`
+
+If Convex type generation or typecheck fails, fix the reported TypeScript errors before continuing.
+
+### 3. Fill the rest of `.env.local`
+
+Set the required app/auth values plus `MY_ENV=development`. If you want shared abuse-rate-limit and shadow-ban state, also set `KV_REST_API_URL` and `KV_REST_API_TOKEN`. For Level 3, also set Vercel Sandbox credentials and preferably snapshot ids.
+
+### 4. Start the app
+
+```bash
+yarn dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+## Build
+
+Run a production build locally:
+
+```bash
+yarn build
+```
+
+Start the production server:
+
+```bash
+yarn start
+```
+
+## Test and Verification
+
+```bash
+yarn dev
+yarn build
+yarn start
+yarn lint
+yarn staticcheck
+yarn test
+yarn test:e2e
+yarn verify
+yarn verify:strict
+```
+
+## Convex Deployment
+
+Deploy Convex with:
+
+```bash
+npx convex deploy
+```
+
+Then update production env vars so the frontend and API routes point at the same Convex environment.
+
+## GitHub OAuth Setup
+
+Create a GitHub OAuth app with:
+
+- Homepage URL: your deployed app URL
+- Callback URL: `https://your-domain/api/auth/callback/github`
+
+Use its credentials for `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET`, and set `AUTH_SECRET`.
+
+Generate one with:
+
+```bash
+openssl rand -base64 32
+```
+
+## Vercel Deployment
+
+Import the repo into Vercel and set:
+
+- `NEXT_PUBLIC_CONVEX_URL`, `CONVEX_MUTATION_SECRET`
+- `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `AUTH_SECRET`
+- `MY_ENV`
+- `KV_REST_API_URL`, `KV_REST_API_TOKEN`
+- `VERCEL_TOKEN`, `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID`
+- optionally `VERCEL_SANDBOX_SNAPSHOT_CLANG`, `VERCEL_SANDBOX_SNAPSHOT_RUST`
+
+Level 3 depends on `@vercel/sandbox`, so production needs valid sandbox credentials and preferably prebuilt clang/rust snapshot ids. Abuse persistence depends on Upstash KV; without `KV_REST_API_URL` and `KV_REST_API_TOKEN`, rate limits and shadow bans fall back to per-instance in-memory tracking instead of shared persistent counters.

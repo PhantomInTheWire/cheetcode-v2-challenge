@@ -155,7 +155,7 @@ export function Level2Game({
       const res = await clientFetch("/api/validate-l2", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ answers: { [problemId]: answer } }),
+        body: JSON.stringify({ sessionId, answers: { [problemId]: answer } }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

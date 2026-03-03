@@ -28,7 +28,7 @@ describe("ConvexClientProvider", () => {
 
     expect(convexClientCtor).toHaveBeenCalledWith("https://example.convex.cloud");
     expect(convexProviderSpy).toHaveBeenCalledTimes(1);
-    expect(html).toContain("data-testid=\"convex-provider\"");
+    expect(html).toContain('data-testid="convex-provider"');
     expect(html).toContain("content");
   });
 });

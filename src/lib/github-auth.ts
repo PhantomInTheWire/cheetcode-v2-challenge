@@ -8,6 +8,7 @@
 
 // Brief cache to avoid hammering GitHub API on rapid successive calls
 const tokenCache = new Map<string, { username: string; expiresAt: number }>();
+const CACHE_TTL_MS = 60_000;
 const GITHUB_API_URL = "https://api.github.com/user";
 
 type GitHubUser = {
@@ -36,6 +37,7 @@ async function verifyGitHubToken(token: string): Promise<string | null> {
     }
 
     const user = (await res.json()) as GitHubUser;
+    tokenCache.set(token, { username: user.login, expiresAt: Date.now() + CACHE_TTL_MS });
     return user.login;
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown error";

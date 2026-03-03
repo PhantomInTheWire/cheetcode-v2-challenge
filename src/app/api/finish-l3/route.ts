@@ -6,6 +6,7 @@ import { SHADOW_BAN_HEADER } from "../../../lib/abuse";
 import { clampElapsed, shadowBanResponse } from "../../../lib/api-route";
 import { ENV } from "../../../lib/env-vars";
 import { withAuthenticatedSession } from "../../../lib/route-handler";
+import { recordBuiltTelemetry } from "../../../lib/attempt-telemetry";
 
 type RequestBody = {
   sessionId: string;
@@ -27,7 +28,23 @@ export async function POST(request: Request) {
       const clientElapsedMs = clampElapsed(timeElapsed, session.expiresAt - session.startedAt);
 
       if (request.headers.get(SHADOW_BAN_HEADER) === "1") {
-        return shadowBanResponse(session.expiresAt - session.startedAt, clientElapsedMs);
+        const response = shadowBanResponse(session.expiresAt - session.startedAt, clientElapsedMs);
+        await recordBuiltTelemetry({
+          convex,
+          sessionId: sessionId as Id<"sessions">,
+          github,
+          level: 3,
+          eventType: "finish_l3",
+          elapsedMs: clientElapsedMs,
+          route: "/api/finish-l3",
+          status: "shadow_banned",
+          errorType: "shadow_ban",
+          artifact: {
+            sessionId,
+            code,
+          },
+        });
+        return response;
       }
 
       const firstProblemId = session.problemIds[0];
@@ -38,9 +55,49 @@ export async function POST(request: Request) {
 
       const validation = await validateLevel3Submission(challengeId, code);
       if (validation.staleSession) {
+        await recordBuiltTelemetry({
+          convex,
+          sessionId: sessionId as Id<"sessions">,
+          github,
+          level: 3,
+          eventType: "finish_l3",
+          elapsedMs: clientElapsedMs,
+          route: "/api/finish-l3",
+          status: "failed",
+          errorType: "invalid_request",
+          summary: {
+            staleSession: true,
+          },
+          artifact: {
+            sessionId,
+            challengeId,
+            code,
+            validation,
+          },
+        });
         return NextResponse.json({ error: validation.error }, { status: 400 });
       }
       if (validation.compiled === false) {
+        await recordBuiltTelemetry({
+          convex,
+          sessionId: sessionId as Id<"sessions">,
+          github,
+          level: 3,
+          eventType: "finish_l3",
+          elapsedMs: clientElapsedMs,
+          route: "/api/finish-l3",
+          status: "infra_error",
+          errorType: "compile",
+          summary: {
+            compileError: validation.error,
+          },
+          artifact: {
+            sessionId,
+            challengeId,
+            code,
+            validation,
+          },
+        });
         return NextResponse.json(
           {
             error:
@@ -59,6 +116,35 @@ export async function POST(request: Request) {
         solvedProblemIds,
         timeElapsedMs: clientElapsedMs,
         exploitBonus: 0,
+      });
+
+      const status =
+        solvedProblemIds.length === 0
+          ? "failed"
+          : solvedProblemIds.length === validation.results.length
+            ? "passed"
+            : "partial";
+
+      await recordBuiltTelemetry({
+        convex,
+        sessionId: sessionId as Id<"sessions">,
+        github,
+        level: 3,
+        eventType: "finish_l3",
+        elapsedMs: clientElapsedMs,
+        route: "/api/finish-l3",
+        status,
+        solvedCount: solvedProblemIds.length,
+        passCount: solvedProblemIds.length,
+        failCount: validation.results.length - solvedProblemIds.length,
+        artifact: {
+          sessionId,
+          challengeId,
+          code,
+          validation,
+          solvedProblemIds,
+          result,
+        },
       });
 
       return NextResponse.json({

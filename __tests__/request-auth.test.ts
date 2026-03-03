@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  resolveGitHubFromHeader: vi.fn<
-    (request: Request) => Promise<string | null>
-  >(),
+  resolveGitHubFromHeader: vi.fn<(request: Request) => Promise<string | null>>(),
   auth: vi.fn<() => Promise<{ user?: { githubUsername?: string } } | null>>(),
 }));
 

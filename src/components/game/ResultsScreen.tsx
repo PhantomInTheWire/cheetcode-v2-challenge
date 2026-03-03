@@ -73,6 +73,7 @@ export function ResultsScreen({
   const inputStyle: React.CSSProperties = {
     height: 44,
     padding: "0 14px",
+    boxSizing: "border-box",
     borderRadius: 10,
     border: "1px solid #e5e5e5",
     fontSize: 13,
@@ -81,6 +82,20 @@ export function ResultsScreen({
     background: "#fafafa",
     color: "#262626",
     transition: "border-color 0.2s",
+  };
+  const inputWrapperStyle: React.CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+    minWidth: 0,
+  };
+  const inputLabelStyle: React.CSSProperties = {
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: "rgba(0,0,0,0.38)",
+    textAlign: "left",
   };
 
   return (
@@ -462,62 +477,84 @@ export function ResultsScreen({
             <div
               style={{
                 display: "grid",
-                gap: 12,
+                gap: 14,
                 alignItems: "start",
-                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                width: "100%",
               }}
             >
-              <input
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setEmailError("");
-                }}
-                placeholder="Email"
-                maxLength={254}
-                style={{
-                  ...inputStyle,
-                  width: "100%",
-                  minWidth: 0,
-                  borderColor: emailError ? "#dc2626" : "#e5e5e5",
-                }}
-                onFocus={(e) => (e.target.style.borderColor = emailError ? "#dc2626" : "#fa5d19")}
-                onBlur={(e) => (e.target.style.borderColor = emailError ? "#dc2626" : "#e5e5e5")}
-              />
-              <input
-                value={github}
-                readOnly
-                style={{ ...inputStyle, width: "100%", minWidth: 0, color: "rgba(0,0,0,0.35)" }}
-              />
-              <input
-                value={xHandle}
-                onChange={(e) => {
-                  setXHandle(e.target.value);
-                  setXHandleError("");
-                }}
-                placeholder="@x_handle"
-                maxLength={16}
-                style={{
-                  ...inputStyle,
-                  width: "100%",
-                  minWidth: 0,
-                  borderColor: xHandleError ? "#dc2626" : "#e5e5e5",
-                }}
-                onFocus={(e) => (e.target.style.borderColor = xHandleError ? "#dc2626" : "#fa5d19")}
-                onBlur={(e) => (e.target.style.borderColor = xHandleError ? "#dc2626" : "#e5e5e5")}
-              />
-              <input
-                value={flag}
-                onChange={(e) => setFlag(e.target.value)}
-                placeholder="🔥{...}"
-                style={{
-                  ...inputStyle,
-                  width: "100%",
-                  minWidth: 0,
-                }}
-                onFocus={(e) => (e.target.style.borderColor = "#fa5d19")}
-                onBlur={(e) => (e.target.style.borderColor = "#e5e5e5")}
-              />
+              <div style={inputWrapperStyle}>
+                <span style={inputLabelStyle}>Email</span>
+                <input
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setEmailError("");
+                  }}
+                  placeholder="you@company.com"
+                  maxLength={254}
+                  style={{
+                    ...inputStyle,
+                    width: "100%",
+                    minWidth: 0,
+                    borderColor: emailError ? "#dc2626" : "#e5e5e5",
+                  }}
+                  onFocus={(e) => (e.target.style.borderColor = emailError ? "#dc2626" : "#fa5d19")}
+                  onBlur={(e) => (e.target.style.borderColor = emailError ? "#dc2626" : "#e5e5e5")}
+                />
+              </div>
+              <div style={inputWrapperStyle}>
+                <span style={inputLabelStyle}>GitHub</span>
+                <input
+                  value={github}
+                  readOnly
+                  style={{
+                    ...inputStyle,
+                    width: "100%",
+                    minWidth: 0,
+                    color: "rgba(0,0,0,0.42)",
+                  }}
+                />
+              </div>
+              <div style={inputWrapperStyle}>
+                <span style={inputLabelStyle}>X Handle</span>
+                <input
+                  value={xHandle}
+                  onChange={(e) => {
+                    setXHandle(e.target.value);
+                    setXHandleError("");
+                  }}
+                  placeholder="@x_handle"
+                  maxLength={16}
+                  style={{
+                    ...inputStyle,
+                    width: "100%",
+                    minWidth: 0,
+                    borderColor: xHandleError ? "#dc2626" : "#e5e5e5",
+                  }}
+                  onFocus={(e) =>
+                    (e.target.style.borderColor = xHandleError ? "#dc2626" : "#fa5d19")
+                  }
+                  onBlur={(e) =>
+                    (e.target.style.borderColor = xHandleError ? "#dc2626" : "#e5e5e5")
+                  }
+                />
+              </div>
+              <div style={inputWrapperStyle}>
+                <span style={inputLabelStyle}>Flag</span>
+                <input
+                  value={flag}
+                  onChange={(e) => setFlag(e.target.value)}
+                  placeholder="🔥{...}"
+                  style={{
+                    ...inputStyle,
+                    width: "100%",
+                    minWidth: 0,
+                  }}
+                  onFocus={(e) => (e.target.style.borderColor = "#fa5d19")}
+                  onBlur={(e) => (e.target.style.borderColor = "#e5e5e5")}
+                />
+              </div>
             </div>
             <div style={{ marginTop: 12 }}>
               <button
@@ -526,6 +563,7 @@ export function ResultsScreen({
                 className="btn-heat"
                 style={{
                   width: "100%",
+                  maxWidth: 280,
                   height: 44,
                   padding: "0 24px",
                   borderRadius: 10,
@@ -533,6 +571,8 @@ export function ResultsScreen({
                   fontWeight: 800,
                   fontFamily: "inherit",
                   whiteSpace: "nowrap",
+                  display: "block",
+                  margin: "0 auto",
                 }}
               >
                 SUBMIT

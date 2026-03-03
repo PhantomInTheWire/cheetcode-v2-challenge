@@ -19,7 +19,7 @@ describe("AuthProvider", () => {
       createElement(AuthProvider, {}, createElement("span", {}, "child")),
     );
 
-    expect(html).toContain("data-testid=\"session-provider\"");
+    expect(html).toContain('data-testid="session-provider"');
     expect(html).toContain("child");
     expect(sessionProviderSpy).toHaveBeenCalledWith({
       refetchOnWindowFocus: false,

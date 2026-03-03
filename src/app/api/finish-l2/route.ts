@@ -6,6 +6,7 @@ import { validateLevel2Answers } from "../../../lib/level2-validation";
 import { clampElapsed, shadowBanResponse } from "../../../lib/api-route";
 import { ENV } from "../../../lib/env-vars";
 import { withAuthenticatedSession } from "../../../lib/route-handler";
+import { recordBuiltTelemetry } from "../../../lib/attempt-telemetry";
 
 type RequestBody = {
   sessionId: string;
@@ -27,7 +28,23 @@ export async function POST(request: Request) {
       const clientElapsedMs = clampElapsed(timeElapsed, session.expiresAt - session.startedAt);
 
       if (request.headers.get(SHADOW_BAN_HEADER) === "1") {
-        return shadowBanResponse(session.expiresAt - session.startedAt, clientElapsedMs);
+        const response = shadowBanResponse(session.expiresAt - session.startedAt, clientElapsedMs);
+        await recordBuiltTelemetry({
+          convex,
+          sessionId: sessionId as Id<"sessions">,
+          github,
+          level: 2,
+          eventType: "finish_l2",
+          elapsedMs: clientElapsedMs,
+          route: "/api/finish-l2",
+          status: "shadow_banned",
+          errorType: "shadow_ban",
+          artifact: {
+            sessionId,
+            answers,
+          },
+        });
+        return response;
       }
 
       const validated = validateLevel2Answers(answers);
@@ -41,6 +58,34 @@ export async function POST(request: Request) {
         solvedProblemIds,
         timeElapsedMs: clientElapsedMs,
         exploitBonus: 0,
+      });
+
+      const status =
+        solvedProblemIds.length === 0
+          ? "failed"
+          : solvedProblemIds.length === session.problemIds.length
+            ? "passed"
+            : "partial";
+
+      await recordBuiltTelemetry({
+        convex,
+        sessionId: sessionId as Id<"sessions">,
+        github,
+        level: 2,
+        eventType: "finish_l2",
+        elapsedMs: clientElapsedMs,
+        route: "/api/finish-l2",
+        status,
+        solvedCount: solvedProblemIds.length,
+        passCount: solvedProblemIds.length,
+        failCount: validated.length - solvedProblemIds.length,
+        artifact: {
+          sessionId,
+          answers,
+          validated,
+          solvedProblemIds,
+          result,
+        },
       });
 
       return NextResponse.json(result);

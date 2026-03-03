@@ -48,7 +48,7 @@ export const createInternal = internalMutation({
       .first();
 
     const unlockedLevel = leaderboard?.unlockedLevel ?? 1;
-    let level = args.requestedLevel ?? unlockedLevel;
+    const level = args.requestedLevel ?? unlockedLevel;
     if (!Number.isInteger(level) || level < 1 || level > 3) {
       throw new Error("invalid requested level");
     }
