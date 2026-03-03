@@ -1,6 +1,6 @@
 import { LEVEL2_PROBLEMS } from "../../server/level2/problems";
 
-export type Level2Answers = Record<string, string>;
+type Level2Answers = Record<string, string>;
 
 export function validateLevel2Answers(answers: Level2Answers): Array<{
   problemId: string;

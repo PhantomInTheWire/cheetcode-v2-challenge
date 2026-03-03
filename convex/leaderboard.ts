@@ -5,16 +5,17 @@ import { sortByEloAndAttempts } from "./helpers";
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
-    // Only return the top 100 on the leaderboard to prevent massive payload sizes
-    const records = await ctx.db.query("leaderboard").withIndex("by_elo").order("desc").take(100);
+    const records = await ctx.db.query("leaderboard").withIndex("by_elo").order("desc").collect();
 
-    return sortByEloAndAttempts(records).map((r) => ({
-      github: r.github,
-      solved: r.solved,
-      timeSecs: r.timeSecs,
-      elo: r.elo,
-      attempts: r.attempts,
-    }));
+    return sortByEloAndAttempts(records)
+      .slice(0, 100)
+      .map((r) => ({
+        github: r.github,
+        solved: r.solved,
+        timeSecs: r.timeSecs,
+        elo: r.elo,
+        attempts: r.attempts,
+      }));
   },
 });
 

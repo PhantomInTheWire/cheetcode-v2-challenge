@@ -1,4 +1,4 @@
-export type Level2Problem = {
+type Level2Problem = {
   id: string;
   question: string;
   answer: string;

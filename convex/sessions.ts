@@ -21,6 +21,16 @@ import { LEVEL2_PROBLEMS } from "../server/level2/problems";
 export const ROUND_DURATION_L2_MS = 60_000;
 export const ROUND_DURATION_L3_MS = 120_000;
 
+function parsePublicPayloadJson(payload: string | undefined): Record<string, unknown>[] {
+  if (!payload) return [];
+  try {
+    const parsed = JSON.parse(payload);
+    return Array.isArray(parsed) ? (parsed as Record<string, unknown>[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export const createInternal = internalMutation({
   args: {
     github: v.string(),
@@ -70,9 +80,7 @@ export const createInternal = internalMutation({
           ? injectDescriptionCanaryAtProblemId(baseProblems, recent.level1CanaryProblemId)
           : injectDescriptionCanary(baseProblems);
       } else {
-        restoredProblems = recent.publicPayloadJson
-          ? ((JSON.parse(recent.publicPayloadJson) as Record<string, unknown>[]) ?? [])
-          : [];
+        restoredProblems = parsePublicPayloadJson(recent.publicPayloadJson);
       }
       return {
         sessionId: recent._id,

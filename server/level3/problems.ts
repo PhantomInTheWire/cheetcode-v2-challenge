@@ -7,7 +7,7 @@ import {
   getLevel3ChallengeMetaFromId,
 } from "./catalog";
 
-export type Level3Challenge = {
+type Level3Challenge = {
   id: string;
   title: string;
   taskId: string;

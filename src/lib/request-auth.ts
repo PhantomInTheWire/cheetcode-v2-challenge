@@ -3,7 +3,7 @@ import { resolveGitHubFromHeader } from "./github-auth";
 import { validateGithub } from "./validation";
 import { auth } from "../../auth";
 
-export type AuthenticatedGithubResult =
+type AuthenticatedGithubResult =
   | { ok: true; github: string }
   | { ok: false; response: NextResponse };
 

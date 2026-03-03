@@ -10,22 +10,19 @@ function getHarnessSource(): string {
   return cachedHarnessSource;
 }
 
-export function buildCpuNativeSandboxRunner(language: string): string {
-  const harnessSource = getHarnessSource();
+function buildRunnerSource(language: string, harnessBootstrap: string): string {
   return `
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 
 const language = ${JSON.stringify(language)};
-const HARNESS_SOURCE = ${JSON.stringify(harnessSource)};
+${harnessBootstrap}
 
 function run(cmd, args) {
   return spawnSync(cmd, args, { encoding: "utf8", timeout: 10_000, killSignal: "SIGKILL" });
 }
 
 function compileAndRun() {
-  fs.writeFileSync("harness.c", HARNESS_SOURCE, "utf8");
-
   let compileResult;
   if (language === "C") {
     compileResult = run("clang", ["-O2", "main.c", "harness.c", "-o", "harness"]);
@@ -77,4 +74,14 @@ fs.writeFileSync("result.json", JSON.stringify({
   harness: parseHarnessOutput(runResult.stdout || "")
 }), "utf8");
 `.trim();
+}
+
+export function buildCpuNativeSandboxRunner(language: string): string {
+  const harnessBootstrap = `const HARNESS_SOURCE = ${JSON.stringify(getHarnessSource())};
+fs.writeFileSync("harness.c", HARNESS_SOURCE, "utf8");`;
+  return buildRunnerSource(language, harnessBootstrap);
+}
+
+export function buildCpuSandboxRuntimeRunner(language: string): string {
+  return buildRunnerSource(language, "");
 }

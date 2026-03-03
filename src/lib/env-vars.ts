@@ -3,7 +3,7 @@
  * Prevents "process.env.VAR!" assertions that throw cryptic runtime errors.
  */
 
-export function getRequiredEnv(name: string): string {
+function getRequiredEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
     throw new Error(`Environment variable ${name} is not set.`);

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
-import { warmLevel3Runtime } from "../../../../server/level3/validation";
 import { getLevel3ChallengeFromId } from "../../../../server/level3/problems";
 import { normalizeTestCasesWithArgs } from "../../../lib/testcaseArgs";
 import { ENV } from "../../../lib/env-vars";
@@ -73,9 +72,6 @@ export async function POST(request: Request) {
           starterCode: fullChallenge.starterCode,
           checks: fullChallenge.checks.map((c) => ({ id: c.id, name: c.name })),
         } as (typeof result.problems)[number];
-      }
-      if (challengeMeta.language) {
-        void warmLevel3Runtime(challengeMeta.language);
       }
     }
     return NextResponse.json(result);
