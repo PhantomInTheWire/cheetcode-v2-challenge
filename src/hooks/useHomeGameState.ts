@@ -438,11 +438,7 @@ export function useHomeGameState({
   const launchLevel = useCallback(
     async (level: number, level3ChallengeId?: string) => {
       if (!isAuthenticated) return;
-
-      const canPlayFromFreshResult =
-        (level === 2 && currentLevel === 1 && !!results) ||
-        (level === 3 && currentLevel === 2 && !!results);
-      if (!isLocalDev && level > unlockedLevel && !canPlayFromFreshResult) return;
+      if (!isLocalDev && level > unlockedLevel) return;
 
       setSubmitError(null);
       try {
@@ -475,12 +471,10 @@ export function useHomeGameState({
     [
       applySessionPayload,
       clearFlowState,
-      currentLevel,
       isAuthenticated,
       isLocalDev,
       persistActiveSession,
       persistSessionSnapshot,
-      results,
       unlockedLevel,
     ],
   );

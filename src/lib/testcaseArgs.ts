@@ -1,4 +1,4 @@
-export type ArgsTestCase = {
+type ArgsTestCase = {
   input: Record<string, unknown>;
   expected: unknown;
   args?: unknown[];
@@ -9,7 +9,7 @@ export function buildArgs(testCase: { args?: unknown[] }): unknown[] | null {
   return null;
 }
 
-export function extractSignatureParamNames(signature: string): string[] {
+function extractSignatureParamNames(signature: string): string[] {
   const match = signature.match(/\(([^)]*)\)/);
   const raw = (match?.[1] ?? "").trim();
   if (!raw) return [];

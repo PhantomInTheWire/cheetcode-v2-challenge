@@ -10,7 +10,7 @@ export type AbuseRoute =
   | "finish-l2"
   | "finish-l3";
 
-export type RouteConfig = {
+type RouteConfig = {
   windowMs: number;
   maxHits: number;
   shadowWindowMs: number;

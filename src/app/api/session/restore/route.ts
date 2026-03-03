@@ -11,7 +11,6 @@ import {
 } from "../../../../../server/level1/problems";
 import { LEVEL2_PROBLEMS } from "../../../../../server/level2/problems";
 import { getLevel3ChallengeFromId } from "../../../../../server/level3/problems";
-import { warmLevel3Runtime } from "../../../../../server/level3/validation";
 
 type StoredSession = {
   github: string;
@@ -115,7 +114,6 @@ export async function POST(request: Request) {
     if (!challenge) {
       return NextResponse.json({ error: "challenge not found" }, { status: 404 });
     }
-    void warmLevel3Runtime(challenge.language);
 
     return NextResponse.json({
       sessionId: body.sessionId,

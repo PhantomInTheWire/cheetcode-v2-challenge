@@ -1,10 +1,10 @@
-export type Level3CheckTemplate = {
+type Level3CheckTemplate = {
   key: string;
   name: string;
   exportName: string;
 };
 
-export type Level3TaskTemplate = {
+type Level3TaskTemplate = {
   id: string;
   name: string;
   checks: Level3CheckTemplate[];
@@ -25,9 +25,9 @@ export type Level3ChallengeMeta = {
   checks: Level3Check[];
 };
 
-export const LEVEL3_LANGUAGES = ["C", "C++", "Rust"] as const;
+const LEVEL3_LANGUAGES = ["C", "C++", "Rust"] as const;
 
-export const LEVEL3_TASKS: Level3TaskTemplate[] = [
+const LEVEL3_TASKS: Level3TaskTemplate[] = [
   {
     id: "cpu-16bit-emulator",
     name: "16-bit CPU Emulator",
@@ -91,11 +91,11 @@ function randomPick<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
 
-export function languageToKey(language: string): string {
+function languageToKey(language: string): string {
   return language.toLowerCase().replace(/\+\+/g, "pp");
 }
 
-export function keyToLanguage(key: string): string | null {
+function keyToLanguage(key: string): string | null {
   if (key === "c") return "C";
   if (key === "cpp") return "C++";
   if (key === "rust") return "Rust";

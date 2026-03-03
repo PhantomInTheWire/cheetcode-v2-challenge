@@ -2,11 +2,11 @@ function normalize(value: string | undefined): string {
   return (value || "").trim().toLowerCase();
 }
 
-export function getServerMyEnv(): string {
+function getServerMyEnv(): string {
   return normalize(process.env.MY_ENV) || normalize(process.env.my_env) || "production";
 }
 
-export function getClientMyEnv(): string {
+function getClientMyEnv(): string {
   return (
     normalize(process.env.NEXT_PUBLIC_MY_ENV) ||
     normalize(process.env.NEXT_PUBLIC_my_env) ||

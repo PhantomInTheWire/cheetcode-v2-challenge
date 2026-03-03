@@ -77,6 +77,6 @@ export type StoredFlowScreen = {
   pendingLevel: 2 | 3;
 };
 
-export const LEVEL2_TOTAL = 10;
-export const LEVEL3_TOTAL = 20;
+const LEVEL2_TOTAL = 10;
+const LEVEL3_TOTAL = 20;
 export const TOTAL_SOLVE_TARGET = PROBLEMS_PER_SESSION + LEVEL2_TOTAL + LEVEL3_TOTAL;

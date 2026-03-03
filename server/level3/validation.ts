@@ -1,9 +1,11 @@
 import { Sandbox } from "@vercel/sandbox";
 import { createHash } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import { getLevel3ChallengeFromId } from "./problems";
-import { buildCpuNativeSandboxRunner } from "./sandboxRunner";
+import { buildCpuSandboxRuntimeRunner } from "./sandboxRunner";
 
-export type Level3ValidationResult = {
+type Level3ValidationResult = {
   compiled: boolean;
   staleSession?: boolean;
   error: string;
@@ -42,12 +44,15 @@ function configuredSnapshotIdForLanguage(language: string): string | undefined {
 
 const RUNTIME_TIMEOUT_MS = 300_000;
 const RUNTIME_IDLE_SHUTDOWN_MS = 300_000;
+const assetsDir = path.join(process.cwd(), "server", "level3", "assets");
+const harnessSource = fs.readFileSync(path.join(assetsDir, "harness.c"), "utf8");
 const runtimeByLanguage = new Map<
   string,
   {
     sandbox: Sandbox & AsyncDisposable;
     lock: Promise<void>;
     idleTimer: ReturnType<typeof setTimeout> | null;
+    prepared: boolean;
   }
 >();
 const creatingRuntimeByLanguage = new Map<string, Promise<Sandbox & AsyncDisposable>>();
@@ -190,6 +195,7 @@ async function getOrCreateRuntime(language: string): Promise<{
     sandbox: Sandbox & AsyncDisposable;
     lock: Promise<void>;
     idleTimer: ReturnType<typeof setTimeout> | null;
+    prepared: boolean;
   };
   created: boolean;
 }> {
@@ -207,7 +213,7 @@ async function getOrCreateRuntime(language: string): Promise<{
       clearIdleTimer(runtime);
       return { runtime, created: false };
     }
-    const createdRuntime = { sandbox, lock: Promise.resolve(), idleTimer: null };
+    const createdRuntime = { sandbox, lock: Promise.resolve(), idleTimer: null, prepared: false };
     runtimeByLanguage.set(language, createdRuntime);
     return { runtime: createdRuntime, created: true };
   }
@@ -216,7 +222,7 @@ async function getOrCreateRuntime(language: string): Promise<{
   creatingRuntimeByLanguage.set(language, createPromise);
   try {
     const sandbox = await createPromise;
-    const runtime = { sandbox, lock: Promise.resolve(), idleTimer: null };
+    const runtime = { sandbox, lock: Promise.resolve(), idleTimer: null, prepared: false };
     runtimeByLanguage.set(language, runtime);
     return { runtime, created: true };
   } finally {
@@ -230,6 +236,26 @@ async function recycleRuntime(language: string): Promise<void> {
   clearIdleTimer(runtime);
   runtimeByLanguage.delete(language);
   await runtime.sandbox.stop({ blocking: true }).catch(() => undefined);
+}
+
+async function ensureRuntimePrepared(
+  runtime: {
+    sandbox: Sandbox & AsyncDisposable;
+    lock: Promise<void>;
+    idleTimer: ReturnType<typeof setTimeout> | null;
+    prepared: boolean;
+  },
+  language: string,
+): Promise<void> {
+  if (runtime.prepared) return;
+  await runtime.sandbox.writeFiles([
+    { path: "harness.c", content: Buffer.from(harnessSource, "utf8") },
+    {
+      path: "runner.mjs",
+      content: Buffer.from(buildCpuSandboxRuntimeRunner(language), "utf8"),
+    },
+  ]);
+  runtime.prepared = true;
 }
 
 async function runInRuntime<T>(
@@ -248,6 +274,7 @@ async function runInRuntime<T>(
     await previousLock;
     try {
       await runtime.sandbox.extendTimeout(120_000).catch(() => undefined);
+      await ensureRuntimePrepared(runtime, language);
       const value = await fn(runtime.sandbox);
       return { value, created };
     } catch (error) {
@@ -259,15 +286,6 @@ async function runInRuntime<T>(
     }
   }
   throw new Error("unreachable");
-}
-
-export async function warmLevel3Runtime(language: string): Promise<void> {
-  try {
-    const { runtime } = await getOrCreateRuntime(language);
-    scheduleIdleStop(language, runtime);
-  } catch (error) {
-    console.warn(`level3 runtime warmup failed for ${language}:`, error);
-  }
 }
 
 export async function validateLevel3Submission(
@@ -304,13 +322,7 @@ export async function validateLevel3Submission(
     const ext = extensionForLanguage(challenge.language);
     const runtimeResult = await runInRuntime(challenge.language, async (sandbox) => {
       const writeStart = Date.now();
-      await sandbox.writeFiles([
-        { path: `main.${ext}`, content: Buffer.from(code, "utf8") },
-        {
-          path: "runner.mjs",
-          content: Buffer.from(buildCpuNativeSandboxRunner(challenge.language), "utf8"),
-        },
-      ]);
+      await sandbox.writeFiles([{ path: `main.${ext}`, content: Buffer.from(code, "utf8") }]);
       writeMs = Date.now() - writeStart;
 
       const runStart = Date.now();
