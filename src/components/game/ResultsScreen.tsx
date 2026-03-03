@@ -21,6 +21,8 @@ type ResultsScreenProps = {
   results: ResultsData;
   displayedSolveTarget: number;
   currentLevel: number;
+  unlockedLevel: number;
+  isLocalDev: boolean;
   github: string;
   email: string;
   setEmail: (v: string) => void;
@@ -44,6 +46,8 @@ export function ResultsScreen({
   results,
   displayedSolveTarget,
   currentLevel,
+  unlockedLevel,
+  isLocalDev,
   github,
   email,
   setEmail,
@@ -64,6 +68,7 @@ export function ResultsScreen({
 }: ResultsScreenProps) {
   const isProgressionOnly = currentLevel === 1 || currentLevel === 2;
   const nextLevel = currentLevel === 1 ? 2 : 3;
+  const canAdvance = isLocalDev || unlockedLevel > currentLevel;
   const levelTitle = currentLevel === 1 ? "LEVEL 1 COMPLETE" : "LEVEL 2 COMPLETE";
   const inputStyle: React.CSSProperties = {
     height: 44,
@@ -588,7 +593,7 @@ export function ResultsScreen({
           </div>
         )}
 
-        {isProgressionOnly && (
+        {isProgressionOnly && canAdvance && (
           <button
             onClick={() => startGame(nextLevel)}
             className="btn-heat"
@@ -606,6 +611,14 @@ export function ResultsScreen({
           >
             {`CONTINUE TO LEVEL ${nextLevel} →`}
           </button>
+        )}
+
+        {isProgressionOnly && !canAdvance && (
+          <p style={{ marginTop: 20, fontSize: 13, color: "rgba(0,0,0,0.6)" }}>
+            {currentLevel === 1
+              ? "Level 2 unlocks after clearing all 25 Level 1 problems."
+              : "Level 3 unlocks after clearing all 10 Level 2 questions."}
+          </p>
         )}
       </div>
     </div>

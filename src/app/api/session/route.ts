@@ -77,7 +77,11 @@ export async function POST(request: Request) {
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to create session";
-    const status = message.includes("rate limited") ? 429 : 500;
+    const status = message.includes("rate limited")
+      ? 429
+      : message.includes("locked")
+        ? 403
+        : 500;
     console.error("/api/session error:", err);
     return NextResponse.json({ error: message }, { status });
   }

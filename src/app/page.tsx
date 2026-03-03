@@ -320,6 +320,8 @@ function renderHomeScreen(params: {
         results={params.results}
         displayedSolveTarget={params.sessionSolveTarget}
         currentLevel={params.currentLevel}
+        unlockedLevel={params.unlockedLevel}
+        isLocalDev={params.isLocalDev}
         github={params.github}
         email={params.email}
         setEmail={params.setEmail}
