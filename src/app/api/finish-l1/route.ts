@@ -45,6 +45,8 @@ type RequestBody = {
   flag?: string; // agents can submit the hidden flag for bonus ELO
 };
 
+const PROBLEM_BANK_BY_ID = new Map(PROBLEM_BANK.map((problem) => [problem.id, problem]));
+
 function validateSubmission(
   qjs: QuickJSWASMModule,
   code: string,
@@ -115,7 +117,7 @@ export async function POST(request: Request) {
       const solvedProblemIds: string[] = [];
       let extraSubmissions = 0;
       for (const sub of submissions) {
-        const problem = PROBLEM_BANK.find((p) => p.id === sub.problemId);
+        const problem = PROBLEM_BANK_BY_ID.get(sub.problemId);
         if (!problem || !sub.code.trim()) continue;
 
         if (!sessionProblemIds.has(sub.problemId)) {

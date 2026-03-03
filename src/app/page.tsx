@@ -5,20 +5,32 @@ import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { LandingScreen } from "@/components/game/LandingScreen";
-import { Level1Game } from "@/components/game/Level1Game";
-import { Level2PrereqScreen } from "@/components/game/Level2PrereqScreen";
-import { Level3PrereqScreen } from "@/components/game/Level3PrereqScreen";
-import { MobileGateScreen } from "@/components/game/MobileGateScreen";
-import { RestoreScreen } from "@/components/game/RestoreScreen";
-import { ResultsScreen } from "@/components/game/ResultsScreen";
 import { TOTAL_SOLVE_TARGET } from "@/lib/gameTypes";
 import { isClientDevMode } from "@/lib/myEnv";
 import { useHomeGameState } from "@/hooks/useHomeGameState";
 
 const MOBILE_BREAKPOINT = 900;
+const LandingScreen = dynamic(() =>
+  import("@/components/game/LandingScreen").then((m) => m.LandingScreen),
+);
+const Level1Game = dynamic(() => import("@/components/game/Level1Game").then((m) => m.Level1Game));
 const Level2Game = dynamic(() => import("@/components/Level2Game").then((m) => m.Level2Game));
 const Level3Game = dynamic(() => import("@/components/Level3Game").then((m) => m.Level3Game));
+const Level2PrereqScreen = dynamic(() =>
+  import("@/components/game/Level2PrereqScreen").then((m) => m.Level2PrereqScreen),
+);
+const Level3PrereqScreen = dynamic(() =>
+  import("@/components/game/Level3PrereqScreen").then((m) => m.Level3PrereqScreen),
+);
+const MobileGateScreen = dynamic(() =>
+  import("@/components/game/MobileGateScreen").then((m) => m.MobileGateScreen),
+);
+const RestoreScreen = dynamic(() =>
+  import("@/components/game/RestoreScreen").then((m) => m.RestoreScreen),
+);
+const ResultsScreen = dynamic(() =>
+  import("@/components/game/ResultsScreen").then((m) => m.ResultsScreen),
+);
 
 function useIsMobile() {
   return useSyncExternalStore(
@@ -69,9 +81,6 @@ function renderPlayingScreen(params: {
   autoSolve: HomeGameState["autoSolve"];
   isAutoSolving: HomeGameState["isAutoSolving"];
   solvedLocal: HomeGameState["solvedLocal"];
-  progress: HomeGameState["progress"];
-  timeUp: HomeGameState["timeUp"];
-  secondsLeft: HomeGameState["secondsLeft"];
   finishGame: HomeGameState["finishGame"];
   isSubmitting: HomeGameState["isSubmitting"];
   submitError: HomeGameState["submitError"];
@@ -115,9 +124,6 @@ function renderPlayingScreen(params: {
     );
   }
 
-  const timerBg =
-    params.secondsLeft <= 10 ? "#dc2626" : params.secondsLeft <= 20 ? "#fa5d19" : "#1a9338";
-
   return (
     <Level1Game
       github={params.github}
@@ -125,11 +131,7 @@ function renderPlayingScreen(params: {
       autoSolve={params.autoSolve}
       isAutoSolving={params.isAutoSolving}
       solvedLocal={params.solvedLocal}
-      progress={params.progress}
-      timerBg={timerBg}
-      timerFg={timerBg}
-      timeUp={params.timeUp}
-      secondsLeft={params.secondsLeft}
+      expiresAt={params.expiresAt}
       finishGame={params.finishGame}
       isSubmitting={params.isSubmitting}
       submitError={params.submitError}
@@ -202,9 +204,6 @@ function renderHomeScreen(params: {
   autoSolve: HomeGameState["autoSolve"];
   isAutoSolving: HomeGameState["isAutoSolving"];
   solvedLocal: HomeGameState["solvedLocal"];
-  progress: HomeGameState["progress"];
-  timeUp: HomeGameState["timeUp"];
-  secondsLeft: HomeGameState["secondsLeft"];
   finishGame: HomeGameState["finishGame"];
   isSubmitting: HomeGameState["isSubmitting"];
   problems: HomeGameState["problems"];
@@ -269,9 +268,6 @@ function renderHomeScreen(params: {
       autoSolve: params.autoSolve,
       isAutoSolving: params.isAutoSolving,
       solvedLocal: params.solvedLocal,
-      progress: params.progress,
-      timeUp: params.timeUp,
-      secondsLeft: params.secondsLeft,
       finishGame: params.finishGame,
       isSubmitting: params.isSubmitting,
       submitError: params.submitError,
@@ -352,7 +348,7 @@ export default function Home() {
   const isAuthenticated = authStatus === "authenticated" && !!github;
   const leaderboardQuery = useQuery(api.leaderboard.getAll);
   const leaderboard = leaderboardQuery ?? [];
-  const unlockedLevel = useQuery(api.leaderboard.getMyLevel, { github: github || "" }) ?? 1;
+  const unlockedLevel = useQuery(api.leaderboard.getMyLevel, github ? { github } : "skip") ?? 1;
   const isLocalDev = isClientDevMode();
   const canAutoSolve = isClientDevMode();
   const isMobile = useIsMobile();
@@ -402,9 +398,6 @@ export default function Home() {
     l3CodeDraft,
     setL3CodeDraft,
     solvedLocal,
-    progress,
-    timeUp,
-    secondsLeft,
     finishGame,
     startGame,
     launchLevel,
@@ -484,9 +477,6 @@ export default function Home() {
     autoSolve,
     isAutoSolving,
     solvedLocal,
-    progress,
-    timeUp,
-    secondsLeft,
     finishGame,
     isSubmitting,
     problems,

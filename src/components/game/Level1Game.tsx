@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { PROBLEMS_PER_SESSION } from "@/lib/constants";
+import { PROBLEMS_PER_SESSION, ROUND_DURATION_MS } from "@/lib/constants";
 
 type GameProblem = {
   id: string;
@@ -23,11 +23,7 @@ type Level1GameProps = {
   autoSolve: () => void;
   isAutoSolving: boolean;
   solvedLocal: number;
-  progress: number;
-  timerBg: string;
-  timerFg: string;
-  timeUp: boolean;
-  secondsLeft: number;
+  expiresAt: number;
   finishGame: () => void;
   isSubmitting: boolean;
   submitError: string | null;
@@ -46,11 +42,7 @@ export function Level1Game({
   autoSolve,
   isAutoSolving,
   solvedLocal,
-  progress,
-  timerBg,
-  timerFg,
-  timeUp,
-  secondsLeft,
+  expiresAt,
   finishGame,
   isSubmitting,
   submitError,
@@ -61,6 +53,22 @@ export function Level1Game({
   runLocalCheck,
 }: Level1GameProps) {
   const [expandedQuestions, setExpandedQuestions] = React.useState<Record<string, boolean>>({});
+  const [timeLeftMs, setTimeLeftMs] = React.useState(ROUND_DURATION_MS);
+
+  React.useEffect(() => {
+    const syncTimeLeft = () => {
+      setTimeLeftMs(Math.max(0, expiresAt - Date.now()));
+    };
+    syncTimeLeft();
+    const id = window.setInterval(syncTimeLeft, 100);
+    return () => window.clearInterval(id);
+  }, [expiresAt]);
+
+  const secondsLeft = Math.ceil(timeLeftMs / 1000);
+  const progress = Math.max(0, Math.min(100, (timeLeftMs / ROUND_DURATION_MS) * 100));
+  const timeUp = timeLeftMs === 0;
+  const timerBg = secondsLeft <= 10 ? "#dc2626" : secondsLeft <= 20 ? "#fa5d19" : "#1a9338";
+  const timerFg = timerBg;
 
   return (
     <div

@@ -172,7 +172,6 @@ export const recordEventInternal = internalMutation({
 
 export const recordEvent = action({
   args: {
-    secret: v.string(),
     sessionId: v.id("sessions"),
     github: v.string(),
     level: v.number(),
@@ -191,12 +190,7 @@ export const recordEvent = action({
     artifactJson: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<string> => {
-    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
-      throw new Error("unauthorized");
-    }
-
-    const { secret: _secret, ...eventArgs } = args;
-    return await ctx.runMutation(internal.attemptTelemetry.recordEventInternal, eventArgs);
+    return await ctx.runMutation(internal.attemptTelemetry.recordEventInternal, args);
   },
 });
 

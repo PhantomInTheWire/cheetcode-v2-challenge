@@ -84,7 +84,6 @@ export function useHomeGameState({
   const [flag, setFlag] = useState("");
   const [submittedLead, setSubmittedLead] = useState(false);
   const [isAutoSolving, setIsAutoSolving] = useState(false);
-  const [now, setNow] = useState(Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState("");
@@ -272,11 +271,6 @@ export function useHomeGameState({
   );
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 100);
-    return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const raw = window.localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY);
@@ -374,21 +368,16 @@ export function useHomeGameState({
     setIsRestoringSession(false);
   }, [authStatus, clearStoredFlowScreen, clearStoredResults, clearStoredSession]);
 
-  const timeLeftMs = useMemo(() => Math.max(0, expiresAt - now), [expiresAt, now]);
-  const secondsLeft = Math.ceil(timeLeftMs / 1000);
-  const progress = expiresAt
-    ? Math.max(0, Math.min(100, (timeLeftMs / ROUND_DURATION_MS) * 100))
-    : 0;
   const solvedLocal = useMemo(
     () => problems.filter((p) => localPass[p.id] === true).length,
     [problems, localPass],
   );
-  const timeUp = screen === "playing" && timeLeftMs === 0;
 
   const finishGame = useCallback(async () => {
     if (!sessionId || results || isSubmitting) return;
     if (lockedTimeElapsedMsRef.current === null) {
-      lockedTimeElapsedMsRef.current = ROUND_DURATION_MS - timeLeftMs;
+      const remainingMs = Math.max(0, expiresAt - Date.now());
+      lockedTimeElapsedMsRef.current = ROUND_DURATION_MS - remainingMs;
     }
     const lockedTimeElapsedMs = lockedTimeElapsedMsRef.current;
     setIsSubmitting(true);
@@ -423,7 +412,7 @@ export function useHomeGameState({
     sessionId,
     results,
     isSubmitting,
-    timeLeftMs,
+    expiresAt,
     github,
     problems,
     codes,
@@ -432,8 +421,13 @@ export function useHomeGameState({
   ]);
 
   useEffect(() => {
-    if (screen === "playing" && currentLevel === 1 && timeLeftMs === 0) void finishGame();
-  }, [timeLeftMs, screen, currentLevel, finishGame]);
+    if (screen !== "playing" || currentLevel !== 1 || !sessionId || expiresAt <= 0) return;
+    const timeoutMs = Math.max(0, expiresAt - Date.now());
+    const timeoutId = window.setTimeout(() => {
+      void finishGame();
+    }, timeoutMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [currentLevel, expiresAt, finishGame, screen, sessionId]);
 
   const launchLevel = useCallback(
     async (level: number, level3ChallengeId?: string) => {
@@ -971,9 +965,6 @@ export function useHomeGameState({
     l3CodeDraft,
     setL3CodeDraft,
     solvedLocal,
-    progress,
-    timeUp,
-    secondsLeft,
     finishGame,
     startGame,
     launchLevel,

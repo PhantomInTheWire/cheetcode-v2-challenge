@@ -2,7 +2,6 @@ import type { ConvexHttpClient } from "convex/browser";
 import { createHash } from "node:crypto";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
-import { ENV } from "./env-vars";
 import type {
   TelemetryErrorType,
   TelemetryEventType,
@@ -87,7 +86,6 @@ export async function recordAttemptTelemetry(input: TelemetryEventInput): Promis
       (api as typeof api & { attemptTelemetry: { recordEvent: unknown } }).attemptTelemetry
         .recordEvent,
       {
-        secret: ENV.CONVEX_MUTATION_SECRET,
         sessionId: input.sessionId,
         github: input.github,
         level: input.level,
