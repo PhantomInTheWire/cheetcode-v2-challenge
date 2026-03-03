@@ -165,7 +165,7 @@ export function Level3Game({
       const res = await clientFetch("/api/validate-l3", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ challengeId: challenge.id, code }),
+        body: JSON.stringify({ sessionId, challengeId: challenge.id, code }),
       });
       const data = await res.json();
       if (!res.ok) {

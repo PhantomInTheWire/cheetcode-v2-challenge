@@ -628,6 +628,7 @@ export function useHomeGameState({
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
+            sessionId,
             code: codes[problem.id] ?? problem.starterCode,
             testCases: problem.testCases,
           }),
@@ -777,7 +778,7 @@ export function useHomeGameState({
                 const single = await clientFetch("/api/validate-l1", {
                   method: "POST",
                   headers: { "content-type": "application/json" },
-                  body: JSON.stringify({ code, testCases: problem.testCases }),
+                  body: JSON.stringify({ sessionId, code, testCases: problem.testCases }),
                 });
                 if (!single.ok) return [problem.id, null] as const;
                 const singleData = await single.json();

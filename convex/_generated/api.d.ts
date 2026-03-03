@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as attemptTelemetry from "../attemptTelemetry.js";
 import type * as helpers from "../helpers.js";
 import type * as leaderboard from "../leaderboard.js";
 import type * as leads from "../leads.js";
@@ -21,6 +22,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  attemptTelemetry: typeof attemptTelemetry;
   helpers: typeof helpers;
   leaderboard: typeof leaderboard;
   leads: typeof leads;

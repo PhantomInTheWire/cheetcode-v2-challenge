@@ -22,6 +22,13 @@ vi.mock("convex/browser", () => ({
   })),
 }));
 
+vi.mock("../src/lib/env-vars", () => ({
+  ENV: {
+    NEXT_PUBLIC_CONVEX_URL: "https://example.convex.cloud",
+    CONVEX_MUTATION_SECRET: "test-secret",
+  },
+}));
+
 vi.mock("../src/lib/request-auth", () => ({
   requireAuthenticatedGithub: hoisted.requireAuthMock,
 }));
@@ -72,11 +79,16 @@ describe("finish l2/l3 routes", () => {
 
     const res = await POST(req);
     expect(res.status).toBe(200);
-    expect(hoisted.actionMock).toHaveBeenCalled();
+    expect(hoisted.actionMock).toHaveBeenCalledTimes(2);
     const actionCall = hoisted.actionMock.mock.calls[0]?.[1] as
       | { solvedProblemIds: string[] }
       | undefined;
     expect(actionCall?.solvedProblemIds).toEqual(["l2_1"]);
+    const telemetryCall = hoisted.actionMock.mock.calls[1]?.[1] as
+      | { eventType: string; status: string }
+      | undefined;
+    expect(telemetryCall?.eventType).toBe("finish_l2");
+    expect(telemetryCall?.status).toBe("passed");
   });
 
   it("/api/finish-l2 rejects non-level-2 sessions", async () => {
@@ -121,7 +133,7 @@ describe("finish l2/l3 routes", () => {
     const body = (await res.json()) as { validation: { compiled: boolean } };
     expect(body.validation.compiled).toBe(true);
     expect(hoisted.validateL3Mock).toHaveBeenCalled();
-    expect(hoisted.actionMock).toHaveBeenCalled();
+    expect(hoisted.actionMock).toHaveBeenCalledTimes(2);
 
     const actionCall = hoisted.actionMock.mock.calls[0]?.[1] as
       | { solvedProblemIds: string[] }
@@ -130,6 +142,11 @@ describe("finish l2/l3 routes", () => {
     expect(actionCall?.solvedProblemIds).toHaveLength(20);
     expect(new Set(actionCall?.solvedProblemIds).size).toBe(20);
     expect(actionCall?.solvedProblemIds).toEqual(hoisted.l3CheckIds);
+    const telemetryCall = hoisted.actionMock.mock.calls[1]?.[1] as
+      | { eventType: string; status: string }
+      | undefined;
+    expect(telemetryCall?.eventType).toBe("finish_l3");
+    expect(telemetryCall?.status).toBe("passed");
   });
 
   it("each individual L3 check affects scoring input (20/20 sensitivity)", async () => {
@@ -166,6 +183,11 @@ describe("finish l2/l3 routes", () => {
       expect(actionCall).toBeTruthy();
       expect(actionCall?.solvedProblemIds).toHaveLength(19);
       expect(actionCall?.solvedProblemIds.includes(missedId)).toBe(false);
+      const telemetryCall = hoisted.actionMock.mock.calls[1]?.[1] as
+        | { eventType: string; status: string }
+        | undefined;
+      expect(telemetryCall?.eventType).toBe("finish_l3");
+      expect(telemetryCall?.status).toBe("partial");
     }
   });
 
@@ -189,6 +211,11 @@ describe("finish l2/l3 routes", () => {
     const body = (await res.json()) as { rank: number };
     expect(body.rank).toBe(9999);
     expect(hoisted.validateL3Mock).not.toHaveBeenCalled();
-    expect(hoisted.actionMock).not.toHaveBeenCalled();
+    expect(hoisted.actionMock).toHaveBeenCalledTimes(1);
+    const telemetryCall = hoisted.actionMock.mock.calls[0]?.[1] as
+      | { eventType: string; status: string }
+      | undefined;
+    expect(telemetryCall?.eventType).toBe("finish_l3");
+    expect(telemetryCall?.status).toBe("shadow_banned");
   });
 });
