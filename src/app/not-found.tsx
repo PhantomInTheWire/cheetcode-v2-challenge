@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { COLORS } from "@/lib/theme";
 
 const shellStyle: React.CSSProperties = {
@@ -39,11 +40,15 @@ export default function NotFound() {
   return (
     <div style={shellStyle}>
       <div style={cardStyle}>
-        <pre
-          style={{ margin: 0, color: COLORS.PRIMARY, fontSize: 13, lineHeight: 1.2 }}
-        >{`+--------------+
-| 404 NOT FOUND|
-+--------------+`}</pre>
+        <div style={{ marginBottom: "16px" }}>
+          <Image
+            src="/images/errors/not-found.svg"
+            alt="Not Found Illustration"
+            width={200}
+            height={120}
+            priority
+          />
+        </div>
         <h2
           style={{ margin: "12px 0 8px", color: COLORS.TEXT_DARK, fontSize: 28, fontWeight: 800 }}
         >

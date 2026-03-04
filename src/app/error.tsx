@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Image from "next/image";
 import { COLORS } from "@/lib/theme";
 
 const shellStyle: React.CSSProperties = {
@@ -51,12 +52,15 @@ export default function Error({
   return (
     <div style={shellStyle}>
       <div style={cardStyle}>
-        <pre
-          style={{ margin: 0, color: COLORS.PRIMARY, fontSize: 13, lineHeight: 1.2 }}
-        >{`(  )   (   )  )
- ) (   )  (  (
-( )  (    ) )
-CTF ROUTE FAULT`}</pre>
+        <div style={{ marginBottom: "20px" }}>
+          <Image
+            src="/images/errors/route-error.svg"
+            alt="Route Error Illustration"
+            width={200}
+            height={120}
+            priority
+          />
+        </div>
         <h2
           style={{ margin: "14px 0 8px", color: COLORS.TEXT_DARK, fontSize: 28, fontWeight: 800 }}
         >

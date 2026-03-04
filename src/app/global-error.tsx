@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Image from "next/image";
 import { COLORS } from "@/lib/theme";
 
 const shellStyle: React.CSSProperties = {
@@ -52,12 +53,15 @@ export default function GlobalError({
     <html lang="en">
       <body style={shellStyle}>
         <div style={cardStyle}>
-          <pre
-            style={{ margin: 0, color: COLORS.PRIMARY, fontSize: 13, lineHeight: 1.2 }}
-          >{`  ___ _ _ _ __
- / __| | | '_ \\
-| (__| |_| | | |
- \\___|\\___/| |_|`}</pre>
+          <div style={{ marginBottom: "20px" }}>
+            <Image
+              src="/images/errors/global-error.svg"
+              alt="Global Error Illustration"
+              width={200}
+              height={120}
+              priority
+            />
+          </div>
           <h2
             style={{ margin: "14px 0 8px", color: COLORS.TEXT_DARK, fontSize: 30, fontWeight: 800 }}
           >
