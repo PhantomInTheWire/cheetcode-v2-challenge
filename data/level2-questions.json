@@ -94,5 +94,65 @@
     "question": "When the browser performs a device identity verification exchange with a remote access gateway, the response payload is assembled from contributions by two separate endorsers — one scoped to the machine's management enrollment and one scoped to the managed account's profile. If the fleet policy that triggers this exchange is configured only at the managed-account level, neither endorser is able to apply a cryptographic seal to the outbound payload. The system still considers this a successful outcome and transmits the unsealed payload. What is the specific status value recorded for this unsealed-but-successful result?",
     "answer": "kSuccessNoSignature",
     "acceptableAnswers": ["kSuccessNoSignature", "11", "SuccessNoSignature"]
+  },
+  {
+    "id": "l2_16",
+    "question": "A user plugs a portable hardware credential device — one equipped with an integrated fingerprint sensor but no separate numeric secret configured — into their computer and taps a website's sign-in button. The browser dispatches a site identity proof request to the device. The device's embedded biometric recognition has already been rendered permanently unresponsive from too many failed finger-swipe attempts during an earlier session. The user touches the device to confirm presence, but because the on-device biometric subsystem is irrecoverably locked for this power cycle and no alternative owner-verification mechanism exists on the device, the credential token acquisition pipeline cannot proceed. What is the exact result-enum value name emitted by the subsystem responsible for negotiating owner-verification tokens from the device to describe this specific terminal failure?",
+    "answer": "kPostTouchAuthenticatorInternalUVLock",
+    "acceptableAnswers": ["kPostTouchAuthenticatorInternalUVLock", "PostTouchAuthenticatorInternalUVLock"]
+  },
+  {
+    "id": "l2_17",
+    "question": "On Apple's desktop platform, a notification ribbon in the browser proposes elevating the automatic-patch orchestrator to machine-wide scope. When the user approves, the operating system's credential dialog appears. After the user authenticates, a daemon-management primitive loads a root-level companion process. The browser then dispatches a cross-process directive to this companion, which extracts the bundled patch-orchestrator application into a per-user secure scratch area and subjects it to a dual-condition code-authenticity audit — confirming that every processor-architecture slice is genuine AND that every nested signed payload also passes validation. If this dual-condition audit determines the extracted bundle is not authentic, what named integer constant does the calling function return?",
+    "answer": "kFailedToVerifyUpdater",
+    "acceptableAnswers": ["kFailedToVerifyUpdater", "-6"]
+  },
+  {
+    "id": "l2_18",
+    "question": "In the browser's short-range wireless radio stack, when the browser process tries to initiate a link-layer connection to a peripheral device but the hardware adapter's device lookup returns null — indicating the peripheral has physically moved beyond signal reach — what is the exact result-code enum value that propagates from the device-layer connection interface through the interprocess message definition and ultimately surfaces as a network-category web-facing exception reading 'is no longer in range'?",
+    "answer": "DEVICE_NO_LONGER_IN_RANGE",
+    "acceptableAnswers": ["DEVICE_NO_LONGER_IN_RANGE"]
+  },
+  {
+    "id": "l2_19",
+    "question": "In the video acquisition subsystem on the platform that uses a hardware media transform pipeline, when the native capture engine's preview stream fails to begin, the system does not immediately signal an error. Instead, it spawns a peripheral occupancy probe that queries whether a rival process holds an active streaming claim on the same physical imaging device. If the probe's activity report confirms that an external process is indeed streaming, what is the specific error enumeration value emitted by the capture device before the error propagates through the frame receiver, the browser-side distribution controller, the host IPC bridge, and ultimately reaches the renderer's capture implementation, which maps it to a dedicated busy state — distinct from both the generic error state and the system-permissions-denied state?",
+    "answer": "kWinMediaFoundationCameraBusy",
+    "acceptableAnswers": ["kWinMediaFoundationCameraBusy", "149"]
+  },
+  {
+    "id": "l2_20",
+    "question": "When a web page dispatches an outbound vendor-typed command transfer to a tethered peripheral, the browser's device-service relay inspects the payload bytes for a hardcoded hexadecimal sentinel string. This sentinel identifies an attempt to reprogram the peripheral into an authentication-credential accessory role via an open-accessory handshake. If the payload begins with this sentinel and the command targets string-index one with request code fifty-two, the relay silently refuses the transfer and the requesting page receives a security rejection. What is the exact literal value of this hexadecimal sentinel string?",
+    "answer": "12eba9f901039b36",
+    "acceptableAnswers": ["12eba9f901039b36"]
+  },
+  {
+    "id": "l2_21",
+    "question": "When the browser's credential revocation blocklist identifies that a chain's signing authority key fingerprint belongs to a recognized third-party eavesdropper (not the device owner), and that chain has already been marked as revoked, a special compound error is produced. This error is unique because the status-to-error mapping function gives it higher priority than the underlying revocation failure, and three separate connection layers (stream socket, resource request dispatcher, and multiplexed transport proof verification) all contain explicit carve-outs ensuring it remains user-overridable even when the destination host enforces a mandatory encrypted channel policy. What is the signed integer value of this network error code?",
+    "answer": "-217",
+    "acceptableAnswers": ["-217", "217", "CERT_KNOWN_INTERCEPTION_BLOCKED"]
+  },
+  {
+    "id": "l2_22",
+    "question": "When a signed software package for a browser add-on sourced from the official add-on marketplace fails unpacking because the package header lacks a cryptographic attestation from the marketplace operator (distinct from the developer's own signing key), the sandboxed unpacking pipeline emits a specific failure code with integer value 41. That failure code is then classified as a package-integrity fault, causing the auto-update subsystem to evict the cached package and re-fetch it. What is the exact name of the failure reason enum value (integer value 41) in the unpacker failure enumeration?",
+    "answer": "CRX_REQUIRED_PROOF_MISSING",
+    "acceptableAnswers": ["CRX_REQUIRED_PROOF_MISSING", "41"]
+  },
+  {
+    "id": "l2_23",
+    "question": "In the hardcopy reproduction subsystem's device-state taxonomy, which enumerated diagnostic condition — assigned ordinal position twenty-eight — describes the scenario where a physical document output device's pigment-fixation heat roller has failed to reach sufficient operating temperature? This condition is notably grouped with four other hardware-fault reasons (including photoconductor expiration and command-interpreter resource exhaustion) and collectively re-classified as a generic apparatus malfunction when translated into the OS-layer status vocabulary, yet it is entirely absent from the explicit switch branches of the print-management error-code distillation logic, causing it to silently resolve as 'no error.'",
+    "answer": "kFuserUnderTemp",
+    "acceptableAnswers": ["kFuserUnderTemp", "28", "FuserUnderTemp"]
+  },
+  {
+    "id": "l2_24",
+    "question": "When a background worker acting as a transaction fulfillment handler provides a goods-delivery destination in its response to a merchant checkout ceremony, the sole validation performed on that destination checks whether the sovereign territory designator conforms to a two-character uppercase alphabetic pattern. If the designator is malformed — even though the destination itself was supplied — what enumerated outcome signal is transmitted back through the inter-process channel to indicate this specific delivery-destination rejection?",
+    "answer": "SHIPPING_ADDRESS_INVALID",
+    "acceptableAnswers": ["SHIPPING_ADDRESS_INVALID"]
+  },
+  {
+    "id": "l2_25",
+    "question": "In the browser's framework for managing human-operated input peripherals, a curated roster of recognized physical credential fobs lists exactly one model. When a peripheral on this roster is connected and the requesting origin holds credential-fob access privileges, the interaction report restriction layer is bypassed entirely — even for reports outside the credential-fob data namespace. What is the hexadecimal model designator (product identifier) of that sole roster entry?",
+    "answer": "0x5026",
+    "acceptableAnswers": ["0x5026", "5026"]
   }
 ]
