@@ -39,17 +39,21 @@ User-visible action (plain language)
 ## Process
 
 ### 1. Find the Answer (Bottom-Up)
+
 Start from deep layers (`components/`, `services/`, `base/`, `chrome/updater/`, `chrome/browser/enterprise/`). Find an **enum value or constant** on an edge-case/failure path with a specific, non-obvious name.
 
 ### 2. Trace the Call Chain Upward
+
 Find 5+ files from 5+ different directory prefixes leading from user action to the answer. Document path, line, and role for each.
 
 ### 3. Write the Question (Top-Down)
+
 Describe the scenario from the user's perspective following the obfuscation rules below.
 
 ### 4. Verify Ungrepability (MANDATORY — see checklist)
 
 ### 5. Verify Depth
+
 Confirm 5+ files from 5+ subsystem directories. If shorter, pick a different answer.
 
 ## Obfuscation Rules
@@ -58,45 +62,45 @@ Confirm 5+ files from 5+ subsystem directories. If shorter, pick a different ans
 
 **Describe all concepts using physical/real-world language:**
 
-| Internal Term | Use Instead |
-|---|---|
-| clipboard | system buffer |
-| IndexedDB | local database |
-| service worker | background helper process |
-| gamepad | physical game controller |
-| Safe Browsing | safety database |
-| enterprise policy | organizational security rules |
-| DLP | data governance rules |
-| content analysis connector | remote content inspection service |
-| interstitial | warning barrier page |
-| CRX | signed software package |
-| Chrome updater | software self-renewal mechanism |
-| group policy / GPO | machine administrative configuration |
-| DM server | central device management server |
-| DM token | enrollment credentials |
-| policy merge | configuration rule precedence resolution |
-| cloud policy fetch | administrative settings distribution |
-| device attestation | hardware integrity proof |
-| device trust signals | security posture signals |
-| watermark | visible ownership marking overlay |
-| Bluetooth | short-range wireless radio |
-| iframe | embedded interactive frame |
-| metered connection | bandwidth-metered network |
-| WebRTC | real-time media channel |
-| certificate | cryptographic credential |
-| signing key rotation | signing authority credential rotation |
-| policy validation | configuration payload integrity check |
-| Secure Enclave | tamper-resistant hardware key vault |
-| Keystone | legacy software update framework |
-| launchd / launch agent | system's background job scheduler |
-| XPC / privileged helper | elevated-privilege installation assistant |
-| MDM profile | fleet-administered configuration profile |
-| Touch ID / LAContext | device's biometric verification prompt |
-| Keychain | operating system's credential vault |
-| AVFoundation | system's video acquisition subsystem |
-| NSUserDefaults | application's persistent settings store |
-| SSO / Entra ID | organization's federated identity provider |
-| Keystone ticket | legacy update registration record |
+| Internal Term              | Use Instead                                |
+| -------------------------- | ------------------------------------------ |
+| clipboard                  | system buffer                              |
+| IndexedDB                  | local database                             |
+| service worker             | background helper process                  |
+| gamepad                    | physical game controller                   |
+| Safe Browsing              | safety database                            |
+| enterprise policy          | organizational security rules              |
+| DLP                        | data governance rules                      |
+| content analysis connector | remote content inspection service          |
+| interstitial               | warning barrier page                       |
+| CRX                        | signed software package                    |
+| Chrome updater             | software self-renewal mechanism            |
+| group policy / GPO         | machine administrative configuration       |
+| DM server                  | central device management server           |
+| DM token                   | enrollment credentials                     |
+| policy merge               | configuration rule precedence resolution   |
+| cloud policy fetch         | administrative settings distribution       |
+| device attestation         | hardware integrity proof                   |
+| device trust signals       | security posture signals                   |
+| watermark                  | visible ownership marking overlay          |
+| Bluetooth                  | short-range wireless radio                 |
+| iframe                     | embedded interactive frame                 |
+| metered connection         | bandwidth-metered network                  |
+| WebRTC                     | real-time media channel                    |
+| certificate                | cryptographic credential                   |
+| signing key rotation       | signing authority credential rotation      |
+| policy validation          | configuration payload integrity check      |
+| Secure Enclave             | tamper-resistant hardware key vault        |
+| Keystone                   | legacy software update framework           |
+| launchd / launch agent     | system's background job scheduler          |
+| XPC / privileged helper    | elevated-privilege installation assistant  |
+| MDM profile                | fleet-administered configuration profile   |
+| Touch ID / LAContext       | device's biometric verification prompt     |
+| Keychain                   | operating system's credential vault        |
+| AVFoundation               | system's video acquisition subsystem       |
+| NSUserDefaults             | application's persistent settings store    |
+| SSO / Entra ID             | organization's federated identity provider |
+| Keystone ticket            | legacy update registration record          |
 
 **Stack multiple narrowing conditions** to force state-machine understanding — don't ask "what error on failure?", describe the exact scenario with 2-3 intersecting conditions.
 
@@ -105,6 +109,7 @@ Confirm 5+ files from 5+ subsystem directories. If shorter, pick a different ans
 ## Hotspot Areas
 
 ### Enterprise
+
 - `chrome/browser/enterprise/data_controls/` — DLP clipboard/paste/print
 - `chrome/browser/enterprise/connectors/analysis/` — content scanning
 - `chrome/browser/enterprise/connectors/device_trust/` — device attestation
@@ -114,19 +119,23 @@ Confirm 5+ files from 5+ subsystem directories. If shorter, pick a different ans
 - `chrome/browser/enterprise/platform_auth/` — SSO/Entra, URL session auth
 
 ### Policy
+
 - `components/policy/core/common/cloud/` — cloud policy fetch/validate/store
 - `components/policy/core/common/` — merge, schema validation
 - `components/policy/proto/` — wire format
 
 ### Updater
+
 - `chrome/updater/` — update checking, blocking, installation
 - `components/update_client/` — protocol, states, errors
 
 ### Device Trust
+
 - `components/enterprise/device_trust/` — attestation flow, key management
 - `components/enterprise/device_attestation/` — attestation primitives
 
-### macOS Objective-C (*.mm) — bottom-of-stack platform edge cases
+### macOS Objective-C (\*.mm) — bottom-of-stack platform edge cases
+
 - `chrome/browser/enterprise/connectors/device_trust/key_management/core/mac/` — Secure Enclave ops
 - `chrome/browser/enterprise/signals/device_info_fetcher_mac.mm` — device signals
 - `chrome/updater/mac/setup/` — Keystone migration, wake tasks, launchd

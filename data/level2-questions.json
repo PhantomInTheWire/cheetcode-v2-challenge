@@ -87,7 +87,11 @@
     "id": "l2_14",
     "question": "When the organization's central device management server issues a configuration delivery payload that includes a replacement signing credential — performing a signing authority credential rotation — the client must verify that this incoming credential was itself endorsed by a root trust anchor that is immutably embedded in the application binary. If this cryptographic endorsement verification against the permanently compiled-in root trust anchor fails, what specific validation disposition code does the configuration payload integrity checker assign to reject the entire settings bundle?",
     "answer": "VALIDATION_BAD_KEY_VERIFICATION_SIGNATURE",
-    "acceptableAnswers": ["VALIDATION_BAD_KEY_VERIFICATION_SIGNATURE", "12", "BAD_KEY_VERIFICATION_SIGNATURE"]
+    "acceptableAnswers": [
+      "VALIDATION_BAD_KEY_VERIFICATION_SIGNATURE",
+      "12",
+      "BAD_KEY_VERIFICATION_SIGNATURE"
+    ]
   },
   {
     "id": "l2_15",
@@ -99,7 +103,10 @@
     "id": "l2_16",
     "question": "A user plugs a portable hardware credential device — one equipped with an integrated fingerprint sensor but no separate numeric secret configured — into their computer and taps a website's sign-in button. The browser dispatches a site identity proof request to the device. The device's embedded biometric recognition has already been rendered permanently unresponsive from too many failed finger-swipe attempts during an earlier session. The user touches the device to confirm presence, but because the on-device biometric subsystem is irrecoverably locked for this power cycle and no alternative owner-verification mechanism exists on the device, the credential token acquisition pipeline cannot proceed. What is the exact result-enum value name emitted by the subsystem responsible for negotiating owner-verification tokens from the device to describe this specific terminal failure?",
     "answer": "kPostTouchAuthenticatorInternalUVLock",
-    "acceptableAnswers": ["kPostTouchAuthenticatorInternalUVLock", "PostTouchAuthenticatorInternalUVLock"]
+    "acceptableAnswers": [
+      "kPostTouchAuthenticatorInternalUVLock",
+      "PostTouchAuthenticatorInternalUVLock"
+    ]
   },
   {
     "id": "l2_17",

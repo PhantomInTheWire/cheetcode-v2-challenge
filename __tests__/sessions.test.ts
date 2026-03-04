@@ -5,10 +5,7 @@ import {
   selectSessionProblems,
   stripSolution,
 } from "../server/level1/problems";
-import {
-  LEVEL2_PROBLEM_SET_SIZE,
-  selectLevel2SessionProblems,
-} from "../server/level2/problems";
+import { LEVEL2_PROBLEM_SET_SIZE, selectLevel2SessionProblems } from "../server/level2/problems";
 
 describe("sessions", () => {
   it("selects the configured number of level 1 problems by tier", () => {
