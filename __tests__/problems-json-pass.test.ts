@@ -47,9 +47,9 @@ function resolveSubmittedFunction(
   return ok;
 }
 
-describe("problems.json reference solutions", () => {
+describe("level1-questions.json reference solutions", () => {
   it("all problems pass their test cases under QuickJS", async () => {
-    const raw = fs.readFileSync("data/problems.json", "utf8");
+    const raw = fs.readFileSync("data/level1-questions.json", "utf8");
     const parsed = JSON.parse(raw) as { problems: Problem[] };
     const qjs = await getQuickJS();
 

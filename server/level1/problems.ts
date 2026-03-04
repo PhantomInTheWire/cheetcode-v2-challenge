@@ -20,7 +20,7 @@ type Problem = {
 
 type PublicProblem = Omit<Problem, "solution">;
 
-import problemsData from "../../data/problems.json";
+import problemsData from "../../data/level1-questions.json";
 
 const typedProblemsData = problemsData as {
   version: string;
