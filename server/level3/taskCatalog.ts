@@ -39,31 +39,30 @@ const RAW_LEVEL3_TASK_CATALOG: Level3TaskTemplate[] = [
         exportName: "cpu_get_flag_v",
       },
       { key: "arith_cmp_flags", name: "CMP flag-only behavior", exportName: "cpu_get_flag_n" },
-      { key: "logic_bitwise", name: "Bitwise logical operations", exportName: "cpu_get_reg" },
-      { key: "logic_shifts", name: "Shift semantics and flags", exportName: "cpu_get_flag_z" },
-      { key: "branch_jnz_loop", name: "JNZ loop control flow", exportName: "cpu_get_pc" },
-      { key: "branch_jn_taken", name: "JN negative branch behavior", exportName: "cpu_get_pc" },
+      {
+        key: "logic_bitwise",
+        name: "Bitwise + shift scalar semantics",
+        exportName: "cpu_get_reg",
+      },
+      { key: "branch_jnz_loop", name: "JNZ/JN branch control flow", exportName: "cpu_get_pc" },
       { key: "stack_push_pop", name: "Stack push/pop behavior", exportName: "cpu_get_sp" },
       { key: "stack_call_ret", name: "CALL/RET discipline", exportName: "cpu_get_sp" },
       {
         key: "memory_wraparound",
-        name: "Core wraparound and helper bounds",
-        exportName: "cpu_mem_read16",
-      },
-      {
-        key: "memory_unaligned",
-        name: "Memory unaligned word semantics",
+        name: "Core wraparound + unaligned semantics",
         exportName: "cpu_mem_read16",
       },
       {
         key: "helper_load_word_bounds",
-        name: "Helper load-word address bounds",
+        name: "Helper load-word + mem-read bounds",
         exportName: "cpu_load_word",
       },
+      { key: "simd_lane_add_wrap", name: "SIMD VADD lane wraparound", exportName: "cpu_get_reg" },
+      { key: "simd_lane_sub_wrap", name: "SIMD VSUB lane wraparound", exportName: "cpu_get_reg" },
       {
-        key: "helper_mem_read_bounds",
-        name: "Helper mem-read address bounds",
-        exportName: "cpu_mem_read16",
+        key: "simd_lane_xor_flag_stability",
+        name: "SIMD VXOR and flag stability",
+        exportName: "cpu_get_flag_v",
       },
       {
         key: "programs_asm1",
@@ -90,6 +89,7 @@ const RAW_LEVEL3_TASK_CATALOG: Level3TaskTemplate[] = [
       { key: "random_alu", name: "Randomized ALU property checks", exportName: "cpu_get_reg" },
       { key: "benchmark_budget", name: "Cycle/timing budget constraints", exportName: "cpu_run" },
       { key: "perf_run_throughput", name: "Run throughput benchmark", exportName: "cpu_run" },
+      { key: "perf_simd_throughput", name: "SIMD throughput benchmark", exportName: "cpu_run" },
       {
         key: "perf_asm_label_lookup",
         name: "Assembler label lookup benchmark",
@@ -132,17 +132,28 @@ export function validateLevel3TaskCatalog(rawCatalog: unknown): Level3TaskTempla
     }
 
     const task = rawTask as Partial<Level3TaskTemplate>;
-    assertNonEmptyString(task.id, `Invalid level3 task at index ${taskIndex}: id must be non-empty string`);
+    assertNonEmptyString(
+      task.id,
+      `Invalid level3 task at index ${taskIndex}: id must be non-empty string`,
+    );
 
     if (seenTaskIds.has(task.id)) {
       throw new Error(`Invalid level3 task catalog: duplicate task id '${task.id}'`);
     }
     seenTaskIds.add(task.id);
 
-    assertNonEmptyString(task.name, `Invalid level3 task '${task.id}': name must be non-empty string`);
+    assertNonEmptyString(
+      task.name,
+      `Invalid level3 task '${task.id}': name must be non-empty string`,
+    );
 
-    if (task.title !== undefined && (typeof task.title !== "string" || task.title.trim().length === 0)) {
-      throw new Error(`Invalid level3 task '${task.id}': title must be a non-empty string when provided`);
+    if (
+      task.title !== undefined &&
+      (typeof task.title !== "string" || task.title.trim().length === 0)
+    ) {
+      throw new Error(
+        `Invalid level3 task '${task.id}': title must be a non-empty string when provided`,
+      );
     }
 
     if (typeof task.enabled !== "boolean") {
@@ -176,7 +187,9 @@ export function validateLevel3TaskCatalog(rawCatalog: unknown): Level3TaskTempla
     const seenCheckKeys = new Set<string>();
     const checks = task.checks.map((check, checkIndex) => {
       if (!check || typeof check !== "object") {
-        throw new Error(`Invalid level3 task '${task.id}' check at index ${checkIndex}: expected object`);
+        throw new Error(
+          `Invalid level3 task '${task.id}' check at index ${checkIndex}: expected object`,
+        );
       }
       const candidate = check as Partial<Level3TaskCheckTemplate>;
       assertNonEmptyString(
@@ -215,9 +228,8 @@ export function validateLevel3TaskCatalog(rawCatalog: unknown): Level3TaskTempla
   return catalog;
 }
 
-export const LEVEL3_TASK_CATALOG: Level3TaskTemplate[] = validateLevel3TaskCatalog(
-  RAW_LEVEL3_TASK_CATALOG,
-);
+export const LEVEL3_TASK_CATALOG: Level3TaskTemplate[] =
+  validateLevel3TaskCatalog(RAW_LEVEL3_TASK_CATALOG);
 
 export const LEVEL3_ENABLED_TASKS: Level3TaskTemplate[] = LEVEL3_TASK_CATALOG.filter(
   (task) => task.enabled,

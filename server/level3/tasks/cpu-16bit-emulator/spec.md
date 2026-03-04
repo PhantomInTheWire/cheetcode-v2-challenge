@@ -70,6 +70,7 @@ Opcodes
 - `AND=0x05`, `OR=0x06`, `XOR=0x07`, `NOT=0x08`, `SHL=0x09`, `SHR=0x0A`
 - `CMP=0x0B`, `JMP=0x0C`, `JZ=0x0D`, `JNZ=0x0E`, `JN=0x0F`
 - `LDR=0x10`, `STR=0x11`, `PUSH=0x12`, `POP=0x13`, `CALL=0x14`, `RET=0x15`, `HALT=0x16`
+- `VADD=0x17`, `VSUB=0x18`, `VXOR=0x19`
 
 Execution Semantics
 
@@ -99,11 +100,24 @@ State Updates by Instruction
 - `CALL imm16`: push return address (`PC` after extension), then `PC = imm16`.
 - `RET`: `PC = mem16[SP]`; `SP += 2`.
 - `HALT`: sets halted state.
+- `VADD Vd, Vs`: lane-wise 16-bit add on packed vectors.
+- `VSUB Vd, Vs`: lane-wise 16-bit subtract on packed vectors.
+- `VXOR Vd, Vs`: lane-wise bitwise xor on packed vectors.
+
+SIMD Register Model
+
+- SIMD uses packed lanes inside existing registers.
+- Vector base registers are only `R0` and `R4`.
+- `V0` is represented by base `R0` and maps to lanes `(R0, R1, R2, R3)`.
+- `V1` is represented by base `R4` and maps to lanes `(R4, R5, R6, R7)`.
+- For SIMD instructions, operands must be base registers (`R0` or `R4`) only.
+- Lane arithmetic wraps modulo `2^16`.
 
 Flag Semantics
 
 - `ADD`, `SUB`, `CMP` update `Z`, `N`, `V`.
 - `AND`, `OR`, `XOR`, `NOT`, `SHL`, `SHR` update `Z`, `N` and set `V = 0`.
+- `VADD`, `VSUB`, `VXOR` do not modify `Z`, `N`, or `V`.
 - `LOAD`, `MOV`, `LDR`, `STR`, `PUSH`, `POP`, `CALL`, `RET`, `NOP`, `HALT` do not modify flags.
 - `Z = 1` iff result equals `0` (16-bit).
 - `N = 1` iff bit 15 of result is `1`.
@@ -123,6 +137,7 @@ Assembler Contract
 Assembler Validity Rules
 
 - Invalid register names are errors.
+- SIMD register operands must be `R0` or `R4`; any other SIMD operand register is an error.
 - Unknown mnemonics are errors.
 - Undefined labels are errors.
 - Encodings must obey field ranges:

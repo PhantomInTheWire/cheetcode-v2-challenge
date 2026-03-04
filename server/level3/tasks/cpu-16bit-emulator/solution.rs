@@ -81,6 +81,10 @@ fn parse_reg(token: &str) -> Option<u16> {
     Some((bytes[1] - b'0') as u16)
 }
 
+fn is_simd_base_reg(reg: u16) -> bool {
+    reg == 0 || reg == 4
+}
+
 fn parse_num(token: &str) -> Option<i32> {
     let t = token.trim().strip_prefix('#').unwrap_or(token.trim());
     t.parse::<i32>().ok()
@@ -96,7 +100,8 @@ fn op_value(op: &str) -> Option<u16> {
         "AND" => 0x05, "OR" => 0x06, "XOR" => 0x07, "NOT" => 0x08, "SHL" => 0x09,
         "SHR" => 0x0A, "CMP" => 0x0B, "JMP" => 0x0C, "JZ" => 0x0D, "JNZ" => 0x0E,
         "JN" => 0x0F, "LDR" => 0x10, "STR" => 0x11, "PUSH" => 0x12, "POP" => 0x13,
-        "CALL" => 0x14, "RET" => 0x15, "HALT" => 0x16,
+        "CALL" => 0x14, "RET" => 0x15, "HALT" => 0x16, "VADD" => 0x17, "VSUB" => 0x18,
+        "VXOR" => 0x19,
         _ => return None,
     })
 }
@@ -188,6 +193,11 @@ pub extern "C" fn cpu_assemble(src: *const i8, src_len: i32, out_words: *mut u16
             _ => {
                 let rd = match parts.get(1).and_then(|t| parse_reg(t)) { Some(v) => v, None => return -13 };
                 let rs = match parts.get(2).and_then(|t| parse_reg(t)) { Some(v) => v, None => return -14 };
+                if (op == 0x17 || op == 0x18 || op == 0x19)
+                    && (!is_simd_base_reg(rd) || !is_simd_base_reg(rs))
+                {
+                    return -19;
+                }
                 out.push(enc_r(op, rd, rs, 0));
             }
         }
@@ -325,6 +335,33 @@ pub extern "C" fn cpu_run(max_cycles: i32) -> i32 {
                 SP = SP.wrapping_add(2);
             }
             0x16 => unsafe { HALTED = 1; }
+            0x17 => unsafe {
+                if dst > 4 || src > 4 || (dst & 3) != 0 || (src & 3) != 0 {
+                    HALTED = 1;
+                } else {
+                    for i in 0..4 {
+                        REGS[dst + i] = REGS[dst + i].wrapping_add(REGS[src + i]);
+                    }
+                }
+            }
+            0x18 => unsafe {
+                if dst > 4 || src > 4 || (dst & 3) != 0 || (src & 3) != 0 {
+                    HALTED = 1;
+                } else {
+                    for i in 0..4 {
+                        REGS[dst + i] = REGS[dst + i].wrapping_sub(REGS[src + i]);
+                    }
+                }
+            }
+            0x19 => unsafe {
+                if dst > 4 || src > 4 || (dst & 3) != 0 || (src & 3) != 0 {
+                    HALTED = 1;
+                } else {
+                    for i in 0..4 {
+                        REGS[dst + i] ^= REGS[src + i];
+                    }
+                }
+            }
             _ => unsafe { HALTED = 1; }
         }
     }

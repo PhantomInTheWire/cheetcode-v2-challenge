@@ -74,6 +74,10 @@ static int asm_parse_reg(const char* t) {
   return t[1] - '0';
 }
 
+static int asm_is_simd_base_reg(int reg) {
+  return reg == 0 || reg == 4;
+}
+
 static int asm_parse_int(const char* t, int* out) {
   if (!t || !*t) return -1;
   if (*t == '#') t++;
@@ -178,7 +182,8 @@ __attribute__((visibility("default"))) int cpu_assemble(const char* src, int src
             !strcmp(op, "JMP") ? 0x0C : !strcmp(op, "JZ") ? 0x0D : !strcmp(op, "JNZ") ? 0x0E :
             !strcmp(op, "JN") ? 0x0F : !strcmp(op, "LDR") ? 0x10 : !strcmp(op, "STR") ? 0x11 :
             !strcmp(op, "PUSH") ? 0x12 : !strcmp(op, "POP") ? 0x13 : !strcmp(op, "CALL") ? 0x14 :
-            !strcmp(op, "RET") ? 0x15 : !strcmp(op, "HALT") ? 0x16 : -1;
+            !strcmp(op, "RET") ? 0x15 : !strcmp(op, "HALT") ? 0x16 :
+            !strcmp(op, "VADD") ? 0x17 : !strcmp(op, "VSUB") ? 0x18 : !strcmp(op, "VXOR") ? 0x19 : -1;
           if (opv < 0) { free(labels); free(buf); return -8; }
 
           int idx = pc / 2;
@@ -221,6 +226,12 @@ __attribute__((visibility("default"))) int cpu_assemble(const char* src, int src
             char* b = strtok_r(0, " \t\r", &tok_save);
             int rd = asm_parse_reg(a), rs = asm_parse_reg(b);
             if (rd < 0 || rs < 0) { free(labels); free(buf); return -14; }
+            if ((opv == 0x17 || opv == 0x18 || opv == 0x19) &&
+                (!asm_is_simd_base_reg(rd) || !asm_is_simd_base_reg(rs))) {
+              free(labels);
+              free(buf);
+              return -18;
+            }
             out_words[idx] = asm_enc_r(opv, rd, rs, 0);
           }
         }
@@ -370,6 +381,33 @@ __attribute__((visibility("default"))) int cpu_run(int max_cycles) {
         break;
       case 0x16: // HALT
         halted = 1;
+        break;
+      case 0x17: // VADD
+        if (dst > 4 || src > 4 || (dst & 3) != 0 || (src & 3) != 0) {
+          halted = 1;
+          break;
+        }
+        for (int i = 0; i < 4; i++) {
+          regs[dst + i] = (unsigned short)(regs[dst + i] + regs[src + i]);
+        }
+        break;
+      case 0x18: // VSUB
+        if (dst > 4 || src > 4 || (dst & 3) != 0 || (src & 3) != 0) {
+          halted = 1;
+          break;
+        }
+        for (int i = 0; i < 4; i++) {
+          regs[dst + i] = (unsigned short)(regs[dst + i] - regs[src + i]);
+        }
+        break;
+      case 0x19: // VXOR
+        if (dst > 4 || src > 4 || (dst & 3) != 0 || (src & 3) != 0) {
+          halted = 1;
+          break;
+        }
+        for (int i = 0; i < 4; i++) {
+          regs[dst + i] = (unsigned short)(regs[dst + i] ^ regs[src + i]);
+        }
         break;
       default:
         halted = 1;
