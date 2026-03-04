@@ -500,11 +500,27 @@ int main(void) {
     cpu_run(500);
     int vadd_ok = (cpu_get_reg(0) == 0x0000) && (cpu_get_reg(1) == 0x0002) &&
       (cpu_get_reg(2) == 0x8000) && (cpu_get_reg(3) == 0x0000);
-    if (vadd_ok) {
+    uint16_t vadd_flags_prog[] = {
+      encX(OPC_LOAD, 6), 0x8000, encX(OPC_LOAD, 7), 1, encR(OPC_SUB, 6, 7, 0), // Z=0 N=0 V=1
+      encX(OPC_LOAD, 0), 1, encX(OPC_LOAD, 1), 2, encX(OPC_LOAD, 2), 3, encX(OPC_LOAD, 3), 4,
+      encX(OPC_LOAD, 4), 5, encX(OPC_LOAD, 5), 6, encX(OPC_LOAD, 6), 7, encX(OPC_LOAD, 7), 8,
+      encR(OPC_VADD, 0, 4, 0),
+      encR(OPC_HALT, 0, 0, 0),
+    };
+    load_program(vadd_flags_prog, (int)(sizeof(vadd_flags_prog) / sizeof(vadd_flags_prog[0])));
+    cpu_run(700);
+    int vadd_flags_unchanged = cpu_get_flag_z() == 0 && cpu_get_flag_n() == 0 && cpu_get_flag_v() == 1;
+    if (vadd_ok && vadd_flags_unchanged) {
       simd_lane_add_wrap.ok = 1;
-      snprintf(simd_lane_add_wrap.msg, sizeof(simd_lane_add_wrap.msg), "simd vadd wrap ok");
+      snprintf(simd_lane_add_wrap.msg, sizeof(simd_lane_add_wrap.msg), "simd vadd wrap + flag stability ok");
     } else {
-      snprintf(simd_lane_add_wrap.msg, sizeof(simd_lane_add_wrap.msg), "simd vadd mismatch");
+      snprintf(
+        simd_lane_add_wrap.msg,
+        sizeof(simd_lane_add_wrap.msg),
+        "simd vadd mismatch vec=%d flags=%d",
+        vadd_ok,
+        vadd_flags_unchanged
+      );
     }
 
     uint16_t sub_prog[] = {
@@ -517,11 +533,27 @@ int main(void) {
     cpu_run(500);
     int vsub_ok = (cpu_get_reg(0) == 0xFFFF) && (cpu_get_reg(1) == 0xFFFE) &&
       (cpu_get_reg(2) == 0x7FFF) && (cpu_get_reg(3) == 0x0001);
-    if (vsub_ok) {
+    uint16_t vsub_flags_prog[] = {
+      encX(OPC_LOAD, 6), 0x8000, encX(OPC_LOAD, 7), 1, encR(OPC_SUB, 6, 7, 0), // Z=0 N=0 V=1
+      encX(OPC_LOAD, 0), 9, encX(OPC_LOAD, 1), 8, encX(OPC_LOAD, 2), 7, encX(OPC_LOAD, 3), 6,
+      encX(OPC_LOAD, 4), 1, encX(OPC_LOAD, 5), 2, encX(OPC_LOAD, 6), 3, encX(OPC_LOAD, 7), 4,
+      encR(OPC_VSUB, 0, 4, 0),
+      encR(OPC_HALT, 0, 0, 0),
+    };
+    load_program(vsub_flags_prog, (int)(sizeof(vsub_flags_prog) / sizeof(vsub_flags_prog[0])));
+    cpu_run(700);
+    int vsub_flags_unchanged = cpu_get_flag_z() == 0 && cpu_get_flag_n() == 0 && cpu_get_flag_v() == 1;
+    if (vsub_ok && vsub_flags_unchanged) {
       simd_lane_sub_wrap.ok = 1;
-      snprintf(simd_lane_sub_wrap.msg, sizeof(simd_lane_sub_wrap.msg), "simd vsub wrap ok");
+      snprintf(simd_lane_sub_wrap.msg, sizeof(simd_lane_sub_wrap.msg), "simd vsub wrap + flag stability ok");
     } else {
-      snprintf(simd_lane_sub_wrap.msg, sizeof(simd_lane_sub_wrap.msg), "simd vsub mismatch");
+      snprintf(
+        simd_lane_sub_wrap.msg,
+        sizeof(simd_lane_sub_wrap.msg),
+        "simd vsub mismatch vec=%d flags=%d",
+        vsub_ok,
+        vsub_flags_unchanged
+      );
     }
 
     uint16_t xor_prog[] = {
@@ -691,87 +723,82 @@ int main(void) {
       }
     }
 
-    if (wc > 0) {
+    {
+      int reject_failures = 0;
+      char reject_details[200] = "";
+#define APPEND_REJECT_DETAIL(token)                                                           \
+  do {                                                                                         \
+    size_t detail_len = strlen(reject_details);                                                \
+    size_t token_len = strlen(token);                                                          \
+    if (detail_len + token_len + 1 < sizeof(reject_details)) {                                \
+      memcpy(reject_details + detail_len, token, token_len);                                  \
+      reject_details[detail_len + token_len] = '\0';                                           \
+    }                                                                                          \
+  } while (0)
+
       const char *invalid_program =
         "LOAD R8, 1\n"
         "HALT\n";
       int bad = assemble_program(invalid_program, words, 1024, asm_err, sizeof(asm_err));
       if (bad >= 0) {
-        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "invalid asm should fail but wrote %d words", bad);
-        wc = -1;
-      } else {
-        programs_invalid_reject.ok = 1;
-        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "invalid reject ok");
+        reject_failures++;
+        APPEND_REJECT_DETAIL("invalid_reg ");
       }
-    }
 
-    if (wc > 0) {
       const char *bad_jump_program =
         "JMP 3000\n"
         "HALT\n";
       int bad_jump = assemble_program(bad_jump_program, words, 1024, asm_err, sizeof(asm_err));
       if (bad_jump >= 0) {
-        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "out-of-range jump should fail but wrote %d words", bad_jump);
-        wc = -1;
+        reject_failures++;
+        APPEND_REJECT_DETAIL("jump_range ");
       }
-    }
 
-    if (wc > 0) {
       const char *bad_imm_program =
         "LOAD R0, 70000\n"
         "HALT\n";
       int bad_imm = assemble_program(bad_imm_program, words, 1024, asm_err, sizeof(asm_err));
       if (bad_imm >= 0) {
-        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "out-of-range immediate should fail but wrote %d words", bad_imm);
-        wc = -1;
+        reject_failures++;
+        APPEND_REJECT_DETAIL("imm_range ");
       }
-    }
 
-    if (wc > 0) {
       const char *bad_neg_imm_program =
         "LOAD R0, -32769\n"
         "HALT\n";
       int bad_neg_imm = assemble_program(bad_neg_imm_program, words, 1024, asm_err, sizeof(asm_err));
       if (bad_neg_imm >= 0) {
-        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "out-of-range negative immediate should fail but wrote %d words", bad_neg_imm);
-        wc = -1;
+        reject_failures++;
+        APPEND_REJECT_DETAIL("neg_imm ");
       }
-    }
 
-    if (wc > 0) {
       const char *bad_neg_jump_program =
         "JMP -1\n"
         "HALT\n";
       int bad_neg_jump = assemble_program(bad_neg_jump_program, words, 1024, asm_err, sizeof(asm_err));
       if (bad_neg_jump >= 0) {
-        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "negative jump should fail but wrote %d words", bad_neg_jump);
-        wc = -1;
+        reject_failures++;
+        APPEND_REJECT_DETAIL("neg_jump ");
       }
-    }
 
-    if (wc > 0) {
       const char *undef_label_program =
         "JMP missing_label\n"
         "HALT\n";
       int undef_label = assemble_program(undef_label_program, words, 1024, asm_err, sizeof(asm_err));
       if (undef_label >= 0) {
-        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "undefined label should fail but wrote %d words", undef_label);
-        wc = -1;
+        reject_failures++;
+        APPEND_REJECT_DETAIL("undef_label ");
       }
-    }
 
-    if (wc > 0) {
       const char *dup_label_program =
         "loop: NOP\n"
         "loop: HALT\n";
       int dup_label = assemble_program(dup_label_program, words, 1024, asm_err, sizeof(asm_err));
       if (dup_label >= 0) {
-        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "duplicate label should fail but wrote %d words", dup_label);
-        wc = -1;
+        reject_failures++;
+        APPEND_REJECT_DETAIL("dup_label ");
       }
-    }
 
-    if (wc > 0) {
       // Max-word bound: require negative error and no write beyond max_words.
       struct {
         uint16_t out[2];
@@ -784,18 +811,10 @@ int main(void) {
         "HALT\n";
       int short_buf = assemble_program(too_long_program, bounded.out, 2, asm_err, sizeof(asm_err));
       if (short_buf >= 0 || bounded.guard != 0xBEEF) {
-        snprintf(
-          programs_invalid_reject.msg,
-          sizeof(programs_invalid_reject.msg),
-          "max_words shortfall should fail short=%d guard=%x",
-          short_buf,
-          bounded.guard
-        );
-        wc = -1;
+        reject_failures++;
+        APPEND_REJECT_DETAIL("max_words ");
       }
-    }
 
-    if (wc > 0) {
       // Positive syntax coverage: # immediates and negative immediates in-range.
       const char *syntax_ok_program =
         "; full-line comment\n"
@@ -805,27 +824,40 @@ int main(void) {
         "HALT\n";
       int syntax_ok = assemble_program(syntax_ok_program, words, 1024, asm_err, sizeof(asm_err));
       if (syntax_ok <= 0) {
-        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "syntax positive case failed: %s", asm_err);
-        wc = -1;
+        reject_failures++;
+        APPEND_REJECT_DETAIL("syntax_pos ");
       }
-    }
 
-    if (wc > 0) {
       size_t huge_len = ASM_MAX_SOURCE_BYTES + 64;
       char *huge = (char*)malloc(huge_len);
       if (!huge) {
-        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "malloc failed for oversized asm");
-        wc = -1;
+        reject_failures++;
+        APPEND_REJECT_DETAIL("oversized_alloc ");
       } else {
         for (size_t i = 0; i < huge_len - 1; i++) huge[i] = 'A';
         huge[huge_len - 1] = '\0';
         int oversized = assemble_program(huge, words, 1024, asm_err, sizeof(asm_err));
         if (oversized >= 0) {
-          snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "oversized asm should fail but wrote %d words", oversized);
-          wc = -1;
+          reject_failures++;
+          APPEND_REJECT_DETAIL("oversized_accept ");
         }
         free(huge);
       }
+
+      if (reject_failures == 0) {
+        programs_invalid_reject.ok = 1;
+        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "invalid reject suite ok");
+      } else {
+        snprintf(
+          programs_invalid_reject.msg,
+          sizeof(programs_invalid_reject.msg),
+          "invalid reject failed (%d): %s",
+          reject_failures,
+          reject_details
+        );
+        wc = -1;
+      }
+#undef APPEND_REJECT_DETAIL
     }
 
     if (wc <= 0) {

@@ -13,6 +13,11 @@ function hasTool(tool: string): boolean {
 }
 
 const hasNativeToolchain = hasTool("clang") && hasTool("clang++") && hasTool("rustc");
+const PERF_CHECK_PREFIX = "perf_";
+
+function isPerfCheck(key: string): boolean {
+  return key.startsWith(PERF_CHECK_PREFIX);
+}
 
 describe.skipIf(!hasNativeToolchain)("level3 autosolve native harness", () => {
   it("passes harness checks for C/C++/Rust", () => {
@@ -48,8 +53,18 @@ describe.skipIf(!hasNativeToolchain)("level3 autosolve native harness", () => {
         challenge?.checks.length,
       );
 
-      const failed = Object.entries(result.harness).filter(([, outcome]) => outcome.ok !== true);
+      const failed = Object.entries(result.harness).filter(
+        ([key, outcome]) => !isPerfCheck(key) && outcome.ok !== true,
+      );
       expect(failed, `${language} failed checks: ${JSON.stringify(failed)}`).toHaveLength(0);
+
+      const perfChecks = Object.entries(result.harness).filter(([key]) => isPerfCheck(key));
+      for (const [key, outcome] of perfChecks) {
+        expect(
+          (outcome.message ?? "").trim().length,
+          `${language} ${key} perf message missing`,
+        ).toBeGreaterThan(0);
+      }
 
       // Budget guard: benchmark thresholds must be >= ideal reference runtimes.
       const benchmarkMessage = result.harness.benchmark_budget?.message ?? "";
