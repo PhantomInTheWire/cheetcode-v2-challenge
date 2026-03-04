@@ -54,7 +54,7 @@ __attribute__((visibility("default"))) void cpu_reset(void) {
 }
 
 __attribute__((visibility("default"))) void cpu_load_word(int addr, int word) {
-  if (addr < 0) return;
+  if (addr < 0 || addr > 65534) return;
   write16((unsigned short)addr, (unsigned short)word);
 }
 
@@ -117,14 +117,15 @@ static int asm_resolve(const char* tok, AsmLabel* labels, int label_count, int* 
 
 __attribute__((visibility("default"))) int cpu_assemble(const char* src, int src_len, unsigned short* out_words, int max_words) {
   if (!src || src_len <= 0 || !out_words || max_words <= 0) return -1;
-  if (src_len > 65536) return -2;
 
   char* buf = (char*)malloc((size_t)src_len + 1);
   if (!buf) return -3;
   memcpy(buf, src, (size_t)src_len);
   buf[src_len] = '\0';
 
-  AsmLabel labels[1024];
+  int label_capacity = 1024;
+  AsmLabel* labels = (AsmLabel*)malloc((size_t)label_capacity * sizeof(AsmLabel));
+  if (!labels) { free(buf); return -4; }
   int label_count = 0;
   int pc = 0;
 
@@ -142,9 +143,15 @@ __attribute__((visibility("default"))) int cpu_assemble(const char* src, int src
         if (!colon) break;
         *colon = '\0';
         char* label = asm_trim(s);
-        if (!*label) { free(buf); return -4; }
+        if (!*label) { free(labels); free(buf); return -4; }
         if (pass == 0) {
-          if (label_count >= 1024) { free(buf); return -5; }
+          if (label_count >= label_capacity) {
+            int next_capacity = label_capacity * 2;
+            AsmLabel* grown = (AsmLabel*)realloc(labels, (size_t)next_capacity * sizeof(AsmLabel));
+            if (!grown) { free(labels); free(buf); return -5; }
+            labels = grown;
+            label_capacity = next_capacity;
+          }
           strncpy(labels[label_count].name, label, 63);
           labels[label_count].name[63] = '\0';
           labels[label_count].addr = pc;
@@ -160,9 +167,9 @@ __attribute__((visibility("default"))) int cpu_assemble(const char* src, int src
         if (!op) { line = strtok_r(0, "\n", &save); continue; }
         for (char* p = op; *p; p++) *p = (char)toupper((unsigned char)*p);
         int words = asm_instr_words(op);
-        if (words < 0) { free(buf); return -6; }
+        if (words < 0) { free(labels); free(buf); return -6; }
         if (pass == 1) {
-          if ((pc / 2) + words > max_words) { free(buf); return -7; }
+          if ((pc / 2) + words > max_words) { free(labels); free(buf); return -7; }
           int opv =
             !strcmp(op, "NOP") ? 0x00 : !strcmp(op, "LOAD") ? 0x01 : !strcmp(op, "MOV") ? 0x02 :
             !strcmp(op, "ADD") ? 0x03 : !strcmp(op, "SUB") ? 0x04 : !strcmp(op, "AND") ? 0x05 :
@@ -172,7 +179,7 @@ __attribute__((visibility("default"))) int cpu_assemble(const char* src, int src
             !strcmp(op, "JN") ? 0x0F : !strcmp(op, "LDR") ? 0x10 : !strcmp(op, "STR") ? 0x11 :
             !strcmp(op, "PUSH") ? 0x12 : !strcmp(op, "POP") ? 0x13 : !strcmp(op, "CALL") ? 0x14 :
             !strcmp(op, "RET") ? 0x15 : !strcmp(op, "HALT") ? 0x16 : -1;
-          if (opv < 0) { free(buf); return -8; }
+          if (opv < 0) { free(labels); free(buf); return -8; }
 
           int idx = pc / 2;
           if (opv == 0x00 || opv == 0x15 || opv == 0x16) {
@@ -180,40 +187,40 @@ __attribute__((visibility("default"))) int cpu_assemble(const char* src, int src
           } else if (opv == 0x12 || opv == 0x13 || opv == 0x08) {
             char* a = strtok_r(0, " \t\r", &tok_save);
             int rd = asm_parse_reg(a);
-            if (rd < 0) { free(buf); return -9; }
+            if (rd < 0) { free(labels); free(buf); return -9; }
             out_words[idx] = asm_enc_r(opv, rd, 0, 0);
           } else if (opv == 0x09 || opv == 0x0A) {
             char* a = strtok_r(0, " \t\r", &tok_save);
             char* b = strtok_r(0, " \t\r", &tok_save);
             int rd = asm_parse_reg(a), imm = 0;
-            if (rd < 0 || asm_resolve(b, labels, label_count, &imm) != 0) { free(buf); return -10; }
+            if (rd < 0 || asm_resolve(b, labels, label_count, &imm) != 0) { free(labels); free(buf); return -10; }
             out_words[idx] = asm_enc_r(opv, rd, 0, imm);
           } else if (opv >= 0x0C && opv <= 0x0F) {
             char* a = strtok_r(0, " \t\r", &tok_save);
             int addr = 0;
-            if (asm_resolve(a, labels, label_count, &addr) != 0) { free(buf); return -11; }
-            if (addr < 0 || addr > 0x7FF) { free(buf); return -15; }
+            if (asm_resolve(a, labels, label_count, &addr) != 0) { free(labels); free(buf); return -11; }
+            if (addr < 0 || addr > 0x7FF) { free(labels); free(buf); return -15; }
             out_words[idx] = asm_enc_j(opv, addr);
           } else if (opv == 0x01) {
             char* a = strtok_r(0, " \t\r", &tok_save);
             char* b = strtok_r(0, " \t\r", &tok_save);
             int rd = asm_parse_reg(a), imm = 0;
-            if (rd < 0 || asm_resolve(b, labels, label_count, &imm) != 0) { free(buf); return -12; }
-            if (imm < -32768 || imm > 65535) { free(buf); return -16; }
+            if (rd < 0 || asm_resolve(b, labels, label_count, &imm) != 0) { free(labels); free(buf); return -12; }
+            if (imm < -32768 || imm > 65535) { free(labels); free(buf); return -16; }
             out_words[idx] = asm_enc_x(opv, rd);
             out_words[idx + 1] = (unsigned short)imm;
           } else if (opv == 0x14) {
             char* a = strtok_r(0, " \t\r", &tok_save);
             int addr = 0;
-            if (asm_resolve(a, labels, label_count, &addr) != 0) { free(buf); return -13; }
-            if (addr < 0 || addr > 0xFFFF) { free(buf); return -17; }
+            if (asm_resolve(a, labels, label_count, &addr) != 0) { free(labels); free(buf); return -13; }
+            if (addr < 0 || addr > 0xFFFF) { free(labels); free(buf); return -17; }
             out_words[idx] = asm_enc_x(opv, 0);
             out_words[idx + 1] = (unsigned short)addr;
           } else {
             char* a = strtok_r(0, " \t\r", &tok_save);
             char* b = strtok_r(0, " \t\r", &tok_save);
             int rd = asm_parse_reg(a), rs = asm_parse_reg(b);
-            if (rd < 0 || rs < 0) { free(buf); return -14; }
+            if (rd < 0 || rs < 0) { free(labels); free(buf); return -14; }
             out_words[idx] = asm_enc_r(opv, rd, rs, 0);
           }
         }
@@ -229,6 +236,7 @@ __attribute__((visibility("default"))) int cpu_assemble(const char* src, int src
   }
 
   int words_written = pc / 2;
+  free(labels);
   free(buf);
   return words_written;
 }
@@ -250,7 +258,7 @@ __attribute__((visibility("default"))) int cpu_get_flag_n(void) { return flag_n;
 __attribute__((visibility("default"))) int cpu_get_flag_v(void) { return flag_v; }
 
 __attribute__((visibility("default"))) int cpu_mem_read16(int addr) {
-  if (addr < 0) return 0;
+  if (addr < 0 || addr > 65534) return 0;
   return read16((unsigned short)addr);
 }
 

@@ -56,8 +56,8 @@ static void load_program(const uint16_t *program, int len) {
 }
 
 enum {
-  ASM_MAX_SOURCE_BYTES = 65536,
-  ASM_MAX_WORDS = 32768
+  ASM_MAX_SOURCE_BYTES = 524288,
+  ASM_MAX_WORDS = 131072
 };
 
 static int assemble_program(const char *src, uint16_t *out_words, int max_words, char *err, size_t err_len) {
@@ -100,6 +100,20 @@ static int sub_overflow(uint16_t a, uint16_t b, uint16_t r) {
   return (((a ^ b) & (a ^ r) & 0x8000u) != 0u) ? 1 : 0;
 }
 
+static void append_asm_line(char **ptr, size_t *remaining, const char *line) {
+  size_t len = strlen(line);
+  if (*remaining <= len) return;
+  memcpy(*ptr, line, len);
+  *ptr += len;
+  **ptr = '\0';
+  *remaining -= len;
+}
+
+static double perf_budget(double baseline, double factor, double floor_sec) {
+  double scaled = baseline * factor;
+  return scaled > floor_sec ? scaled : floor_sec;
+}
+
 int main(void) {
   Check abi_reset = {0, ""};
   Check arith_add_overflow = {0, ""};
@@ -107,20 +121,25 @@ int main(void) {
   Check arith_cmp_flags = {0, ""};
   Check logic_bitwise = {0, ""};
   Check logic_shifts = {0, ""};
-  Check logic_v_clear = {0, ""};
   Check branch_jnz_loop = {0, ""};
   Check branch_jn_taken = {0, ""};
   Check stack_push_pop = {0, ""};
   Check stack_call_ret = {0, ""};
   Check memory_wraparound = {0, ""};
   Check memory_unaligned = {0, ""};
+  Check helper_load_word_bounds = {0, ""};
+  Check helper_mem_read_bounds = {0, ""};
   Check programs_asm1 = {0, ""};
   Check programs_asm2 = {0, ""};
   Check programs_asm3 = {0, ""};
   Check programs_asm4 = {0, ""};
   Check programs_invalid_reject = {0, ""};
+  Check assembler_large_labels = {0, ""};
   Check random_alu = {0, ""};
   Check benchmark_budget = {0, ""};
+  Check perf_run_throughput = {0, ""};
+  Check perf_asm_label_lookup = {0, ""};
+  Check perf_asm_mnemonic_decode = {0, ""};
 
   cpu_reset();
   if (cpu_get_sp() == 0xFFFF && cpu_get_pc() == 0 && cpu_get_reg(0) == 0 &&
@@ -218,11 +237,8 @@ int main(void) {
     if (bitwise_ok) {
       logic_bitwise.ok = 1;
       snprintf(logic_bitwise.msg, sizeof(logic_bitwise.msg), "logic bitwise ok");
-      logic_v_clear.ok = 1;
-      snprintf(logic_v_clear.msg, sizeof(logic_v_clear.msg), "v clear ok");
     } else {
       snprintf(logic_bitwise.msg, sizeof(logic_bitwise.msg), "logic bitwise mismatch");
-      snprintf(logic_v_clear.msg, sizeof(logic_v_clear.msg), "v clear mismatch");
     }
 
     uint16_t shift_prog[] = {
@@ -327,7 +343,7 @@ int main(void) {
   }
 
   {
-    // Memory: little-endian, unaligned access, and wraparound at 0xFFFF.
+    // Memory: core accesses wrap modulo 2^16, but public helpers reject addr 65535.
     uint16_t program[] = {
       encX(OPC_LOAD, 0), 0xABCD,
       encX(OPC_LOAD, 1), 0xFFFF,
@@ -347,17 +363,38 @@ int main(void) {
     int r2 = cpu_get_reg(2) & 0xFFFF;
     int r5 = cpu_get_reg(5) & 0xFFFF;
 
-    if (wrap == 0xABCD && r2 == 0xABCD) {
+    if (wrap == 0 && r2 == 0xABCD) {
       memory_wraparound.ok = 1;
-      snprintf(memory_wraparound.msg, sizeof(memory_wraparound.msg), "wraparound ok");
+      snprintf(memory_wraparound.msg, sizeof(memory_wraparound.msg), "core wrap/helper bounds ok");
     } else {
-      snprintf(memory_wraparound.msg, sizeof(memory_wraparound.msg), "wrap mismatch w=%d r2=%d", wrap, r2);
+      snprintf(memory_wraparound.msg, sizeof(memory_wraparound.msg), "helper/core mismatch w=%d r2=%d", wrap, r2);
     }
     if (unaligned == 0x1357 && r5 == 0x1357) {
       memory_unaligned.ok = 1;
       snprintf(memory_unaligned.msg, sizeof(memory_unaligned.msg), "unaligned ok");
     } else {
       snprintf(memory_unaligned.msg, sizeof(memory_unaligned.msg), "unaligned mismatch u=%d r5=%d", unaligned, r5);
+    }
+  }
+
+  {
+    cpu_reset();
+    cpu_load_word(0, 0);
+    cpu_load_word(65535, 0xABCD);
+    if ((cpu_mem_read16(0) & 0xFFFF) == 0) {
+      helper_load_word_bounds.ok = 1;
+      snprintf(helper_load_word_bounds.msg, sizeof(helper_load_word_bounds.msg), "load bounds ok");
+    } else {
+      snprintf(helper_load_word_bounds.msg, sizeof(helper_load_word_bounds.msg), "load bounds mismatch");
+    }
+
+    cpu_reset();
+    cpu_load_word(65534, 0x3412);
+    if (cpu_mem_read16(65535) == 0) {
+      helper_mem_read_bounds.ok = 1;
+      snprintf(helper_mem_read_bounds.msg, sizeof(helper_mem_read_bounds.msg), "read bounds ok");
+    } else {
+      snprintf(helper_mem_read_bounds.msg, sizeof(helper_mem_read_bounds.msg), "read bounds mismatch");
     }
   }
 
@@ -608,7 +645,72 @@ int main(void) {
   }
 
   {
+    const int labels = 20000;
+    const int max_words = labels + 1;
+    size_t cap = (size_t)labels * 20u + 64u;
+    char *src = (char *)malloc(cap);
+    uint16_t *out = (uint16_t *)malloc((size_t)max_words * sizeof(uint16_t));
+    char *p = src;
+    size_t remaining = cap;
+    if (!src || !out) {
+      snprintf(assembler_large_labels.msg, sizeof(assembler_large_labels.msg), "allocation failed");
+    } else {
+      src[0] = '\0';
+      for (int i = 0; i < labels; ++i) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "L%d: nop\n", i);
+        append_asm_line(&p, &remaining, buf);
+      }
+      append_asm_line(&p, &remaining, "halt\n");
+      if (remaining == 0) {
+        snprintf(assembler_large_labels.msg, sizeof(assembler_large_labels.msg), "assembly buffer exhausted");
+      } else {
+        char err[160] = {0};
+        int written = assemble_program(src, out, max_words, err, sizeof(err));
+        if (written == max_words) {
+          assembler_large_labels.ok = 1;
+          snprintf(assembler_large_labels.msg, sizeof(assembler_large_labels.msg), "large label set ok");
+        } else {
+          snprintf(assembler_large_labels.msg, sizeof(assembler_large_labels.msg), "large label set mismatch written=%d err=%s", written, err);
+        }
+      }
+    }
+    free(out);
+    free(src);
+  }
+
+  {
     // Benchmark: enforce both throughput and cycle-accuracy budgets.
+    double run_baseline_s;
+    double asm_baseline_s;
+
+    cpu_reset();
+    cpu_load_word(0, encR(OPC_ADD, 0, 1, 0));
+    cpu_load_word(2, encJ(OPC_JMP, 0));
+    clock_t tb0 = clock();
+    int baseline_cycles = cpu_run(1000000);
+    clock_t tb1 = clock();
+    run_baseline_s = (double)(tb1 - tb0) / (double)CLOCKS_PER_SEC;
+
+    {
+      static const char *baseline_src =
+        "start: load r0, 1\n"
+        "load r1, 2\n"
+        "add r0, r1\n"
+        "cmp r0, r1\n"
+        "jnz start\n"
+        "halt\n";
+      uint16_t out[16];
+      int baseline_words = 0;
+      clock_t ab0 = clock();
+      for (int i = 0; i < 4000; ++i) {
+        char err[160] = {0};
+        baseline_words = assemble_program(baseline_src, out, 16, err, sizeof(err));
+      }
+      clock_t ab1 = clock();
+      asm_baseline_s = (double)(ab1 - ab0) / (double)CLOCKS_PER_SEC;
+      if (baseline_words != 8) asm_baseline_s = 0.120;
+    }
     const int throughput_cycles = 300000;
     const double throughput_budget_s = 2.50;
     uint16_t throughput_program[] = {
@@ -674,6 +776,116 @@ int main(void) {
         halt_budget_s
       );
     }
+
+    {
+      const double allowed = perf_budget(run_baseline_s, 15.0, 0.150);
+      uint16_t program[] = {
+        encR(OPC_ADD, 0, 1, 0),
+        encJ(OPC_JMP, 0)
+      };
+      load_program(program, (int)(sizeof(program) / sizeof(program[0])));
+      clock_t t0 = clock();
+      int executed2 = cpu_run(10000000);
+      clock_t t1b = clock();
+      double elapsed = (double)(t1b - t0) / (double)CLOCKS_PER_SEC;
+      if (baseline_cycles == 1000000 && executed2 == 10000000 && elapsed < allowed) {
+        perf_run_throughput.ok = 1;
+        snprintf(perf_run_throughput.msg, sizeof(perf_run_throughput.msg), "run throughput ok %.3f<=%.3f", elapsed, allowed);
+      } else {
+        snprintf(perf_run_throughput.msg, sizeof(perf_run_throughput.msg), "run throughput mismatch exec=%d elapsed=%.3f<=%.3f", executed2, elapsed, allowed);
+      }
+    }
+
+    {
+      const int labels = 10000;
+      const int max_words = labels * 3 + 1;
+      const double allowed = perf_budget(asm_baseline_s, 35.0, 0.120);
+      size_t cap = (size_t)labels * 56u + 64u;
+      char *src = (char *)malloc(cap);
+      uint16_t *out = (uint16_t *)malloc((size_t)max_words * sizeof(uint16_t));
+      char *p = src;
+      size_t remaining = cap;
+      if (!src || !out) {
+        snprintf(perf_asm_label_lookup.msg, sizeof(perf_asm_label_lookup.msg), "allocation failed");
+      } else {
+        src[0] = '\0';
+        for (int i = 0; i < labels; ++i) {
+          char buf[64];
+          snprintf(buf, sizeof(buf), "load r0, L%d\n", i + 1);
+          append_asm_line(&p, &remaining, buf);
+          snprintf(buf, sizeof(buf), "L%d: nop\n", i);
+          append_asm_line(&p, &remaining, buf);
+        }
+        append_asm_line(&p, &remaining, "L10000: halt\n");
+        if (remaining == 0) {
+          snprintf(perf_asm_label_lookup.msg, sizeof(perf_asm_label_lookup.msg), "buffer exhausted");
+        } else {
+          char err[160] = {0};
+          clock_t t0 = clock();
+          int written = assemble_program(src, out, max_words, err, sizeof(err));
+          clock_t t1b = clock();
+          double elapsed = (double)(t1b - t0) / (double)CLOCKS_PER_SEC;
+          if (written == max_words && elapsed < allowed) {
+            perf_asm_label_lookup.ok = 1;
+            snprintf(perf_asm_label_lookup.msg, sizeof(perf_asm_label_lookup.msg), "label lookup ok %.3f<=%.3f", elapsed, allowed);
+          } else {
+            snprintf(perf_asm_label_lookup.msg, sizeof(perf_asm_label_lookup.msg), "label lookup mismatch written=%d elapsed=%.3f<=%.3f err=%s", written, elapsed, allowed, err);
+          }
+        }
+      }
+      free(out);
+      free(src);
+    }
+
+    {
+      const int blocks = 1700;
+      const int repeats = 80;
+      const int lines = blocks * 19;
+      const int max_words = lines + 1;
+      const double allowed = perf_budget(asm_baseline_s, 100.0, 0.120);
+      size_t cap = (size_t)lines * 24u + 64u;
+      char *src = (char *)malloc(cap);
+      uint16_t *out = (uint16_t *)malloc((size_t)max_words * sizeof(uint16_t));
+      char *p = src;
+      size_t remaining = cap;
+      static const char *ops[] = {
+        "mov r0, r1\n", "add r0, r1\n", "sub r0, r1\n", "and r0, r1\n", "or r0, r1\n",
+        "xor r0, r1\n", "cmp r0, r1\n", "ldr r0, r1\n", "str r0, r1\n", "not r0\n",
+        "push r0\n", "pop r0\n", "shl r0, 15\n", "shr r0, 15\n", "nop\n",
+        "jz 0\n", "jnz 0\n", "jn 0\n", "ret\n"
+      };
+      if (!src || !out) {
+        snprintf(perf_asm_mnemonic_decode.msg, sizeof(perf_asm_mnemonic_decode.msg), "allocation failed");
+      } else {
+        src[0] = '\0';
+        for (int i = 0; i < blocks; ++i) {
+          for (int j = 0; j < (int)(sizeof(ops) / sizeof(ops[0])); ++j) {
+            append_asm_line(&p, &remaining, ops[j]);
+          }
+        }
+        append_asm_line(&p, &remaining, "halt\n");
+        if (remaining == 0) {
+          snprintf(perf_asm_mnemonic_decode.msg, sizeof(perf_asm_mnemonic_decode.msg), "buffer exhausted");
+        } else {
+          int written = 0;
+          clock_t t0 = clock();
+          for (int i = 0; i < repeats; ++i) {
+            char err[160] = {0};
+            written = assemble_program(src, out, max_words, err, sizeof(err));
+          }
+          clock_t t1b = clock();
+          double elapsed = (double)(t1b - t0) / (double)CLOCKS_PER_SEC;
+          if (written == max_words && elapsed < allowed) {
+            perf_asm_mnemonic_decode.ok = 1;
+            snprintf(perf_asm_mnemonic_decode.msg, sizeof(perf_asm_mnemonic_decode.msg), "mnemonic decode ok %.3f<=%.3f", elapsed, allowed);
+          } else {
+            snprintf(perf_asm_mnemonic_decode.msg, sizeof(perf_asm_mnemonic_decode.msg), "mnemonic decode mismatch written=%d elapsed=%.3f<=%.3f", written, elapsed, allowed);
+          }
+        }
+      }
+      free(out);
+      free(src);
+    }
   }
 
   printf("abi_reset|%d|%s\n", abi_reset.ok, abi_reset.msg);
@@ -682,19 +894,24 @@ int main(void) {
   printf("arith_cmp_flags|%d|%s\n", arith_cmp_flags.ok, arith_cmp_flags.msg);
   printf("logic_bitwise|%d|%s\n", logic_bitwise.ok, logic_bitwise.msg);
   printf("logic_shifts|%d|%s\n", logic_shifts.ok, logic_shifts.msg);
-  printf("logic_v_clear|%d|%s\n", logic_v_clear.ok, logic_v_clear.msg);
   printf("branch_jnz_loop|%d|%s\n", branch_jnz_loop.ok, branch_jnz_loop.msg);
   printf("branch_jn_taken|%d|%s\n", branch_jn_taken.ok, branch_jn_taken.msg);
   printf("stack_push_pop|%d|%s\n", stack_push_pop.ok, stack_push_pop.msg);
   printf("stack_call_ret|%d|%s\n", stack_call_ret.ok, stack_call_ret.msg);
   printf("memory_wraparound|%d|%s\n", memory_wraparound.ok, memory_wraparound.msg);
   printf("memory_unaligned|%d|%s\n", memory_unaligned.ok, memory_unaligned.msg);
+  printf("helper_load_word_bounds|%d|%s\n", helper_load_word_bounds.ok, helper_load_word_bounds.msg);
+  printf("helper_mem_read_bounds|%d|%s\n", helper_mem_read_bounds.ok, helper_mem_read_bounds.msg);
   printf("programs_asm1|%d|%s\n", programs_asm1.ok, programs_asm1.msg);
   printf("programs_asm2|%d|%s\n", programs_asm2.ok, programs_asm2.msg);
   printf("programs_asm3|%d|%s\n", programs_asm3.ok, programs_asm3.msg);
   printf("programs_asm4|%d|%s\n", programs_asm4.ok, programs_asm4.msg);
   printf("programs_invalid_reject|%d|%s\n", programs_invalid_reject.ok, programs_invalid_reject.msg);
+  printf("assembler_large_labels|%d|%s\n", assembler_large_labels.ok, assembler_large_labels.msg);
   printf("random_alu|%d|%s\n", random_alu.ok, random_alu.msg);
   printf("benchmark_budget|%d|%s\n", benchmark_budget.ok, benchmark_budget.msg);
+  printf("perf_run_throughput|%d|%s\n", perf_run_throughput.ok, perf_run_throughput.msg);
+  printf("perf_asm_label_lookup|%d|%s\n", perf_asm_label_lookup.ok, perf_asm_label_lookup.msg);
+  printf("perf_asm_mnemonic_decode|%d|%s\n", perf_asm_mnemonic_decode.ok, perf_asm_mnemonic_decode.msg);
   return 0;
 }

@@ -40,7 +40,9 @@ describe.skipIf(!hasNativeToolchain)("level3 autosolve native harness", () => {
       );
       const actualKeys = new Set(Object.keys(result.harness));
       expect(actualKeys).toEqual(expectedKeys);
-      expect(actualKeys.size, `${language} expected check count mismatch`).toBe(20);
+      expect(actualKeys.size, `${language} expected check count mismatch`).toBe(
+        challenge?.checks.length,
+      );
 
       const failed = Object.entries(result.harness).filter(([, outcome]) => outcome.ok !== true);
       expect(failed, `${language} failed checks: ${JSON.stringify(failed)}`).toHaveLength(0);

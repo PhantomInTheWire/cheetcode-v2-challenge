@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generateLevel3Challenge, getLevel3ChallengeFromId } from "../server/level3/problems";
+import { LEVEL3_TOTAL } from "../src/lib/constants";
 
 describe("level3 challenge templates", () => {
   it("loads non-empty spec and starter templates", () => {
@@ -24,9 +25,9 @@ describe("level3 challenge templates", () => {
     expect(rebuilt?.checks.length).toBe(challenge.checks.length);
   });
 
-  it("defines exactly 20 score-bearing checks", () => {
+  it("defines exactly LEVEL3_TOTAL score-bearing checks", () => {
     const challenge = getLevel3ChallengeFromId("l3:cpu-16bit-emulator:c");
     expect(challenge).not.toBeNull();
-    expect(challenge?.checks).toHaveLength(20);
+    expect(challenge?.checks).toHaveLength(LEVEL3_TOTAL);
   });
 });

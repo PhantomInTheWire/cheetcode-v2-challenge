@@ -22,16 +22,16 @@ function run(cmd, args) {
   return spawnSync(cmd, args, { encoding: "utf8", timeout: 10_000, killSignal: "SIGKILL" });
 }
 
-function compileAndRun() {
+  function compileAndRun() {
   let compileResult;
   if (language === "C") {
-    compileResult = run("clang", ["-O2", "main.c", "harness.c", "-o", "harness"]);
+    compileResult = run("clang", ["main.c", "harness.c", "-o", "harness"]);
   } else if (language === "C++") {
-    compileResult = run("clang++", ["-O2", "main.cpp", "harness.c", "-o", "harness"]);
+    compileResult = run("clang++", ["main.cpp", "harness.c", "-o", "harness"]);
   } else {
-    const lib = run("rustc", ["--crate-type", "staticlib", "-O", "main.rs", "-o", "libuser.a"]);
+    const lib = run("rustc", ["--crate-type", "staticlib", "main.rs", "-o", "libuser.a"]);
     if (lib.status !== 0) return { compileResult: lib, runResult: null };
-    compileResult = run("clang", ["-O2", "harness.c", "libuser.a", "-o", "harness", "-lpthread", "-ldl", "-lm"]);
+    compileResult = run("clang", ["harness.c", "libuser.a", "-o", "harness", "-lpthread", "-ldl", "-lm"]);
   }
 
   if (compileResult.status !== 0) return { compileResult, runResult: null };

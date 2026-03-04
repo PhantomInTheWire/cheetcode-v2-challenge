@@ -1,5 +1,5 @@
 import type { Id } from "../../convex/_generated/dataModel";
-import { PROBLEMS_PER_SESSION } from "@/lib/constants";
+import { PROBLEMS_PER_SESSION, TOTAL_SOLVE_TARGET } from "@/lib/constants";
 
 export type Screen = "landing" | "level2-prereq" | "level3-prereq" | "playing" | "results";
 export type ProblemTier = "easy" | "medium" | "hard" | "competitive";
@@ -77,6 +77,4 @@ export type StoredFlowScreen = {
   pendingLevel: 2 | 3;
 };
 
-const LEVEL2_TOTAL = 10;
-const LEVEL3_TOTAL = 20;
-export const TOTAL_SOLVE_TARGET = PROBLEMS_PER_SESSION + LEVEL2_TOTAL + LEVEL3_TOTAL;
+export { TOTAL_SOLVE_TARGET };

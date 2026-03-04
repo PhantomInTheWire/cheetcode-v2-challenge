@@ -68,7 +68,7 @@ pub extern "C" fn cpu_reset() {
 
 #[no_mangle]
 pub extern "C" fn cpu_load_word(addr: i32, word: i32) {
-    if addr < 0 { return; }
+    if !(0..=65534).contains(&addr) { return; }
     write16(addr as u16, word as u16);
 }
 
@@ -231,7 +231,7 @@ pub extern "C" fn cpu_get_flag_v() -> i32 { unsafe { FLAG_V } }
 
 #[no_mangle]
 pub extern "C" fn cpu_mem_read16(addr: i32) -> i32 {
-    if addr < 0 { return 0; }
+    if !(0..=65534).contains(&addr) { return 0; }
     read16(addr as u16) as i32
 }
 

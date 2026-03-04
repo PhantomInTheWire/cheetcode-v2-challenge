@@ -115,6 +115,7 @@ Assembler Contract
 `cpu_assemble(src, src_len, out_words, max_words)`:
 
 - Input text is assembly using mnemonics above, optional labels (`name:`), decimal immediates, optional `#` prefix, and `;` comments.
+- Implementations must support large valid programs. Validation may provide sources with at least 20,000 labels and output sizes above 20,000 words.
 - Returns number of encoded words on success.
 - Returns a negative value on parse/encode/validation error.
 - Must not write beyond `max_words` entries in `out_words`.

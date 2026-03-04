@@ -1,17 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getLevel3ChallengeFromId } from "../server/level3/problems";
+
+const l3Challenge = getLevel3ChallengeFromId("l3:cpu-16bit-emulator:c");
+if (!l3Challenge) throw new Error("missing level 3 challenge fixture");
+const L3_CHECK_IDS = l3Challenge.checks.map((check) => check.id);
+const L3_CHECK_COUNT = L3_CHECK_IDS.length;
 
 const hoisted = vi.hoisted(() => {
-  const l3CheckIds = Array.from({ length: 20 }, (_, i) => `l3:cpu-16bit-emulator:c:check_${i + 1}`);
   return {
     queryMock: vi.fn(),
     actionMock: vi.fn(),
     requireAuthMock: vi.fn(async () => ({ ok: true, github: "tester" })),
-    l3CheckIds,
-    validateL3Mock: vi.fn(async () => ({
-      compiled: true,
-      error: "",
-      results: l3CheckIds.map((id) => ({ problemId: id, correct: true, message: "ok" })),
-    })),
+    validateL3Mock: vi.fn(),
     sanitizeL3Mock: vi.fn((result) => ({
       ...result,
       error: result.compiled ? "" : "redacted",
@@ -52,12 +52,17 @@ describe("finish l2/l3 routes", () => {
     hoisted.actionMock.mockReset();
     hoisted.validateL3Mock.mockClear();
     hoisted.sanitizeL3Mock.mockClear();
+    hoisted.validateL3Mock.mockResolvedValue({
+      compiled: true,
+      error: "",
+      results: L3_CHECK_IDS.map((id) => ({ problemId: id, correct: true, message: "ok" })),
+    });
     hoisted.queryMock.mockResolvedValue({
       github: "tester",
       level: 3,
       startedAt: 1_000,
       expiresAt: 121_000,
-      problemIds: hoisted.l3CheckIds,
+      problemIds: L3_CHECK_IDS,
     });
     hoisted.actionMock.mockResolvedValue({
       elo: 123,
@@ -126,7 +131,7 @@ describe("finish l2/l3 routes", () => {
     expect(hoisted.actionMock).not.toHaveBeenCalled();
   });
 
-  it("/api/finish-l3 validates and records all 20 solved checks for full L3 scoring input", async () => {
+  it("/api/finish-l3 validates and records all solved checks for full L3 scoring input", async () => {
     const { POST } = await import("../src/app/api/finish-l3/route");
     const req = new Request("http://localhost/api/finish-l3", {
       method: "POST",
@@ -149,9 +154,9 @@ describe("finish l2/l3 routes", () => {
       | { solvedProblemIds: string[] }
       | undefined;
     expect(actionCall).toBeTruthy();
-    expect(actionCall?.solvedProblemIds).toHaveLength(20);
-    expect(new Set(actionCall?.solvedProblemIds).size).toBe(20);
-    expect(actionCall?.solvedProblemIds).toEqual(hoisted.l3CheckIds);
+    expect(actionCall?.solvedProblemIds).toHaveLength(L3_CHECK_COUNT);
+    expect(new Set(actionCall?.solvedProblemIds).size).toBe(L3_CHECK_COUNT);
+    expect(actionCall?.solvedProblemIds).toEqual(L3_CHECK_IDS);
     const telemetryCall = hoisted.actionMock.mock.calls[1]?.[1] as
       | { eventType: string; status: string }
       | undefined;
@@ -159,15 +164,15 @@ describe("finish l2/l3 routes", () => {
     expect(telemetryCall?.status).toBe("passed");
   });
 
-  it("each individual L3 check affects scoring input (20/20 sensitivity)", async () => {
+  it("each individual L3 check affects scoring input", async () => {
     const { POST } = await import("../src/app/api/finish-l3/route");
 
-    for (const missedId of hoisted.l3CheckIds) {
+    for (const missedId of L3_CHECK_IDS) {
       hoisted.actionMock.mockClear();
       hoisted.validateL3Mock.mockResolvedValueOnce({
         compiled: true,
         error: "",
-        results: hoisted.l3CheckIds.map((id: string) => ({
+        results: L3_CHECK_IDS.map((id: string) => ({
           problemId: id,
           correct: id !== missedId,
           message: id !== missedId ? "ok" : "fail",
@@ -191,7 +196,7 @@ describe("finish l2/l3 routes", () => {
         | { solvedProblemIds: string[] }
         | undefined;
       expect(actionCall).toBeTruthy();
-      expect(actionCall?.solvedProblemIds).toHaveLength(19);
+      expect(actionCall?.solvedProblemIds).toHaveLength(L3_CHECK_COUNT - 1);
       expect(actionCall?.solvedProblemIds.includes(missedId)).toBe(false);
       const telemetryCall = hoisted.actionMock.mock.calls[1]?.[1] as
         | { eventType: string; status: string }
@@ -233,7 +238,7 @@ describe("finish l2/l3 routes", () => {
     hoisted.validateL3Mock.mockResolvedValueOnce({
       compiled: false,
       error: "secret harness details",
-      results: hoisted.l3CheckIds.map((id: string) => ({
+      results: L3_CHECK_IDS.map((id: string) => ({
         problemId: id,
         correct: false,
         message: "leak",

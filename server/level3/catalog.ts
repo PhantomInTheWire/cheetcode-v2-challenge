@@ -46,19 +46,28 @@ const LEVEL3_TASKS: Level3TaskTemplate[] = [
       { key: "arith_cmp_flags", name: "CMP flag-only behavior", exportName: "cpu_get_flag_n" },
       { key: "logic_bitwise", name: "Bitwise logical operations", exportName: "cpu_get_reg" },
       { key: "logic_shifts", name: "Shift semantics and flags", exportName: "cpu_get_flag_z" },
-      { key: "logic_v_clear", name: "Logical ops clear V flag", exportName: "cpu_get_flag_v" },
       { key: "branch_jnz_loop", name: "JNZ loop control flow", exportName: "cpu_get_pc" },
       { key: "branch_jn_taken", name: "JN negative branch behavior", exportName: "cpu_get_pc" },
       { key: "stack_push_pop", name: "Stack push/pop behavior", exportName: "cpu_get_sp" },
       { key: "stack_call_ret", name: "CALL/RET discipline", exportName: "cpu_get_sp" },
       {
         key: "memory_wraparound",
-        name: "Memory wraparound semantics",
+        name: "Core wraparound and helper bounds",
         exportName: "cpu_mem_read16",
       },
       {
         key: "memory_unaligned",
         name: "Memory unaligned word semantics",
+        exportName: "cpu_mem_read16",
+      },
+      {
+        key: "helper_load_word_bounds",
+        name: "Helper load-word address bounds",
+        exportName: "cpu_load_word",
+      },
+      {
+        key: "helper_mem_read_bounds",
+        name: "Helper mem-read address bounds",
         exportName: "cpu_mem_read16",
       },
       {
@@ -78,8 +87,24 @@ const LEVEL3_TASKS: Level3TaskTemplate[] = [
         name: "Assembler rejects invalid source",
         exportName: "cpu_assemble",
       },
+      {
+        key: "assembler_large_labels",
+        name: "Assembler handles large label sets",
+        exportName: "cpu_assemble",
+      },
       { key: "random_alu", name: "Randomized ALU property checks", exportName: "cpu_get_reg" },
       { key: "benchmark_budget", name: "Cycle/timing budget constraints", exportName: "cpu_run" },
+      { key: "perf_run_throughput", name: "Run throughput benchmark", exportName: "cpu_run" },
+      {
+        key: "perf_asm_label_lookup",
+        name: "Assembler label lookup benchmark",
+        exportName: "cpu_assemble",
+      },
+      {
+        key: "perf_asm_mnemonic_decode",
+        name: "Assembler mnemonic decode benchmark",
+        exportName: "cpu_assemble",
+      },
     ],
   },
 ];

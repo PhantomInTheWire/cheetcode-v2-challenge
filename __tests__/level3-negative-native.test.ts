@@ -64,7 +64,7 @@ __attribute__((visibility("default"))) int cpu_run(int max_cycles) {(void)max_cy
     expect(result.harness.programs_invalid_reject?.ok).toBe(false);
   });
 
-  it("fails logic_v_clear when V flag is incorrectly stuck high", () => {
+  it("fails logic_bitwise when V flag is incorrectly stuck high", () => {
     const code = `${BASE_EXPORTS}
 __attribute__((visibility("default"))) int cpu_assemble(const char* src, int src_len, unsigned short* out_words, int max_words) {
   (void)src; (void)src_len; (void)out_words; (void)max_words;
@@ -76,7 +76,7 @@ __attribute__((visibility("default"))) int cpu_run(int max_cycles) {(void)max_cy
 
     const result = runC(code);
     expect(result.compiled, result.error).toBe(true);
-    expect(result.harness.logic_v_clear?.ok).toBe(false);
+    expect(result.harness.logic_bitwise?.ok).toBe(false);
   });
 
   it("fails benchmark/cycle checks when cpu_run reports zero work", () => {

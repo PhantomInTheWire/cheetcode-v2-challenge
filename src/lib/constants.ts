@@ -18,7 +18,7 @@ export const PROBLEMS_PER_SESSION = 25;
 export const LEVEL2_TOTAL = 10;
 
 /** Target for Level 3 */
-export const LEVEL3_TOTAL = 20;
+export const LEVEL3_TOTAL = 25;
 
 /** Total solve target across all levels */
 export const TOTAL_SOLVE_TARGET = PROBLEMS_PER_SESSION + LEVEL2_TOTAL + LEVEL3_TOTAL;
