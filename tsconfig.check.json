@@ -6,7 +6,7 @@
   "include": [
     "next-env.d.ts",
     "auth.ts",
-    "middleware.ts",
+    "proxy.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
     "server/**/*.ts",

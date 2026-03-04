@@ -46,7 +46,7 @@ function rateLimitBody(pathname: string): Record<string, unknown> {
   return { error: "rate limited" };
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   if (request.method !== "POST") return NextResponse.next();
 
   const route = API_ROUTE_TO_ABUSE_ROUTE[request.nextUrl.pathname];
@@ -97,7 +97,7 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-export const config = {
+export const proxyConfig = {
   matcher: [
     "/api/session",
     "/api/validate-l1",
