@@ -16,7 +16,7 @@ import {
 import { validateGithub } from "../src/lib/validation";
 import { ROUND_DURATION_MS } from "../src/lib/constants";
 import { isServerDevMode } from "../src/lib/myEnv";
-import { LEVEL2_PROBLEMS } from "../server/level2/problems";
+import { selectLevel2SessionProblems } from "../server/level2/problems";
 
 export const ROUND_DURATION_L2_MS = 60_000;
 export const ROUND_DURATION_L3_MS = 120_000;
@@ -99,8 +99,9 @@ export const createInternal = internalMutation({
 
     if (level === 2) {
       expiresAt = startedAt + ROUND_DURATION_L2_MS;
-      problemIds = LEVEL2_PROBLEMS.map((p) => p.id);
-      problemsToReturn = LEVEL2_PROBLEMS.map((p) => ({
+      const picked = selectLevel2SessionProblems();
+      problemIds = picked.map((problem) => problem.id);
+      problemsToReturn = picked.map((p) => ({
         id: p.id,
         question: p.question,
       }));

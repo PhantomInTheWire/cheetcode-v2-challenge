@@ -52,7 +52,7 @@ describe("validate l2/l3 routes", () => {
         level: 2,
         startedAt: 1_000,
         expiresAt: 61_000,
-        problemIds: ["l2_2", "p1"],
+        problemIds: ["l2_2", "l2_1"],
       },
       convex: { action: hoisted.actionMock },
     });
@@ -70,6 +70,7 @@ describe("validate l2/l3 routes", () => {
     const body = (await res.json()) as { results: Array<{ problemId: string; correct: boolean }> };
     const item = body.results.find((r) => r.problemId === "l2_2");
     expect(item?.correct).toBe(true);
+    expect(body.results.some((r) => r.problemId === "l2_3")).toBe(false);
     expect(hoisted.actionMock).toHaveBeenCalledTimes(1);
     const telemetryCall = hoisted.actionMock.mock.calls[0]?.[1] as
       | { eventType: string; status: string }

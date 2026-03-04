@@ -48,7 +48,7 @@ type Level3GameProps = {
   challenge: Level3Challenge;
   expiresAt: number;
   initialCode?: string;
-  onCodeChange?: (code: string) => void;
+  onCodeChangeAction?: (code: string) => void;
   onFinishAction: (results: Level3FinishResult) => void;
 };
 
@@ -70,7 +70,7 @@ export function Level3Game({
   challenge,
   expiresAt,
   initialCode,
-  onCodeChange,
+  onCodeChangeAction,
   onFinishAction,
 }: Level3GameProps) {
   const canAutoSolve = isClientDevMode();
@@ -124,8 +124,8 @@ export function Level3Game({
   }, [challenge.id, challenge.starterCode, sessionId]);
 
   useEffect(() => {
-    onCodeChange?.(code);
-  }, [code, onCodeChange]);
+    onCodeChangeAction?.(code);
+  }, [code, onCodeChangeAction]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

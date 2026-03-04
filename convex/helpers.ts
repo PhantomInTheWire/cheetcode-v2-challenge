@@ -25,8 +25,8 @@ export function calculateRank(
   targetElo: number,
   targetAttempts: number,
 ): number {
-  const index = sortedEntries.findIndex(
-    (row) => row.elo < targetElo || (row.elo === targetElo && (row.attempts ?? 1) > targetAttempts),
-  );
-  return index === -1 ? sortedEntries.length + 1 : index + 1;
+  const betterCount = sortedEntries.filter(
+    (row) => row.elo > targetElo || (row.elo === targetElo && (row.attempts ?? 1) < targetAttempts),
+  ).length;
+  return betterCount + 1;
 }

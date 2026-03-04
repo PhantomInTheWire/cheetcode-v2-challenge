@@ -30,8 +30,11 @@ export async function POST(request: Request) {
     const sessionResult = await requireOwnedSession(sessionId, github, 2);
     if ("response" in sessionResult) return sessionResult.response;
 
-    const { convex } = sessionResult;
-    const results = validateLevel2Answers(answers as Record<string, string>);
+    const { convex, session } = sessionResult;
+    const results = validateLevel2Answers(
+      answers as Record<string, string>,
+      session.problemIds as string[],
+    );
     const correctCount = results.filter((result) => result.correct).length;
 
     await recordBuiltTelemetry({

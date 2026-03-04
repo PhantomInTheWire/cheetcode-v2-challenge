@@ -20,37 +20,37 @@ type GameProblem = {
 type Level1GameProps = {
   github: string;
   canAutoSolve: boolean;
-  autoSolve: () => void;
+  autoSolveAction: () => void;
   isAutoSolving: boolean;
   solvedLocal: number;
   expiresAt: number;
-  finishGame: () => void;
+  finishGameAction: () => void;
   isSubmitting: boolean;
   submitError: string | null;
   problems: GameProblem[];
   localPass: Record<string, boolean | null>;
   codes: Record<string, string>;
-  setCodes: (
+  setCodesAction: (
     v: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>),
   ) => void;
-  runLocalCheck: (problem: GameProblem) => void;
+  runLocalCheckAction: (problem: GameProblem) => void;
 };
 
 export function Level1Game({
   github,
   canAutoSolve,
-  autoSolve,
+  autoSolveAction,
   isAutoSolving,
   solvedLocal,
   expiresAt,
-  finishGame,
+  finishGameAction,
   isSubmitting,
   submitError,
   problems,
   localPass,
   codes,
-  setCodes,
-  runLocalCheck,
+  setCodesAction,
+  runLocalCheckAction,
 }: Level1GameProps) {
   const [expandedQuestions, setExpandedQuestions] = React.useState<Record<string, boolean>>({});
   const [timeLeftMs, setTimeLeftMs] = React.useState(ROUND_DURATION_MS);
@@ -102,7 +102,7 @@ export function Level1Game({
           <span style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", marginLeft: 4 }}>@{github}</span>
           {canAutoSolve && (
             <button
-              onClick={autoSolve}
+              onClick={autoSolveAction}
               disabled={isAutoSolving}
               style={{
                 marginLeft: 8,
@@ -185,7 +185,7 @@ export function Level1Game({
           </div>
           {/* ── Big SUBMIT button ── */}
           <button
-            onClick={() => void finishGame()}
+            onClick={() => void finishGameAction()}
             disabled={isSubmitting}
             className="btn-heat"
             style={{
@@ -392,7 +392,9 @@ export function Level1Game({
               >
                 <textarea
                   value={codes[problem.id] ?? ""}
-                  onChange={(e) => setCodes((cur) => ({ ...cur, [problem.id]: e.target.value }))}
+                  onChange={(e) =>
+                    setCodesAction((cur) => ({ ...cur, [problem.id]: e.target.value }))
+                  }
                   disabled={timeUp || status === "passed"}
                   placeholder={problem.signature}
                   spellCheck={false}
@@ -417,7 +419,7 @@ export function Level1Game({
               {/* Submit button */}
               <div style={{ padding: "5px 8px", flexShrink: 0 }}>
                 <button
-                  onClick={() => runLocalCheck(problem)}
+                  onClick={() => runLocalCheckAction(problem)}
                   disabled={timeUp || status === "passed" || !(codes[problem.id] ?? "").trim()}
                   style={{
                     width: "100%",
@@ -493,7 +495,7 @@ export function Level1Game({
             </p>
             {!isSubmitting && (
               <button
-                onClick={() => void finishGame()}
+                onClick={() => void finishGameAction()}
                 className="btn-heat"
                 style={{
                   marginTop: 32,

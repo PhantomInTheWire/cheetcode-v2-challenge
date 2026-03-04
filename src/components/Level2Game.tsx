@@ -19,7 +19,7 @@ type Level2GameProps = {
   problems: Level2Problem[];
   expiresAt: number;
   initialAnswers?: Record<string, string>;
-  onAnswersChange?: (answers: Record<string, string>) => void;
+  onAnswersChangeAction?: (answers: Record<string, string>) => void;
   onFinishAction: (results: {
     elo: number;
     solved: number;
@@ -34,7 +34,7 @@ export function Level2Game({
   problems,
   expiresAt,
   initialAnswers,
-  onAnswersChange,
+  onAnswersChangeAction,
   onFinishAction,
 }: Level2GameProps) {
   const canAutoSolve = isClientDevMode();
@@ -76,8 +76,8 @@ export function Level2Game({
   }, [sessionId]);
 
   useEffect(() => {
-    onAnswersChange?.(answers);
-  }, [answers, onAnswersChange]);
+    onAnswersChangeAction?.(answers);
+  }, [answers, onAnswersChangeAction]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

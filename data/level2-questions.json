@@ -1,0 +1,98 @@
+[
+  {
+    "id": "l2_1",
+    "question": "When a web page executes a command to open a local file selection dialog, what is the status code name returned if the tab is currently visible in a split-view mode but does not have active focus at the precise moment of the request?",
+    "answer": "kOperationAborted",
+    "acceptableAnswers": ["kOperationAborted", "9", "OperationAborted"]
+  },
+  {
+    "id": "l2_2",
+    "question": "When a site continuously monitors for connected physical game controllers but the person using the machine has not yet interacted with the hardware, how many game controllers are reported in the list returned to the site?",
+    "answer": "0",
+    "acceptableAnswers": ["0", "zero", "none"]
+  },
+  {
+    "id": "l2_3",
+    "question": "If a web application attempts to transmit local files to other native programs using the standard sharing interface, the browser process validates the site's reputation. If the background query to the safety database reaches its maximum allowed duration without a result, what is the numeric value of the threat type finally assigned to the site by the reputation service?",
+    "answer": "1",
+    "acceptableAnswers": ["1", "SB_THREAT_TYPE_SAFE", "SAFE"]
+  },
+  {
+    "id": "l2_4",
+    "question": "When a site attempts to copy text to the system buffer, but an organizational security policy determines the site's address is restricted, what specific localized content is placed into the buffer instead of the original text?",
+    "answer": "warning message",
+    "acceptableAnswers": ["warning message", "warning", "restriction message", "localized warning"]
+  },
+  {
+    "id": "l2_10",
+    "question": "When a user logs in using saved credentials from a related but non-identical address (such as a mobile app or a sub-brand domain), what specific modification does the system make to its internal records for the current site's address to improve future login accuracy?",
+    "answer": "create duplicate record",
+    "acceptableAnswers": [
+      "create duplicate record",
+      "add duplicate",
+      "duplicate record",
+      "new duplicate record",
+      "create duplicate"
+    ]
+  },
+  {
+    "id": "l2_5",
+    "question": "When a page attempts to move its audio output to a new speaker but the underlying operating system reports a fatal initialization error for that hardware, what is the specific status name of the resulting hardware state?",
+    "answer": "OUTPUT_DEVICE_STATUS_ERROR_INTERNAL",
+    "acceptableAnswers": ["OUTPUT_DEVICE_STATUS_ERROR_INTERNAL", "4", "ERROR_INTERNAL"]
+  },
+  {
+    "id": "l2_6",
+    "question": "A background download task for multiple files is configured with a maximum size limit. If a cross-origin resource fails its security checks and the total data eventually exceeds the limit, what specific failure category name is reported to the site instead of a quota error?",
+    "answer": "FETCH_ERROR",
+    "acceptableAnswers": ["FETCH_ERROR", "4", "fetch error"]
+  },
+  {
+    "id": "l2_7",
+    "question": "When a background execution context attempts to save a massive data structure to the local database but the system disk space is completely exhausted during the write, what is the name of the exception provided to the script's failure handler?",
+    "answer": "QuotaExceededError",
+    "acceptableAnswers": ["QuotaExceededError", "22", "kQuotaExceededError"]
+  },
+  {
+    "id": "l2_8",
+    "question": "A web page attempts to create a new file within a directory it has previously accessed. If the underlying operating system has marked that directory as read-only, what is the name of the exception returned to the script to describe the failure?",
+    "answer": "NoModificationAllowedError",
+    "acceptableAnswers": ["NoModificationAllowedError", "kNoModificationAllowedError"]
+  },
+  {
+    "id": "l2_9",
+    "question": "When a long-running background download completes its network phase but fails to save because the site's assigned storage limit is reached, what is the specific internal failure name for the termination of the download job?",
+    "answer": "QUOTA_EXCEEDED",
+    "acceptableAnswers": ["QUOTA_EXCEEDED", "6", "quota exceeded"]
+  },
+  {
+    "id": "l2_11",
+    "question": "On a managed workstation, an organization's data governance framework includes two opposing directives for the system buffer: one that suppresses transfer of selected content from a particular web origin to a specific destination, and another that grants express clearance for that same origin-destination pair. Both directives match when a user initiates a paste. In the graduated response category ladder used internally to resolve such conflicts — where each category occupies a fixed numerical position starting from zero — what is the exact numerical position of the category that prevails?",
+    "answer": "4",
+    "acceptableAnswers": ["4", "kAllow", "Allow"]
+  },
+  {
+    "id": "l2_12",
+    "question": "When a managed browser submits content for deep inspection by the organization's remote content analysis back-end, the submission may request evaluation across multiple distinct safety-check dimensions simultaneously. If the back-end's reply delivers verdicts for only a subset of the requested evaluation dimensions — omitting one or more categories entirely — what specific upload-outcome status value does the browser assign to that submission?",
+    "answer": "kIncompleteResponse",
+    "acceptableAnswers": ["kIncompleteResponse", "10", "IncompleteResponse"]
+  },
+  {
+    "id": "l2_13",
+    "question": "When the software's self-renewal mechanism receives a directive to merely assess whether a fresher revision exists — without actually retrieving or applying it — and the remote distribution server responds affirmatively that a newer revision is indeed available, the internal state progression reaches the point where it would normally begin retrieval. Instead, the processing pipeline terminates early and records a dedicated sentinel value in the service-layer error classification. What is the exact name of that sentinel value?",
+    "answer": "CHECK_FOR_UPDATE_ONLY",
+    "acceptableAnswers": ["CHECK_FOR_UPDATE_ONLY", "4", "ServiceError::CHECK_FOR_UPDATE_ONLY"]
+  },
+  {
+    "id": "l2_14",
+    "question": "When the organization's central device management server issues a configuration delivery payload that includes a replacement signing credential — performing a signing authority credential rotation — the client must verify that this incoming credential was itself endorsed by a root trust anchor that is immutably embedded in the application binary. If this cryptographic endorsement verification against the permanently compiled-in root trust anchor fails, what specific validation disposition code does the configuration payload integrity checker assign to reject the entire settings bundle?",
+    "answer": "VALIDATION_BAD_KEY_VERIFICATION_SIGNATURE",
+    "acceptableAnswers": ["VALIDATION_BAD_KEY_VERIFICATION_SIGNATURE", "12", "BAD_KEY_VERIFICATION_SIGNATURE"]
+  },
+  {
+    "id": "l2_15",
+    "question": "When the browser performs a device identity verification exchange with a remote access gateway, the response payload is assembled from contributions by two separate endorsers — one scoped to the machine's management enrollment and one scoped to the managed account's profile. If the fleet policy that triggers this exchange is configured only at the managed-account level, neither endorser is able to apply a cryptographic seal to the outbound payload. The system still considers this a successful outcome and transmits the unsealed payload. What is the specific status value recorded for this unsealed-but-successful result?",
+    "answer": "kSuccessNoSignature",
+    "acceptableAnswers": ["kSuccessNoSignature", "11", "SuccessNoSignature"]
+  }
+]

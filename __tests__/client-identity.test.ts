@@ -1,5 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const hoisted = vi.hoisted(() => ({
+  fpLoadMock: vi.fn(async () => ({ get: vi.fn(async () => ({ visitorId: "fp-123" })) })),
+}));
+
+vi.mock("@fingerprintjs/fingerprintjs", () => ({
+  default: {
+    load: hoisted.fpLoadMock,
+  },
+}));
+
 function mockWindow(overrides: Partial<Window> = {}) {
   const storage = new Map<string, string>();
   const localStorage = {
@@ -24,14 +34,14 @@ function mockWindow(overrides: Partial<Window> = {}) {
 describe("client-identity", () => {
   beforeEach(() => {
     vi.resetModules();
+    hoisted.fpLoadMock.mockReset();
+    hoisted.fpLoadMock.mockResolvedValue({
+      get: vi.fn(async () => ({ visitorId: "fp-123" })),
+    });
   });
 
   it("uses FingerprintJS visitorId when available", async () => {
-    mockWindow({
-      FingerprintJS: {
-        load: vi.fn(async () => ({ get: vi.fn(async () => ({ visitorId: "fp-123" })) })),
-      },
-    } as unknown as Window);
+    mockWindow();
 
     const mod = await import("../src/lib/client-identity");
     const fp = await mod.getClientFingerprint();
@@ -53,6 +63,7 @@ describe("client-identity", () => {
       configurable: true,
       writable: true,
     });
+    hoisted.fpLoadMock.mockRejectedValueOnce(new Error("fp unavailable"));
 
     const mod = await import("../src/lib/client-identity");
     const fp = await mod.getClientFingerprint();

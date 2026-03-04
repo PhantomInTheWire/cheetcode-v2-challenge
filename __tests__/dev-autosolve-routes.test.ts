@@ -5,6 +5,9 @@ import { LEVEL2_PROBLEMS } from "../server/level2/problems";
 vi.mock("../src/lib/myEnv", () => ({
   isServerDevMode: vi.fn(() => true),
 }));
+vi.mock("../src/lib/request-auth", () => ({
+  requireAuthenticatedGithub: vi.fn(async () => ({ ok: true, github: "tester" })),
+}));
 vi.mock("../server/level3/problems", () => ({
   getLevel3ChallengeFromId: vi.fn((id: string) =>
     id === "ok" ? { id: "ok", language: "C" } : null,

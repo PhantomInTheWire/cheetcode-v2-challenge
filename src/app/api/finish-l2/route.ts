@@ -47,7 +47,7 @@ export async function POST(request: Request) {
         return response;
       }
 
-      const validated = validateLevel2Answers(answers);
+      const validated = validateLevel2Answers(answers, session.problemIds as string[]);
       const solvedProblemIds = validated.filter((r) => r.correct).map((r) => r.problemId);
 
       // Record results via authenticated Convex action

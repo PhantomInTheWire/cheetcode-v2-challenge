@@ -5,6 +5,10 @@ import {
   selectSessionProblems,
   stripSolution,
 } from "../server/level1/problems";
+import {
+  LEVEL2_PROBLEM_SET_SIZE,
+  selectLevel2SessionProblems,
+} from "../server/level2/problems";
 
 describe("sessions", () => {
   it("selects the configured number of level 1 problems by tier", () => {
@@ -42,5 +46,11 @@ describe("sessions", () => {
       (p, idx) => p.description !== selected[idx].description,
     ).length;
     expect(mutatedCount).toBe(1);
+  });
+
+  it("selects exactly 10 unique level 2 problems per session", () => {
+    const selected = selectLevel2SessionProblems();
+    expect(selected).toHaveLength(LEVEL2_PROBLEM_SET_SIZE);
+    expect(new Set(selected.map((problem) => problem.id)).size).toBe(selected.length);
   });
 });

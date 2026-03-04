@@ -104,7 +104,7 @@ function renderPlayingScreen(params: {
         problems={params.l2Problems}
         expiresAt={params.expiresAt}
         initialAnswers={params.l2Answers}
-        onAnswersChange={params.setL2Answers}
+        onAnswersChangeAction={params.setL2Answers}
         onFinishAction={finishAndShowResults}
       />
     );
@@ -118,7 +118,7 @@ function renderPlayingScreen(params: {
         challenge={params.l3Challenge}
         expiresAt={params.expiresAt}
         initialCode={params.l3CodeDraft}
-        onCodeChange={params.setL3CodeDraft}
+        onCodeChangeAction={params.setL3CodeDraft}
         onFinishAction={finishAndShowResults}
       />
     );
@@ -128,18 +128,18 @@ function renderPlayingScreen(params: {
     <Level1Game
       github={params.github}
       canAutoSolve={params.canAutoSolve}
-      autoSolve={params.autoSolve}
+      autoSolveAction={params.autoSolve}
       isAutoSolving={params.isAutoSolving}
       solvedLocal={params.solvedLocal}
       expiresAt={params.expiresAt}
-      finishGame={params.finishGame}
+      finishGameAction={params.finishGame}
       isSubmitting={params.isSubmitting}
       submitError={params.submitError}
       problems={params.problems}
       localPass={params.localPass}
       codes={params.codes}
-      setCodes={params.setCodes}
-      runLocalCheck={params.runLocalCheck}
+      setCodesAction={params.setCodes}
+      runLocalCheckAction={params.runLocalCheck}
     />
   );
 }
