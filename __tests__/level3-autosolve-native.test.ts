@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { getLevel3AutoSolveCode } from "../server/level3/autoSolve";
-import { buildCpuNativeSandboxRunner } from "../server/level3/sandboxRunner";
+import { buildLevel3NativeSandboxRunner } from "../server/level3/sandboxRunner";
 import { getLevel3ChallengeFromId } from "../server/level3/problems";
 
 function hasTool(tool: string): boolean {
@@ -20,8 +20,9 @@ describe.skipIf(!hasNativeToolchain)("level3 autosolve native harness", () => {
     for (const language of languages) {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), "l3-native-"));
       const ext = language === "C" ? "c" : language === "C++" ? "cpp" : "rs";
-      fs.writeFileSync(path.join(dir, `main.${ext}`), getLevel3AutoSolveCode(language));
-      fs.writeFileSync(path.join(dir, "runner.mjs"), buildCpuNativeSandboxRunner(language));
+      const taskId = "cpu-16bit-emulator";
+      fs.writeFileSync(path.join(dir, `main.${ext}`), getLevel3AutoSolveCode(language, taskId));
+      fs.writeFileSync(path.join(dir, "runner.mjs"), buildLevel3NativeSandboxRunner(taskId, language));
 
       const run = spawnSync("node", ["runner.mjs"], { cwd: dir, encoding: "utf8" });
       expect(run.status).toBe(0);

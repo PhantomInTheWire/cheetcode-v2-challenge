@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "unknown challenge" }, { status: 400 });
     }
 
-    const code = getLevel3AutoSolveCode(challenge.language);
+    const code = getLevel3AutoSolveCode(challenge.language, challenge.taskId);
     return NextResponse.json({ code });
   } catch (error) {
     return NextResponse.json(

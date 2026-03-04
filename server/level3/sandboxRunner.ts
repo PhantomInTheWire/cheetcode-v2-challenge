@@ -1,14 +1,4 @@
-import fs from "node:fs";
-import path from "node:path";
-
-const assetsDir = path.join(process.cwd(), "server", "level3", "assets");
-let cachedHarnessSource: string | null = null;
-
-function getHarnessSource(): string {
-  if (cachedHarnessSource !== null) return cachedHarnessSource;
-  cachedHarnessSource = fs.readFileSync(path.join(assetsDir, "harness.c"), "utf8");
-  return cachedHarnessSource;
-}
+import { readLevel3TaskAsset } from "./taskAssets";
 
 function buildRunnerSource(language: string, harnessBootstrap: string): string {
   return `
@@ -76,12 +66,13 @@ fs.writeFileSync("result.json", JSON.stringify({
 `.trim();
 }
 
-export function buildCpuNativeSandboxRunner(language: string): string {
-  const harnessBootstrap = `const HARNESS_SOURCE = ${JSON.stringify(getHarnessSource())};
+export function buildLevel3NativeSandboxRunner(taskId: string, language: string): string {
+  const harnessSource = readLevel3TaskAsset(taskId, "harness.c");
+  const harnessBootstrap = `const HARNESS_SOURCE = ${JSON.stringify(harnessSource)};
 fs.writeFileSync("harness.c", HARNESS_SOURCE, "utf8");`;
   return buildRunnerSource(language, harnessBootstrap);
 }
 
-export function buildCpuSandboxRuntimeRunner(language: string): string {
+export function buildLevel3SandboxRuntimeRunner(_taskId: string, language: string): string {
   return buildRunnerSource(language, "");
 }

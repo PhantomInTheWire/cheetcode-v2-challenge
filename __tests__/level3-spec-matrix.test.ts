@@ -5,7 +5,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { getLevel3ChallengeFromId } from "../server/level3/problems";
 import { getLevel3AutoSolveCode } from "../server/level3/autoSolve";
-import { buildCpuNativeSandboxRunner } from "../server/level3/sandboxRunner";
+import { buildLevel3NativeSandboxRunner } from "../server/level3/sandboxRunner";
 
 function hasTool(tool: string): boolean {
   const check = spawnSync("sh", ["-lc", `command -v ${tool}`], { encoding: "utf8" });
@@ -15,15 +15,19 @@ function hasTool(tool: string): boolean {
 const hasNativeToolchain = hasTool("clang") && hasTool("clang++") && hasTool("rustc");
 
 function readSpec(): string {
-  return fs.readFileSync(path.join(process.cwd(), "server/level3/assets/spec.md"), "utf8");
+  return fs.readFileSync(
+    path.join(process.cwd(), "server/level3/tasks/cpu-16bit-emulator/spec.md"),
+    "utf8",
+  );
 }
 
 function runHarness(language: "C" | "C++" | "Rust") {
+  const taskId = "cpu-16bit-emulator";
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "l3-spec-cohesion-"));
   try {
     const ext = language === "C" ? "c" : language === "C++" ? "cpp" : "rs";
-    fs.writeFileSync(path.join(dir, `main.${ext}`), getLevel3AutoSolveCode(language));
-    fs.writeFileSync(path.join(dir, "runner.mjs"), buildCpuNativeSandboxRunner(language));
+    fs.writeFileSync(path.join(dir, `main.${ext}`), getLevel3AutoSolveCode(language, taskId));
+    fs.writeFileSync(path.join(dir, "runner.mjs"), buildLevel3NativeSandboxRunner(taskId, language));
 
     const run = spawnSync("node", ["runner.mjs"], { cwd: dir, encoding: "utf8", timeout: 30_000 });
     expect(run.status, run.stderr || run.stdout || run.signal || "runner failed").toBe(0);

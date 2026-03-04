@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { buildCpuNativeSandboxRunner } from "../server/level3/sandboxRunner";
+import { buildLevel3NativeSandboxRunner } from "../server/level3/sandboxRunner";
 
 function hasTool(tool: string): boolean {
   const check = spawnSync("sh", ["-lc", `command -v ${tool}`], { encoding: "utf8" });
@@ -13,10 +13,11 @@ function hasTool(tool: string): boolean {
 const hasNativeToolchain = hasTool("clang");
 
 function runC(code: string) {
+  const taskId = "cpu-16bit-emulator";
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "l3-negative-"));
   try {
     fs.writeFileSync(path.join(dir, "main.c"), code);
-    fs.writeFileSync(path.join(dir, "runner.mjs"), buildCpuNativeSandboxRunner("C"));
+    fs.writeFileSync(path.join(dir, "runner.mjs"), buildLevel3NativeSandboxRunner(taskId, "C"));
 
     const run = spawnSync("node", ["runner.mjs"], {
       cwd: dir,

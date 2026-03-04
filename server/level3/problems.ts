@@ -1,11 +1,10 @@
-import fs from "node:fs";
-import path from "node:path";
 import {
   type Level3Check,
   type Level3ChallengeMeta,
   generateLevel3ChallengeMeta,
   getLevel3ChallengeMetaFromId,
 } from "./catalog";
+import { resolveLevel3TaskAssets } from "./taskAssets";
 
 type Level3Challenge = {
   id: string;
@@ -18,30 +17,16 @@ type Level3Challenge = {
   starterCode: string;
 };
 
-const ASSETS_DIR = path.join(process.cwd(), "server/level3/assets");
-
-function languageToExt(language: string): string {
-  if (language === "C") return "c";
-  if (language === "C++") return "cpp";
-  return "rs";
-}
-
-function starterCodeFor(language: string): string {
-  return fs.readFileSync(path.join(ASSETS_DIR, `main.${languageToExt(language)}`), "utf8");
-}
-
-function renderSpec(language: string): string {
-  const specTemplate = fs.readFileSync(path.join(ASSETS_DIR, "spec.md"), "utf8");
-  return specTemplate
-    .replaceAll("{language}", language)
-    .replaceAll("{ext}", languageToExt(language));
+function renderSpec(specTemplate: string, language: string, ext: string): string {
+  return specTemplate.replaceAll("{language}", language).replaceAll("{ext}", ext);
 }
 
 function hydrateChallenge(meta: Level3ChallengeMeta): Level3Challenge {
+  const assets = resolveLevel3TaskAssets(meta.taskId, meta.language);
   return {
     ...meta,
-    spec: renderSpec(meta.language),
-    starterCode: starterCodeFor(meta.language),
+    spec: renderSpec(assets.specTemplate, meta.language, assets.ext),
+    starterCode: assets.starterCode,
   };
 }
 

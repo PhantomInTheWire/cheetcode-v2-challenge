@@ -1,9 +1,8 @@
 import { Sandbox } from "@vercel/sandbox";
 import { createHash } from "node:crypto";
-import fs from "node:fs";
-import path from "node:path";
 import { getLevel3ChallengeFromId } from "./problems";
-import { buildCpuSandboxRuntimeRunner } from "./sandboxRunner";
+import { buildLevel3SandboxRuntimeRunner } from "./sandboxRunner";
+import { languageToExt, readLevel3TaskAsset } from "./taskAssets";
 import { getKvJson, setKvJson } from "@/lib/abuse/kv";
 
 export type Level3ValidationResult = {
@@ -43,13 +42,6 @@ export function sanitizeLevel3ValidationForClient(
   };
 }
 
-function extensionForLanguage(language: string): string {
-  if (language === "C") return "c";
-  if (language === "C++") return "cpp";
-  if (language === "Rust") return "rs";
-  throw new Error(`Unsupported Level 3 language: ${language}`);
-}
-
 function resolveSandboxCredentials():
   | { token: string; teamId: string; projectId: string }
   | undefined {
@@ -72,9 +64,7 @@ function configuredSnapshotIdForLanguage(language: string): string | undefined {
 const RUNTIME_TIMEOUT_MS = 300_000;
 const RUNTIME_IDLE_SHUTDOWN_MS = 300_000;
 const USER_CODE_NETWORK_POLICY = "deny-all" as const;
-const assetsDir = path.join(process.cwd(), "server", "level3", "assets");
-const harnessSource = fs.readFileSync(path.join(assetsDir, "harness.c"), "utf8");
-const runtimeByLanguage = new Map<
+const runtimeByKey = new Map<
   string,
   {
     sandbox: Sandbox & AsyncDisposable;
@@ -83,7 +73,7 @@ const runtimeByLanguage = new Map<
     prepared: boolean;
   }
 >();
-const creatingRuntimeByLanguage = new Map<string, Promise<Sandbox & AsyncDisposable>>();
+const creatingRuntimeByKey = new Map<string, Promise<Sandbox & AsyncDisposable>>();
 const snapshotIdByLanguage = new Map<string, string>();
 const creatingSnapshotByLanguage = new Map<string, Promise<string>>();
 const VALIDATION_CACHE_TTL_MS = 90_000;
@@ -204,7 +194,7 @@ function clearIdleTimer(runtime: { idleTimer: ReturnType<typeof setTimeout> | nu
 }
 
 function scheduleIdleStop(
-  language: string,
+  runtimeKey: string,
   runtime: {
     sandbox: Sandbox & AsyncDisposable;
     lock: Promise<void>;
@@ -214,18 +204,18 @@ function scheduleIdleStop(
   clearIdleTimer(runtime);
   runtime.idleTimer = setTimeout(() => {
     void (async () => {
-      const current = runtimeByLanguage.get(language);
+      const current = runtimeByKey.get(runtimeKey);
       if (current !== runtime) return;
       await runtime.lock;
-      if (runtimeByLanguage.get(language) !== runtime) return;
-      runtimeByLanguage.delete(language);
+      if (runtimeByKey.get(runtimeKey) !== runtime) return;
+      runtimeByKey.delete(runtimeKey);
       await runtime.sandbox.stop({ blocking: true }).catch(() => undefined);
-      console.info(`level3 runtime ${language} stopped after ${RUNTIME_IDLE_SHUTDOWN_MS}ms idle`);
+      console.info(`level3 runtime ${runtimeKey} stopped after ${RUNTIME_IDLE_SHUTDOWN_MS}ms idle`);
     })();
   }, RUNTIME_IDLE_SHUTDOWN_MS);
 }
 
-async function getOrCreateRuntime(language: string): Promise<{
+async function getOrCreateRuntime(taskId: string, language: string): Promise<{
   runtime: {
     sandbox: Sandbox & AsyncDisposable;
     lock: Promise<void>;
@@ -234,42 +224,44 @@ async function getOrCreateRuntime(language: string): Promise<{
   };
   created: boolean;
 }> {
-  const existing = runtimeByLanguage.get(language);
+  const runtimeKey = `${taskId}:${language}`;
+  const existing = runtimeByKey.get(runtimeKey);
   if (existing) {
     clearIdleTimer(existing);
     return { runtime: existing, created: false };
   }
 
-  const pending = creatingRuntimeByLanguage.get(language);
+  const pending = creatingRuntimeByKey.get(runtimeKey);
   if (pending) {
     const sandbox = await pending;
-    const runtime = runtimeByLanguage.get(language);
+    const runtime = runtimeByKey.get(runtimeKey);
     if (runtime) {
       clearIdleTimer(runtime);
       return { runtime, created: false };
     }
     const createdRuntime = { sandbox, lock: Promise.resolve(), idleTimer: null, prepared: false };
-    runtimeByLanguage.set(language, createdRuntime);
+    runtimeByKey.set(runtimeKey, createdRuntime);
     return { runtime: createdRuntime, created: true };
   }
 
   const createPromise = createSandboxForLanguage(language);
-  creatingRuntimeByLanguage.set(language, createPromise);
+  creatingRuntimeByKey.set(runtimeKey, createPromise);
   try {
     const sandbox = await createPromise;
     const runtime = { sandbox, lock: Promise.resolve(), idleTimer: null, prepared: false };
-    runtimeByLanguage.set(language, runtime);
+    runtimeByKey.set(runtimeKey, runtime);
     return { runtime, created: true };
   } finally {
-    creatingRuntimeByLanguage.delete(language);
+    creatingRuntimeByKey.delete(runtimeKey);
   }
 }
 
-async function recycleRuntime(language: string): Promise<void> {
-  const runtime = runtimeByLanguage.get(language);
+async function recycleRuntime(taskId: string, language: string): Promise<void> {
+  const runtimeKey = `${taskId}:${language}`;
+  const runtime = runtimeByKey.get(runtimeKey);
   if (!runtime) return;
   clearIdleTimer(runtime);
-  runtimeByLanguage.delete(language);
+  runtimeByKey.delete(runtimeKey);
   await runtime.sandbox.stop({ blocking: true }).catch(() => undefined);
 }
 
@@ -280,6 +272,7 @@ async function ensureRuntimePrepared(
     idleTimer: ReturnType<typeof setTimeout> | null;
     prepared: boolean;
   },
+  taskId: string,
   language: string,
 ): Promise<void> {
   if (runtime.prepared) return;
@@ -289,22 +282,25 @@ async function ensureRuntimePrepared(
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`failed to enforce sandbox network policy: ${message}`);
   }
+  const harnessSource = readLevel3TaskAsset(taskId, "harness.c");
   await runtime.sandbox.writeFiles([
     { path: "harness.c", content: Buffer.from(harnessSource, "utf8") },
     {
       path: "runner.mjs",
-      content: Buffer.from(buildCpuSandboxRuntimeRunner(language), "utf8"),
+      content: Buffer.from(buildLevel3SandboxRuntimeRunner(taskId, language), "utf8"),
     },
   ]);
   runtime.prepared = true;
 }
 
 async function runInRuntime<T>(
+  taskId: string,
   language: string,
   fn: (sandbox: Sandbox) => Promise<T>,
 ): Promise<{ value: T; created: boolean }> {
+  const runtimeKey = `${taskId}:${language}`;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const { runtime, created } = await getOrCreateRuntime(language);
+    const { runtime, created } = await getOrCreateRuntime(taskId, language);
 
     const previousLock = runtime.lock;
     let release!: () => void;
@@ -315,15 +311,15 @@ async function runInRuntime<T>(
     await previousLock;
     try {
       await runtime.sandbox.extendTimeout(120_000).catch(() => undefined);
-      await ensureRuntimePrepared(runtime, language);
+      await ensureRuntimePrepared(runtime, taskId, language);
       const value = await fn(runtime.sandbox);
       return { value, created };
     } catch (error) {
-      await recycleRuntime(language);
+      await recycleRuntime(taskId, language);
       if (attempt === 1) throw error;
     } finally {
       release();
-      scheduleIdleStop(language, runtime);
+      scheduleIdleStop(runtimeKey, runtime);
     }
   }
   throw new Error("unreachable");
@@ -371,8 +367,8 @@ export async function validateLevel3Submission(
   let writeMs = 0;
   let readMs = 0;
   try {
-    const ext = extensionForLanguage(challenge.language);
-    const runtimeResult = await runInRuntime(challenge.language, async (sandbox) => {
+    const ext = languageToExt(challenge.language);
+    const runtimeResult = await runInRuntime(challenge.taskId, challenge.language, async (sandbox) => {
       const writeStart = Date.now();
       await sandbox.writeFiles([{ path: `main.${ext}`, content: Buffer.from(code, "utf8") }]);
       writeMs = Date.now() - writeStart;
@@ -479,7 +475,7 @@ export async function validateLevel3Submission(
   } finally {
     const totalMs = Date.now() - t0;
     console.info(
-      `level3 validate ${challenge.language} total=${totalMs}ms created=${created ? 1 : 0} create=${createMs}ms write=${writeMs}ms run=${runDurationMs}ms read=${readMs}ms`,
+      `level3 validate task=${challenge.taskId} lang=${challenge.language} total=${totalMs}ms created=${created ? 1 : 0} create=${createMs}ms write=${writeMs}ms run=${runDurationMs}ms read=${readMs}ms`,
     );
   }
 }
