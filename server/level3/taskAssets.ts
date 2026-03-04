@@ -43,7 +43,10 @@ export function readLevel3TaskAsset(taskId: string, filename: string): string {
   }
 }
 
-export function resolveLevel3TaskAssets(taskId: string, language: string): {
+export function resolveLevel3TaskAssets(
+  taskId: string,
+  language: string,
+): {
   specTemplate: string;
   starterCode: string;
   harnessSource: string;

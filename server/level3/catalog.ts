@@ -45,7 +45,10 @@ function checksFor(challengeId: string, checks: Level3TaskCheckTemplate[]): Leve
   }));
 }
 
-function challengeMetaForTaskAndLanguage(task: Level3TaskTemplate, language: string): Level3ChallengeMeta {
+function challengeMetaForTaskAndLanguage(
+  task: Level3TaskTemplate,
+  language: string,
+): Level3ChallengeMeta {
   const challengeId = `l3:${task.id}:${languageToKey(language)}`;
   return {
     id: challengeId,

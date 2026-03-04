@@ -215,7 +215,10 @@ function scheduleIdleStop(
   }, RUNTIME_IDLE_SHUTDOWN_MS);
 }
 
-async function getOrCreateRuntime(taskId: string, language: string): Promise<{
+async function getOrCreateRuntime(
+  taskId: string,
+  language: string,
+): Promise<{
   runtime: {
     sandbox: Sandbox & AsyncDisposable;
     lock: Promise<void>;
@@ -368,41 +371,46 @@ export async function validateLevel3Submission(
   let readMs = 0;
   try {
     const ext = languageToExt(challenge.language);
-    const runtimeResult = await runInRuntime(challenge.taskId, challenge.language, async (sandbox) => {
-      const writeStart = Date.now();
-      await sandbox.writeFiles([{ path: `main.${ext}`, content: Buffer.from(code, "utf8") }]);
-      writeMs = Date.now() - writeStart;
+    const runtimeResult = await runInRuntime(
+      challenge.taskId,
+      challenge.language,
+      async (sandbox) => {
+        const writeStart = Date.now();
+        await sandbox.writeFiles([{ path: `main.${ext}`, content: Buffer.from(code, "utf8") }]);
+        writeMs = Date.now() - writeStart;
 
-      const runStart = Date.now();
-      const run = await sandbox.runCommand({
-        cmd: "node",
-        args: ["runner.mjs"],
-      });
-      runDurationMs = Date.now() - runStart;
-      if (run.exitCode !== 0) {
-        const stderr = ((await run.stderr()) || (await run.stdout()) || "node runner failed").slice(
-          0,
-          3000,
-        );
-        return {
-          type: "run_error" as const,
-          stderr,
+        const runStart = Date.now();
+        const run = await sandbox.runCommand({
+          cmd: "node",
+          args: ["runner.mjs"],
+        });
+        runDurationMs = Date.now() - runStart;
+        if (run.exitCode !== 0) {
+          const stderr = (
+            (await run.stderr()) ||
+            (await run.stdout()) ||
+            "node runner failed"
+          ).slice(0, 3000);
+          return {
+            type: "run_error" as const,
+            stderr,
+          };
+        }
+
+        const readStart = Date.now();
+        const resultBuffer = await sandbox.readFileToBuffer({ path: "result.json" });
+        readMs = Date.now() - readStart;
+        if (!resultBuffer) {
+          return { type: "missing_result" as const };
+        }
+        const parsed = JSON.parse(resultBuffer.toString("utf8")) as {
+          compiled: boolean;
+          error: string;
+          harness: Record<string, { ok: boolean; message: string }>;
         };
-      }
-
-      const readStart = Date.now();
-      const resultBuffer = await sandbox.readFileToBuffer({ path: "result.json" });
-      readMs = Date.now() - readStart;
-      if (!resultBuffer) {
-        return { type: "missing_result" as const };
-      }
-      const parsed = JSON.parse(resultBuffer.toString("utf8")) as {
-        compiled: boolean;
-        error: string;
-        harness: Record<string, { ok: boolean; message: string }>;
-      };
-      return { type: "ok" as const, parsed };
-    });
+        return { type: "ok" as const, parsed };
+      },
+    );
     created = runtimeResult.created;
     createMs = created ? Date.now() - t0 - writeMs - runDurationMs - readMs : 0;
 

@@ -27,7 +27,10 @@ function runHarness(language: "C" | "C++" | "Rust") {
   try {
     const ext = language === "C" ? "c" : language === "C++" ? "cpp" : "rs";
     fs.writeFileSync(path.join(dir, `main.${ext}`), getLevel3AutoSolveCode(language, taskId));
-    fs.writeFileSync(path.join(dir, "runner.mjs"), buildLevel3NativeSandboxRunner(taskId, language));
+    fs.writeFileSync(
+      path.join(dir, "runner.mjs"),
+      buildLevel3NativeSandboxRunner(taskId, language),
+    );
 
     const run = spawnSync("node", ["runner.mjs"], { cwd: dir, encoding: "utf8", timeout: 30_000 });
     expect(run.status, run.stderr || run.stdout || run.signal || "runner failed").toBe(0);
