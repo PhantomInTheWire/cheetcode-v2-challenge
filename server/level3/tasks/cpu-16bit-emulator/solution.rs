@@ -134,7 +134,9 @@ pub extern "C" fn cpu_assemble(src: *const i8, src_len: i32, out_words: *mut u16
         while let Some(colon) = s.find(':') {
             let label = s[..colon].trim();
             if label.is_empty() { return -3; }
-            labels.insert(label.to_string(), pc);
+            if labels.insert(label.to_string(), pc).is_some() {
+                return -20;
+            }
             s = s[colon + 1..].trim().to_string();
             if s.is_empty() { break; }
         }

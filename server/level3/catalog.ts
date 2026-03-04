@@ -1,5 +1,6 @@
 import {
   LEVEL3_ENABLED_TASKS,
+  type Level3SupportedLanguage,
   type Level3TaskTemplate,
   type Level3TaskCheckTemplate,
 } from "./taskCatalog";
@@ -30,7 +31,7 @@ function languageToKey(language: string): string {
   return language.toLowerCase().replace(/\+\+/g, "pp");
 }
 
-function keyToLanguage(key: string): "C" | "C++" | "Rust" | null {
+function keyToLanguage(key: string): Level3SupportedLanguage | null {
   if (key === "c") return "C";
   if (key === "cpp") return "C++";
   if (key === "rust") return "Rust";
@@ -47,7 +48,7 @@ function checksFor(challengeId: string, checks: Level3TaskCheckTemplate[]): Leve
 
 function challengeMetaForTaskAndLanguage(
   task: Level3TaskTemplate,
-  language: string,
+  language: Level3SupportedLanguage,
 ): Level3ChallengeMeta {
   const challengeId = `l3:${task.id}:${languageToKey(language)}`;
   return {

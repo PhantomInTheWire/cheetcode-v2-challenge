@@ -149,6 +149,11 @@ __attribute__((visibility("default"))) int cpu_assemble(const char* src, int src
         char* label = asm_trim(s);
         if (!*label) { free(labels); free(buf); return -4; }
         if (pass == 0) {
+          if (asm_find_label(labels, label_count, label) >= 0) {
+            free(labels);
+            free(buf);
+            return -19;
+          }
           if (label_count >= label_capacity) {
             int next_capacity = label_capacity * 2;
             AsmLabel* grown = (AsmLabel*)realloc(labels, (size_t)next_capacity * sizeof(AsmLabel));

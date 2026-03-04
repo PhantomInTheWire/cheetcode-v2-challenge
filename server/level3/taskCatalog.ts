@@ -2,7 +2,7 @@ import { LEVEL3_TOTAL } from "../../src/lib/constants";
 
 export const LEVEL3_SUPPORTED_LANGUAGES = ["C", "C++", "Rust"] as const;
 
-type Level3SupportedLanguage = (typeof LEVEL3_SUPPORTED_LANGUAGES)[number];
+export type Level3SupportedLanguage = (typeof LEVEL3_SUPPORTED_LANGUAGES)[number];
 
 export type Level3TaskCheckTemplate = {
   key: string;
@@ -86,7 +86,11 @@ const RAW_LEVEL3_TASK_CATALOG: Level3TaskTemplate[] = [
         name: "Assembler handles large label sets",
         exportName: "cpu_assemble",
       },
-      { key: "random_alu", name: "Randomized ALU property checks", exportName: "cpu_get_reg" },
+      {
+        key: "random_alu_cmp",
+        name: "Randomized ALU + CMP flag property checks",
+        exportName: "cpu_get_reg",
+      },
       { key: "benchmark_budget", name: "Cycle/timing budget constraints", exportName: "cpu_run" },
       { key: "perf_run_throughput", name: "Run throughput benchmark", exportName: "cpu_run" },
       { key: "perf_simd_throughput", name: "SIMD throughput benchmark", exportName: "cpu_run" },
@@ -136,76 +140,81 @@ export function validateLevel3TaskCatalog(rawCatalog: unknown): Level3TaskTempla
       task.id,
       `Invalid level3 task at index ${taskIndex}: id must be non-empty string`,
     );
+    const taskId = task.id;
 
-    if (seenTaskIds.has(task.id)) {
-      throw new Error(`Invalid level3 task catalog: duplicate task id '${task.id}'`);
+    if (seenTaskIds.has(taskId)) {
+      throw new Error(`Invalid level3 task catalog: duplicate task id '${taskId}'`);
     }
-    seenTaskIds.add(task.id);
+    seenTaskIds.add(taskId);
 
     assertNonEmptyString(
       task.name,
-      `Invalid level3 task '${task.id}': name must be non-empty string`,
+      `Invalid level3 task '${taskId}': name must be non-empty string`,
     );
+    const taskName = task.name;
 
     if (
       task.title !== undefined &&
       (typeof task.title !== "string" || task.title.trim().length === 0)
     ) {
       throw new Error(
-        `Invalid level3 task '${task.id}': title must be a non-empty string when provided`,
+        `Invalid level3 task '${taskId}': title must be a non-empty string when provided`,
       );
     }
 
     if (typeof task.enabled !== "boolean") {
-      throw new Error(`Invalid level3 task '${task.id}': enabled must be boolean`);
+      throw new Error(`Invalid level3 task '${taskId}': enabled must be boolean`);
     }
+    const taskEnabled = task.enabled;
 
     if (!Array.isArray(task.languages) || task.languages.length === 0) {
-      throw new Error(`Invalid level3 task '${task.id}': languages must be a non-empty array`);
+      throw new Error(`Invalid level3 task '${taskId}': languages must be a non-empty array`);
     }
+    const taskLanguages = task.languages;
 
     const seenLanguages = new Set<string>();
-    const languages = task.languages.map((language) => {
-      assertSupportedLanguage(language, task.id);
+    const languages = taskLanguages.map((language) => {
+      assertSupportedLanguage(language, taskId);
       if (seenLanguages.has(language)) {
-        throw new Error(`Invalid level3 task '${task.id}': duplicate language '${language}'`);
+        throw new Error(`Invalid level3 task '${taskId}': duplicate language '${language}'`);
       }
       seenLanguages.add(language);
       return language;
     });
 
     if (!Array.isArray(task.checks) || task.checks.length === 0) {
-      throw new Error(`Invalid level3 task '${task.id}': checks must be a non-empty array`);
+      throw new Error(`Invalid level3 task '${taskId}': checks must be a non-empty array`);
     }
+    const taskChecks = task.checks;
 
-    if (task.enabled && task.checks.length !== LEVEL3_TOTAL) {
+    if (taskEnabled && taskChecks.length !== LEVEL3_TOTAL) {
       throw new Error(
-        `Invalid level3 task '${task.id}': enabled tasks must define exactly ${LEVEL3_TOTAL} checks`,
+        `Invalid level3 task '${taskId}': enabled tasks must define exactly ${LEVEL3_TOTAL} checks`,
       );
     }
 
     const seenCheckKeys = new Set<string>();
-    const checks = task.checks.map((check, checkIndex) => {
+    const checks = taskChecks.map((check, checkIndex) => {
       if (!check || typeof check !== "object") {
         throw new Error(
-          `Invalid level3 task '${task.id}' check at index ${checkIndex}: expected object`,
+          `Invalid level3 task '${taskId}' check at index ${checkIndex}: expected object`,
         );
       }
       const candidate = check as Partial<Level3TaskCheckTemplate>;
       assertNonEmptyString(
         candidate.key,
-        `Invalid level3 task '${task.id}' check at index ${checkIndex}: key must be non-empty string`,
+        `Invalid level3 task '${taskId}' check at index ${checkIndex}: key must be non-empty string`,
       );
       assertNonEmptyString(
         candidate.name,
-        `Invalid level3 task '${task.id}' check '${candidate.key}': name must be non-empty string`,
+        `Invalid level3 task '${taskId}' check '${candidate.key}': name must be non-empty string`,
       );
       assertNonEmptyString(
         candidate.exportName,
-        `Invalid level3 task '${task.id}' check '${candidate.key}': exportName must be non-empty string`,
+        `Invalid level3 task '${taskId}' check '${candidate.key}': exportName must be non-empty string`,
       );
       if (seenCheckKeys.has(candidate.key)) {
-        throw new Error(`Invalid level3 task '${task.id}': duplicate check key '${candidate.key}'`);
+        throw new Error(`Invalid level3 task '${taskId}': duplicate check key '${candidate.key}'`);
       }
       seenCheckKeys.add(candidate.key);
       return {
@@ -216,10 +225,10 @@ export function validateLevel3TaskCatalog(rawCatalog: unknown): Level3TaskTempla
     });
 
     return {
-      id: task.id,
-      name: task.name,
+      id: taskId,
+      name: taskName,
       title: task.title,
-      enabled: task.enabled,
+      enabled: taskEnabled,
       languages,
       checks,
     };

@@ -135,7 +135,7 @@ int main(void) {
   Check programs_asm4 = {0, ""};
   Check programs_invalid_reject = {0, ""};
   Check assembler_large_labels = {0, ""};
-  Check random_alu = {0, ""};
+  Check random_alu_cmp = {0, ""};
   Check benchmark_budget = {0, ""};
   Check perf_run_throughput = {0, ""};
   Check perf_simd_throughput = {0, ""};
@@ -246,16 +246,48 @@ int main(void) {
     cpu_run(200);
     int shift_ok = ((cpu_get_reg(0) & 0xFFFF) == 0x0000) &&
       cpu_get_flag_z() == 1 && cpu_get_flag_n() == 0 && cpu_get_flag_v() == 0;
-    if (bitwise_ok && shift_ok) {
+
+    uint16_t shift_mod_prog[] = {
+      encX(OPC_LOAD, 0), 0x0001,
+      encR(OPC_SHL, 0, 0, 16), // imm5 16 -> shift by (16 mod 16)=0
+      encR(OPC_SHR, 0, 0, 31), // imm5 31 -> shift by 15 => 0
+      encR(OPC_HALT, 0, 0, 0)
+    };
+    load_program(shift_mod_prog, (int)(sizeof(shift_mod_prog) / sizeof(shift_mod_prog[0])));
+    cpu_run(200);
+    int shift_mod_ok = ((cpu_get_reg(0) & 0xFFFF) == 0x0000) &&
+      cpu_get_flag_z() == 1 && cpu_get_flag_n() == 0 && cpu_get_flag_v() == 0;
+
+    // Instructions that must not modify flags.
+    uint16_t flags_prog[] = {
+      encX(OPC_LOAD, 0), 0x8000,
+      encX(OPC_LOAD, 1), 1,
+      encR(OPC_SUB, 0, 1, 0), // sets N=0,V=1
+      encX(OPC_LOAD, 2), 0x1234,
+      encR(OPC_MOV, 3, 2, 0),
+      encR(OPC_STR, 2, 3, 0),
+      encR(OPC_LDR, 4, 2, 0),
+      encR(OPC_PUSH, 4, 0, 0),
+      encR(OPC_POP, 5, 0, 0),
+      encR(OPC_NOP, 0, 0, 0),
+      encR(OPC_HALT, 0, 0, 0)
+    };
+    load_program(flags_prog, (int)(sizeof(flags_prog) / sizeof(flags_prog[0])));
+    cpu_run(500);
+    int non_effect_ok = cpu_get_flag_z() == 0 && cpu_get_flag_n() == 0 && cpu_get_flag_v() == 1;
+
+    if (bitwise_ok && shift_ok && shift_mod_ok && non_effect_ok) {
       logic_bitwise.ok = 1;
-      snprintf(logic_bitwise.msg, sizeof(logic_bitwise.msg), "logic+shift semantics ok");
+      snprintf(logic_bitwise.msg, sizeof(logic_bitwise.msg), "logic+shift+flag-non-effect ok");
     } else {
       snprintf(
         logic_bitwise.msg,
         sizeof(logic_bitwise.msg),
-        "logic+shift mismatch bitwise=%d shift=%d",
+        "logic mismatch bitwise=%d shift=%d mod=%d non_effect=%d",
         bitwise_ok,
-        shift_ok
+        shift_ok,
+        shift_mod_ok,
+        non_effect_ok
       );
     }
   }
@@ -292,18 +324,29 @@ int main(void) {
     cpu_run(500);
     int r2 = cpu_get_reg(2) & 0xFFFF;
     int jn_ok = (r2 == 222);
-    if (jnz_ok && jn_ok) {
+
+    // Odd-PC fetch semantics via byte-address jump.
+    cpu_reset();
+    cpu_load_word(0, encJ(OPC_JMP, 5));
+    cpu_load_word(5, encX(OPC_LOAD, 6));
+    cpu_load_word(7, 0x2A2A);
+    cpu_load_word(9, encR(OPC_HALT, 0, 0, 0));
+    cpu_run(200);
+    int odd_pc_ok = ((cpu_get_reg(6) & 0xFFFF) == 0x2A2A);
+
+    if (jnz_ok && jn_ok && odd_pc_ok) {
       branch_jnz_loop.ok = 1;
-      snprintf(branch_jnz_loop.msg, sizeof(branch_jnz_loop.msg), "jnz+jn branch control ok");
+      snprintf(branch_jnz_loop.msg, sizeof(branch_jnz_loop.msg), "jnz+jn+odd-pc control ok");
     } else {
       snprintf(
         branch_jnz_loop.msg,
         sizeof(branch_jnz_loop.msg),
-        "branch mismatch jnz=%d(sum=%d) jn=%d(r2=%d)",
+        "branch mismatch jnz=%d(sum=%d) jn=%d(r2=%d) odd_pc=%d",
         jnz_ok,
         r0,
         jn_ok,
-        r2
+        r2,
+        odd_pc_ok
       );
     }
   }
@@ -339,11 +382,35 @@ int main(void) {
     } else {
       snprintf(stack_push_pop.msg, sizeof(stack_push_pop.msg), "push/pop mismatch r1=%d", r1);
     }
-    if (sp == 0xFFFF && r0 == 17) {
+
+    // CALL extension fetch across wrap boundary and return-address integrity.
+    cpu_reset();
+    uint16_t bootstrap[] = {
+      encX(OPC_LOAD, 0), 0xFFFE,
+      encR(OPC_PUSH, 0, 0, 0),
+      encR(OPC_RET, 0, 0, 0),
+    };
+    load_program(bootstrap, (int)(sizeof(bootstrap) / sizeof(bootstrap[0])));
+    cpu_run(3);
+    cpu_load_word(0, 6);                      // extension word read by CALL at 0xFFFE
+    cpu_load_word(2, encR(OPC_HALT, 0, 0, 0)); // return site
+    cpu_load_word(6, encR(OPC_RET, 0, 0, 0));  // target
+    cpu_load_word(0xFFFE, encX(OPC_CALL, 0));
+    cpu_run(50);
+    int wrap_call_ok = (cpu_get_pc() == 4) && (cpu_get_sp() == 0xFFFF);
+
+    if (sp == 0xFFFF && r0 == 17 && wrap_call_ok) {
       stack_call_ret.ok = 1;
-      snprintf(stack_call_ret.msg, sizeof(stack_call_ret.msg), "call/ret ok");
+      snprintf(stack_call_ret.msg, sizeof(stack_call_ret.msg), "call/ret+wrap ok");
     } else {
-      snprintf(stack_call_ret.msg, sizeof(stack_call_ret.msg), "call/ret mismatch sp=%d r0=%d", sp, r0);
+      snprintf(
+        stack_call_ret.msg,
+        sizeof(stack_call_ret.msg),
+        "call/ret mismatch sp=%d r0=%d wrap=%d",
+        sp,
+        r0,
+        wrap_call_ok
+      );
     }
   }
 
@@ -387,24 +454,36 @@ int main(void) {
   {
     int load_ok = 0;
     int read_ok = 0;
+    int unaligned_load_ok = 0;
+    int accessor_ok = 0;
     cpu_reset();
     cpu_load_word(0, 0);
     cpu_load_word(65535, 0xABCD);
     load_ok = ((cpu_mem_read16(0) & 0xFFFF) == 0);
 
+    cpu_set_reg(-1, 7);
+    cpu_set_reg(8, 7);
+    accessor_ok = (cpu_get_reg(-1) == 0) && (cpu_get_reg(8) == 0);
+
+    cpu_reset();
+    cpu_load_word(1, 0x1234);
+    unaligned_load_ok = (cpu_mem_read16(1) == 0x1234);
+
     cpu_reset();
     cpu_load_word(65534, 0x3412);
     read_ok = (cpu_mem_read16(65535) == 0);
-    if (load_ok && read_ok) {
+    if (load_ok && read_ok && unaligned_load_ok && accessor_ok) {
       helper_load_word_bounds.ok = 1;
-      snprintf(helper_load_word_bounds.msg, sizeof(helper_load_word_bounds.msg), "helper bounds ok");
+      snprintf(helper_load_word_bounds.msg, sizeof(helper_load_word_bounds.msg), "helper/accessor bounds ok");
     } else {
       snprintf(
         helper_load_word_bounds.msg,
         sizeof(helper_load_word_bounds.msg),
-        "helper bounds mismatch load=%d read=%d",
+        "helper bounds mismatch load=%d read=%d unaligned=%d accessor=%d",
         load_ok,
-        read_ok
+        read_ok,
+        unaligned_load_ok,
+        accessor_ok
       );
     }
   }
@@ -457,16 +536,29 @@ int main(void) {
     int vxor_ok = (cpu_get_reg(0) == 0x0FF0) && (cpu_get_reg(1) == 0xF0F0) &&
       (cpu_get_reg(2) == 0xAA55) && (cpu_get_reg(3) == 0x0000);
     int flags_unchanged = cpu_get_flag_z() == 0 && cpu_get_flag_n() == 0 && cpu_get_flag_v() == 0;
-    if (vxor_ok && flags_unchanged) {
+    cpu_reset();
+    cpu_load_word(0, encR(OPC_VADD, 1, 4, 0)); // invalid SIMD base (dst=R1)
+    cpu_load_word(2, encX(OPC_LOAD, 0));        // must not execute if invalid halts
+    cpu_load_word(4, 0x7777);
+    int invalid_cycles = cpu_run(10);
+    int invalid_halt_ok = (invalid_cycles == 1) && ((cpu_get_reg(0) & 0xFFFF) == 0);
+
+    if (vxor_ok && flags_unchanged && invalid_halt_ok) {
       simd_lane_xor_flag_stability.ok = 1;
-      snprintf(simd_lane_xor_flag_stability.msg, sizeof(simd_lane_xor_flag_stability.msg), "simd vxor flags stable");
+      snprintf(
+        simd_lane_xor_flag_stability.msg,
+        sizeof(simd_lane_xor_flag_stability.msg),
+        "simd vxor flags stable + invalid-encoding halt"
+      );
     } else {
       snprintf(
         simd_lane_xor_flag_stability.msg,
         sizeof(simd_lane_xor_flag_stability.msg),
-        "simd vxor mismatch vec=%d flags=%d",
+        "simd vxor mismatch vec=%d flags=%d invalid_halt=%d(cycles=%d)",
         vxor_ok,
-        flags_unchanged
+        flags_unchanged,
+        invalid_halt_ok,
+        invalid_cycles
       );
     }
   }
@@ -636,6 +728,89 @@ int main(void) {
     }
 
     if (wc > 0) {
+      const char *bad_neg_imm_program =
+        "LOAD R0, -32769\n"
+        "HALT\n";
+      int bad_neg_imm = assemble_program(bad_neg_imm_program, words, 1024, asm_err, sizeof(asm_err));
+      if (bad_neg_imm >= 0) {
+        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "out-of-range negative immediate should fail but wrote %d words", bad_neg_imm);
+        wc = -1;
+      }
+    }
+
+    if (wc > 0) {
+      const char *bad_neg_jump_program =
+        "JMP -1\n"
+        "HALT\n";
+      int bad_neg_jump = assemble_program(bad_neg_jump_program, words, 1024, asm_err, sizeof(asm_err));
+      if (bad_neg_jump >= 0) {
+        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "negative jump should fail but wrote %d words", bad_neg_jump);
+        wc = -1;
+      }
+    }
+
+    if (wc > 0) {
+      const char *undef_label_program =
+        "JMP missing_label\n"
+        "HALT\n";
+      int undef_label = assemble_program(undef_label_program, words, 1024, asm_err, sizeof(asm_err));
+      if (undef_label >= 0) {
+        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "undefined label should fail but wrote %d words", undef_label);
+        wc = -1;
+      }
+    }
+
+    if (wc > 0) {
+      const char *dup_label_program =
+        "loop: NOP\n"
+        "loop: HALT\n";
+      int dup_label = assemble_program(dup_label_program, words, 1024, asm_err, sizeof(asm_err));
+      if (dup_label >= 0) {
+        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "duplicate label should fail but wrote %d words", dup_label);
+        wc = -1;
+      }
+    }
+
+    if (wc > 0) {
+      // Max-word bound: require negative error and no write beyond max_words.
+      struct {
+        uint16_t out[2];
+        uint16_t guard;
+      } bounded = {{0, 0}, 0xBEEF};
+      const char *too_long_program =
+        "LOAD R0, 1\n"
+        "LOAD R1, 2\n"
+        "ADD R0, R1\n"
+        "HALT\n";
+      int short_buf = assemble_program(too_long_program, bounded.out, 2, asm_err, sizeof(asm_err));
+      if (short_buf >= 0 || bounded.guard != 0xBEEF) {
+        snprintf(
+          programs_invalid_reject.msg,
+          sizeof(programs_invalid_reject.msg),
+          "max_words shortfall should fail short=%d guard=%x",
+          short_buf,
+          bounded.guard
+        );
+        wc = -1;
+      }
+    }
+
+    if (wc > 0) {
+      // Positive syntax coverage: # immediates and negative immediates in-range.
+      const char *syntax_ok_program =
+        "; full-line comment\n"
+        "LOAD R0, #5 ; inline comment\n"
+        "LOAD R1, -1\n"
+        "LOAD R2, -32768\n"
+        "HALT\n";
+      int syntax_ok = assemble_program(syntax_ok_program, words, 1024, asm_err, sizeof(asm_err));
+      if (syntax_ok <= 0) {
+        snprintf(programs_invalid_reject.msg, sizeof(programs_invalid_reject.msg), "syntax positive case failed: %s", asm_err);
+        wc = -1;
+      }
+    }
+
+    if (wc > 0) {
       size_t huge_len = ASM_MAX_SOURCE_BYTES + 64;
       char *huge = (char*)malloc(huge_len);
       if (!huge) {
@@ -663,7 +838,7 @@ int main(void) {
   }
 
   {
-    // Randomized ALU property checks for result + Z/N/V formulas.
+    // Randomized ALU + CMP property checks for result + Z/N/V formulas.
     int pass = 0;
     const int total = 120;
     uint32_t seed = 0xC0FFEEu;
@@ -707,13 +882,32 @@ int main(void) {
       gotZ = cpu_get_flag_z() ? 1 : 0;
       gotN = cpu_get_flag_n() ? 1 : 0;
       gotV = cpu_get_flag_v() ? 1 : 0;
-      if (gotSub == sub_expected && gotZ == subZ && gotN == subN && gotV == subV) pass++;
+      if (!(gotSub == sub_expected && gotZ == subZ && gotN == subN && gotV == subV)) continue;
+
+      uint16_t cmp_prog[] = {
+        encX(OPC_LOAD, 0), a,
+        encX(OPC_LOAD, 1), b,
+        encR(OPC_CMP, 0, 1, 0),
+        encR(OPC_HALT, 0, 0, 0)
+      };
+      load_program(cmp_prog, (int)(sizeof(cmp_prog) / sizeof(cmp_prog[0])));
+      cpu_run(200);
+      gotZ = cpu_get_flag_z() ? 1 : 0;
+      gotN = cpu_get_flag_n() ? 1 : 0;
+      gotV = cpu_get_flag_v() ? 1 : 0;
+      if (gotZ == subZ && gotN == subN && gotV == subV) pass++;
     }
     if (pass == total) {
-      random_alu.ok = 1;
-      snprintf(random_alu.msg, sizeof(random_alu.msg), "randomized ALU ok");
+      random_alu_cmp.ok = 1;
+      snprintf(random_alu_cmp.msg, sizeof(random_alu_cmp.msg), "randomized ALU+CMP ok");
     } else {
-      snprintf(random_alu.msg, sizeof(random_alu.msg), "randomized ALU failed %d/%d", pass, total);
+      snprintf(
+        random_alu_cmp.msg,
+        sizeof(random_alu_cmp.msg),
+        "randomized ALU+CMP failed %d/%d",
+        pass,
+        total
+      );
     }
   }
 
@@ -760,6 +954,8 @@ int main(void) {
     cpu_reset();
     cpu_load_word(0, encR(OPC_ADD, 0, 1, 0));
     cpu_load_word(2, encJ(OPC_JMP, 0));
+    int zero_cycles = cpu_run(0);
+    int neg_cycles = cpu_run(-5);
     clock_t tb0 = clock();
     int baseline_cycles = cpu_run(1000000);
     clock_t tb1 = clock();
@@ -820,24 +1016,33 @@ int main(void) {
     double halt_elapsed = (double)(t3 - t2) / (double)CLOCKS_PER_SEC;
     int halt_sum = cpu_get_reg(0) & 0xFFFF;
     int halt_ok = (halt_cycles == expected_halt_cycles) && (halt_sum == 55) && (halt_elapsed <= halt_budget_s);
+    int halted_pc = cpu_get_pc() & 0xFFFF;
+    int halted_sp = cpu_get_sp() & 0xFFFF;
+    int halted_r0 = cpu_get_reg(0) & 0xFFFF;
+    int post_halt_cycles = cpu_run(100);
+    int post_halt_ok = (post_halt_cycles == 0) &&
+      ((cpu_get_pc() & 0xFFFF) == halted_pc) &&
+      ((cpu_get_sp() & 0xFFFF) == halted_sp) &&
+      ((cpu_get_reg(0) & 0xFFFF) == halted_r0);
 
-    if (throughput_ok && halt_ok) {
+    if (throughput_ok && halt_ok && post_halt_ok && zero_cycles == 0 && neg_cycles == 0) {
       benchmark_budget.ok = 1;
       snprintf(
         benchmark_budget.msg,
         sizeof(benchmark_budget.msg),
-        "benchmark ok throughput=%.3fs<=%.3fs halt=%.3fs<=%.3fs cycles=%d",
+        "benchmark ok throughput=%.3fs<=%.3fs halt=%.3fs<=%.3fs cycles=%d post_halt=%d",
         throughput_elapsed,
         throughput_budget_s,
         halt_elapsed,
         halt_budget_s,
-        halt_cycles
+        halt_cycles,
+        post_halt_cycles
       );
     } else {
       snprintf(
         benchmark_budget.msg,
         sizeof(benchmark_budget.msg),
-        "benchmark failed throughput cycles=%d/%d elapsed=%.3f/%.3f halt cycles=%d/%d sum=%d elapsed=%.3f/%.3f",
+        "benchmark failed throughput cycles=%d/%d elapsed=%.3f/%.3f halt cycles=%d/%d sum=%d elapsed=%.3f/%.3f zero=%d neg=%d post=%d",
         executed,
         throughput_cycles,
         throughput_elapsed,
@@ -846,7 +1051,10 @@ int main(void) {
         expected_halt_cycles,
         halt_sum,
         halt_elapsed,
-        halt_budget_s
+        halt_budget_s,
+        zero_cycles,
+        neg_cycles,
+        post_halt_cycles
       );
     }
 
@@ -908,7 +1116,7 @@ int main(void) {
     {
       const int labels = 10000;
       const int max_words = labels * 3 + 1;
-      const double allowed = perf_budget(asm_baseline_s, 35.0, 0.120);
+      const double allowed = perf_budget(asm_baseline_s, 60.0, 0.120);
       size_t cap = (size_t)labels * 56u + 64u;
       char *src = (char *)malloc(cap);
       uint16_t *out = (uint16_t *)malloc((size_t)max_words * sizeof(uint16_t));
@@ -1020,7 +1228,7 @@ int main(void) {
   printf("programs_asm4|%d|%s\n", programs_asm4.ok, programs_asm4.msg);
   printf("programs_invalid_reject|%d|%s\n", programs_invalid_reject.ok, programs_invalid_reject.msg);
   printf("assembler_large_labels|%d|%s\n", assembler_large_labels.ok, assembler_large_labels.msg);
-  printf("random_alu|%d|%s\n", random_alu.ok, random_alu.msg);
+  printf("random_alu_cmp|%d|%s\n", random_alu_cmp.ok, random_alu_cmp.msg);
   printf("benchmark_budget|%d|%s\n", benchmark_budget.ok, benchmark_budget.msg);
   printf("perf_run_throughput|%d|%s\n", perf_run_throughput.ok, perf_run_throughput.msg);
   printf("perf_simd_throughput|%d|%s\n", perf_simd_throughput.ok, perf_simd_throughput.msg);

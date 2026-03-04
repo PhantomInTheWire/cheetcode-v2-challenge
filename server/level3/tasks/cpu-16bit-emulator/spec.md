@@ -75,10 +75,12 @@ Opcodes
 Execution Semantics
 
 - Fetches a 16-bit instruction at `PC`, then advances `PC += 2` before executing decoded behavior.
+- Instruction fetch semantics are defined for any byte address, including odd `PC` values.
 - `LOAD` and `CALL` consume an additional extension word (immediate) from current `PC`, then advance `PC += 2`.
 - `cpu_run(max_cycles)` executes at most `max_cycles` instructions and returns executed instruction count.
 - If `max_cycles <= 0`, returns `0` and executes nothing.
 - If halted state is set, execution stops.
+- If halted state is already set before `cpu_run(max_cycles)` is called, execution count is `0` and machine state is unchanged.
 
 State Updates by Instruction
 
@@ -113,6 +115,16 @@ SIMD Register Model
 - For SIMD instructions, operands must be base registers (`R0` or `R4`) only.
 - Lane arithmetic wraps modulo `2^16`.
 
+Deterministic Invalid Encoding Behavior
+
+- Unknown opcodes are invalid and must halt execution.
+- SIMD opcodes (`VADD`, `VSUB`, `VXOR`) using non-base register operands (`dst/src` not in `{R0, R4}`) are invalid encodings and must halt execution immediately.
+
+Odd Address and Wraparound Fetch
+
+- `PC`, `SP`, and internal address arithmetic are modulo `2^16`.
+- Fetches, extension-word reads (`LOAD`/`CALL`), and stack/memory accesses may cross the `0xFFFF -> 0x0000` boundary and follow little-endian byte semantics.
+
 Flag Semantics
 
 - `ADD`, `SUB`, `CMP` update `Z`, `N`, `V`.
@@ -140,10 +152,13 @@ Assembler Validity Rules
 - SIMD register operands must be `R0` or `R4`; any other SIMD operand register is an error.
 - Unknown mnemonics are errors.
 - Undefined labels are errors.
+- Duplicate labels are errors.
 - Encodings must obey field ranges:
   - `JMP/JZ/JNZ/JN` target must be in `[0, 0x07FF]`.
   - `LOAD` immediate must be in `[-32768, 65535]`.
   - `CALL` target must be in `[0, 0xFFFF]`.
+- `max_words` insufficiency is an error: assembler must return a negative value and must not write beyond `max_words`.
+- Immediate forms `value` and `#value` are both valid (including negative values within range).
 
 Evaluation Model
 
