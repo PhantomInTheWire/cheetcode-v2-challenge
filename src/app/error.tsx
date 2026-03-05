@@ -2,41 +2,7 @@
 
 import { useEffect } from "react";
 import Image from "next/image";
-import { COLORS } from "@/lib/theme";
-
-const shellStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  display: "grid",
-  placeItems: "center",
-  padding: "24px",
-  background:
-    "radial-gradient(circle at top, rgba(250,93,25,0.14) 0%, rgba(249,249,249,1) 45%, rgba(249,249,249,1) 100%)",
-  fontFamily: "var(--font-geist-mono), monospace",
-};
-
-const cardStyle: React.CSSProperties = {
-  width: "100%",
-  maxWidth: "620px",
-  borderRadius: "16px",
-  padding: "32px",
-  background: COLORS.BG_CARD,
-  border: `1px solid ${COLORS.BORDER_LIGHT}`,
-  boxShadow: "0 12px 28px rgba(38, 38, 38, 0.08)",
-};
-
-const buttonStyle: React.CSSProperties = {
-  marginTop: "20px",
-  borderRadius: "10px",
-  border: "none",
-  height: "44px",
-  padding: "0 16px",
-  background: COLORS.PRIMARY,
-  color: COLORS.TEXT_WHITE,
-  fontWeight: 700,
-  cursor: "pointer",
-  boxShadow: "0 2px 4px rgba(250, 93, 25, 0.35)",
-  transition: "0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
-};
+import { FIRECRAWL_FLAME_SVG } from "@/components/game/firecrawl-flame";
 
 export default function Error({
   error,
@@ -50,9 +16,66 @@ export default function Error({
   }, [error]);
 
   return (
-    <div style={shellStyle}>
-      <div style={cardStyle}>
-        <div style={{ marginBottom: "20px" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        padding: 24,
+        background: "#f9f9f9",
+        fontFamily: "var(--font-geist-sans), system-ui, -apple-system, sans-serif",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Grid background */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          opacity: 0.4,
+          backgroundImage: `
+            linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)
+          `,
+          backgroundSize: "8px 8px",
+        }}
+      />
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          background:
+            "radial-gradient(ellipse at top left, rgba(250,93,25,0.05) 0%, transparent 50%), radial-gradient(ellipse at bottom right, rgba(250,93,25,0.03) 0%, transparent 50%)",
+        }}
+      />
+
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 620,
+          borderRadius: 16,
+          padding: 32,
+          background: "#ffffff",
+          border: "1px solid #e8e8e8",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.02)",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 600 600"
+            preserveAspectRatio="xMidYMid meet"
+            style={{ display: "inline-block", flexShrink: 0 }}
+            dangerouslySetInnerHTML={{ __html: FIRECRAWL_FLAME_SVG }}
+          />
           <Image
             src="/images/errors/route-error.svg"
             alt="Route Error Illustration"
@@ -62,14 +85,33 @@ export default function Error({
           />
         </div>
         <h2
-          style={{ margin: "14px 0 8px", color: COLORS.TEXT_DARK, fontSize: 28, fontWeight: 800 }}
+          style={{
+            margin: "14px 0 8px",
+            color: "#262626",
+            fontSize: 28,
+            fontWeight: 500,
+            letterSpacing: -0.3,
+          }}
         >
           Something broke in this route
         </h2>
-        <p style={{ margin: 0, color: COLORS.TEXT_MUTED, fontSize: 14 }}>
+        <p style={{ margin: 0, color: "rgba(0,0,0,0.4)", fontSize: 14 }}>
           The page hit an unexpected error. Retry to recover without losing the session.
         </p>
-        <button onClick={() => reset()} style={buttonStyle}>
+        <button
+          onClick={() => reset()}
+          className="btn-heat"
+          style={{
+            marginTop: 20,
+            borderRadius: 10,
+            height: 44,
+            padding: "0 16px",
+            fontSize: 14,
+            fontWeight: 450,
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            cursor: "pointer",
+          }}
+        >
           Retry Route
         </button>
       </div>

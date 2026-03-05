@@ -28,6 +28,6 @@ export const COLORS = {
   BG_CARD: "#ffffff",
   BG_INPUT: "#fafafa",
   BG_MUTED: "#f3f3f3",
-  BORDER_LIGHT: "#e5e5e5",
+  BORDER_LIGHT: "#e8e8e8",
   BORDER_ACCENT: "#f0f0f0",
 } as const;

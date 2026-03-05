@@ -15,7 +15,19 @@ const LandingScreen = dynamic(
   () => import("@/components/game/LandingScreen").then((m) => m.LandingScreen),
   {
     loading: () => (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "#f9f9f9",
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+          color: "rgba(0,0,0,0.35)",
+          fontSize: 14,
+        }}
+      >
+        Loading...
+      </div>
     ),
   },
 );
@@ -38,7 +50,19 @@ const Level2PrereqScreen = dynamic(
   () => import("@/components/game/Level2PrereqScreen").then((m) => m.Level2PrereqScreen),
   {
     loading: () => (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "#f9f9f9",
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+          color: "rgba(0,0,0,0.35)",
+          fontSize: 14,
+        }}
+      >
+        Loading...
+      </div>
     ),
   },
 );
@@ -46,7 +70,19 @@ const Level3PrereqScreen = dynamic(
   () => import("@/components/game/Level3PrereqScreen").then((m) => m.Level3PrereqScreen),
   {
     loading: () => (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "#f9f9f9",
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+          color: "rgba(0,0,0,0.35)",
+          fontSize: 14,
+        }}
+      >
+        Loading...
+      </div>
     ),
   },
 );
@@ -54,7 +90,19 @@ const MobileGateScreen = dynamic(
   () => import("@/components/game/MobileGateScreen").then((m) => m.MobileGateScreen),
   {
     loading: () => (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "#f9f9f9",
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+          color: "rgba(0,0,0,0.35)",
+          fontSize: 14,
+        }}
+      >
+        Loading...
+      </div>
     ),
   },
 );
@@ -62,7 +110,19 @@ const RestoreScreen = dynamic(
   () => import("@/components/game/RestoreScreen").then((m) => m.RestoreScreen),
   {
     loading: () => (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "#f9f9f9",
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+          color: "rgba(0,0,0,0.35)",
+          fontSize: 14,
+        }}
+      >
+        Loading...
+      </div>
     ),
   },
 );
@@ -70,7 +130,19 @@ const ResultsScreen = dynamic(
   () => import("@/components/game/ResultsScreen").then((m) => m.ResultsScreen),
   {
     loading: () => (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "#f9f9f9",
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+          color: "rgba(0,0,0,0.35)",
+          fontSize: 14,
+        }}
+      >
+        Loading...
+      </div>
     ),
   },
 );

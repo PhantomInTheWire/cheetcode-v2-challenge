@@ -1,11 +1,7 @@
-16-bit CPU Emulator Specification ({language})
-
-Goal
-Implement an emulator that satisfies the external behavior defined below.
+**Goal**: Implement an emulator that satisfies the external behavior defined below.
 The implementation strategy is unrestricted.
 
-Interface
-Your submission must provide the following exported functions:
+**Interface**: Your submission must provide the following exported functions:
 
 - `void cpu_reset(void)`
 - `void cpu_load_word(int addr, int word)`
@@ -22,8 +18,8 @@ Your submission must provide the following exported functions:
 
 Starter Template Note
 
-- The starter is intentionally minimal and may include only light scaffolding.
-- Full conformance is still required: hidden validation checks the full behavior in this specification.
+- The starter is intentionally minimal and includes only light scaffolding.
+- Full conformance is required: hidden validation checks the full behavior in this specification.
 
 Machine Model
 

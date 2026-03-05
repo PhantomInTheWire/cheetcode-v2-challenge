@@ -125,7 +125,16 @@ X*XXXXX+X*
   <+++*>`,
 ];
 
-const BRAILLE_SPINNER_FRAMES = ["\u28FE", "\u28FD", "\u28FB", "\u28BF", "\u28BF", "\u28DF", "\u28EF", "\u28F7"];
+const BRAILLE_SPINNER_FRAMES = [
+  "\u28FE",
+  "\u28FD",
+  "\u28FB",
+  "\u28BF",
+  "\u287F",
+  "\u28DF",
+  "\u28EF",
+  "\u28F7",
+];
 
 // ── Braille spinner ───────────────────────────────────────────────────
 function BrailleSpinner() {

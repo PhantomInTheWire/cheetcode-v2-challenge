@@ -94,12 +94,10 @@ describe("client-identity", () => {
       resolveGet = resolve;
     });
     hoisted.fpLoadMock.mockResolvedValue({
-      get: vi.fn(
-        () => {
-          markGetStarted?.();
-          return getResult;
-        },
-      ),
+      get: vi.fn(() => {
+        markGetStarted?.();
+        return getResult;
+      }),
     });
     const fetchMock = vi.fn(async () => new Response("ok", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
@@ -133,7 +131,9 @@ describe("client-identity", () => {
       configurable: true,
       writable: true,
     });
-    hoisted.fpLoadMock.mockReturnValue(new Promise(() => {}) as Promise<{ get: () => Promise<{ visitorId: string }> }>);
+    hoisted.fpLoadMock.mockReturnValue(
+      new Promise(() => {}) as Promise<{ get: () => Promise<{ visitorId: string }> }>,
+    );
     const fetchMock = vi.fn(async () => new Response("ok", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -141,9 +141,15 @@ describe("client-identity", () => {
     await mod.clientFetch("/api/x", { method: "GET" });
     await mod.clientFetch("/api/y", { method: "GET" });
 
-    const firstHeaders = new Headers((fetchMock.mock.calls[0] as [RequestInfo, RequestInit])[1].headers);
-    const secondHeaders = new Headers((fetchMock.mock.calls[1] as [RequestInfo, RequestInit])[1].headers);
-    expect(firstHeaders.get("x-client-fingerprint")).toBe(secondHeaders.get("x-client-fingerprint"));
+    const firstHeaders = new Headers(
+      (fetchMock.mock.calls[0] as [RequestInfo, RequestInit])[1].headers,
+    );
+    const secondHeaders = new Headers(
+      (fetchMock.mock.calls[1] as [RequestInfo, RequestInit])[1].headers,
+    );
+    expect(firstHeaders.get("x-client-fingerprint")).toBe(
+      secondHeaders.get("x-client-fingerprint"),
+    );
     expect(firstHeaders.get("x-client-fingerprint")).toMatch(/^fallback-/);
   });
 });

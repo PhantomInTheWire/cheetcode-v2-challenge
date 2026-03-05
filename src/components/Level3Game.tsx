@@ -291,12 +291,12 @@ export function Level3Game({
   }, []);
 
   useEffect(() => {
-    if (!isChecking || prefersReducedMotion) return;
+    if ((!isChecking && !isSubmitting) || prefersReducedMotion) return;
     const id = setInterval(() => {
-      setPulseFrame((value) => (value + 1) % 4);
-    }, 160);
+      setPulseFrame((value) => (value + 1) % 8);
+    }, 120);
     return () => clearInterval(id);
-  }, [isChecking, prefersReducedMotion]);
+  }, [isChecking, isSubmitting, prefersReducedMotion]);
 
   useEffect(() => {
     return () => {
@@ -319,15 +319,17 @@ export function Level3Game({
     () => [editorExtensionFor(challenge.language)],
     [challenge.language],
   );
-  const pulseGlyphs = prefersReducedMotion ? ["."] : [".", "o", "O", "@"];
-  const pulseGlyph = pulseGlyphs[pulseFrame % pulseGlyphs.length] ?? ".";
+  const brailleSpinner = prefersReducedMotion
+    ? ["\u2026"]
+    : ["\u28FE", "\u28FD", "\u28FB", "\u28BF", "\u287F", "\u28DF", "\u28EF", "\u28F7"];
+  const spinnerGlyph = brailleSpinner[pulseFrame % brailleSpinner.length] ?? "\u28FE";
   const isRunBusy = runUiPhase === "compiling" || runUiPhase === "running";
   const runButtonLabel =
     runUiPhase === "compiling"
-      ? "COMPILING..."
+      ? "Compiling\u2026"
       : runUiPhase === "running"
-        ? "RUNNING TESTS..."
-        : `RUN`;
+        ? "Running\u2026"
+        : "Run";
 
   async function runChecks() {
     const nowMs = Date.now();
@@ -491,9 +493,26 @@ export function Level3Game({
         flexDirection: "column",
         overflow: "hidden",
         background: "#f9f9f9",
-        fontFamily: "'SF Mono', 'Fira Code', var(--font-geist-mono), monospace",
+        fontFamily: "var(--font-geist-mono), monospace",
+        position: "relative",
       }}
     >
+      {/* ── Grid background (firecrawl dashboard pattern) ── */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          opacity: 0.4,
+          backgroundImage: `
+            linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)
+          `,
+          backgroundSize: "8px 8px",
+        }}
+      />
+
       <div
         style={{
           height: 44,
@@ -502,8 +521,12 @@ export function Level3Game({
           alignItems: "center",
           justifyContent: "space-between",
           padding: "0 14px",
-          borderBottom: "1px solid #e5e5e5",
-          background: "#ffffff",
+          borderBottom: "1px solid #e8e8e8",
+          background: "rgba(255,255,255,0.85)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          position: "relative",
+          zIndex: 10,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -526,24 +549,34 @@ export function Level3Game({
           >
             Firecrawl CTF
           </span>
-          <span style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", marginLeft: 4 }}>@{github}</span>
+          <span style={{ fontSize: 12, color: "rgba(0,0,0,0.12)" }}>·</span>
+          <span
+            style={{
+              fontSize: 12,
+              color: "rgba(0,0,0,0.3)",
+              fontFamily: "var(--font-geist-mono), monospace",
+            }}
+          >
+            @{github}
+          </span>
           {canAutoSolve && (
             <button
               onClick={() => void autoSolve()}
               style={{
-                marginLeft: 8,
+                marginLeft: 4,
                 padding: "2px 10px",
-                fontSize: 10,
-                fontWeight: 600,
-                background: "#f3f3f3",
-                color: "rgba(0,0,0,0.5)",
-                border: "1px solid #e5e5e5",
-                borderRadius: 4,
+                fontSize: 11,
+                fontWeight: 450,
+                background: "rgba(0,0,0,0.04)",
+                color: "rgba(0,0,0,0.45)",
+                border: "1px solid #e8e8e8",
+                borderRadius: 8,
                 cursor: "pointer",
-                fontFamily: "inherit",
+                fontFamily: "var(--font-geist-mono), monospace",
+                transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
               }}
             >
-              ⚡ Auto Solve
+              Auto Solve
             </button>
           )}
           <span
@@ -553,8 +586,11 @@ export function Level3Game({
               background: "rgba(250, 93, 25, 0.15)",
               color: "#fa5d19",
               borderRadius: 4,
-              fontWeight: 600,
+              fontWeight: 500,
               marginLeft: 8,
+              fontFamily: "var(--font-geist-mono), monospace",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
             }}
           >
             LEVEL 3
@@ -562,13 +598,15 @@ export function Level3Game({
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span
               style={{
-                fontSize: 10,
-                fontWeight: 600,
+                fontSize: 11,
+                fontWeight: 500,
                 color: "rgba(0,0,0,0.35)",
                 textTransform: "uppercase",
+                letterSpacing: 0.5,
+                fontFamily: "var(--font-geist-mono), monospace",
               }}
             >
               Passed
@@ -576,12 +614,14 @@ export function Level3Game({
             <span
               style={{
                 fontSize: 16,
-                fontWeight: 800,
+                fontWeight: 500,
                 color: solvedLocal === totalChecks ? "#1a9338" : "#262626",
+                fontFamily: "var(--font-geist-mono), monospace",
+                fontVariantNumeric: "tabular-nums",
               }}
             >
               {solvedLocal}
-              <span style={{ color: "rgba(0,0,0,0.25)" }}>/ {totalChecks}</span>
+              <span style={{ color: "rgba(0,0,0,0.2)" }}>/ {totalChecks}</span>
             </span>
           </div>
 
@@ -589,8 +629,8 @@ export function Level3Game({
             <div
               style={{
                 width: 160,
-                height: 5,
-                background: "#e5e5e5",
+                height: 4,
+                background: "#e8e8e8",
                 borderRadius: 4,
                 overflow: "hidden",
               }}
@@ -607,12 +647,14 @@ export function Level3Game({
             </div>
             <span
               style={{
-                fontSize: 18,
-                fontWeight: 800,
+                fontSize: 16,
+                fontWeight: 500,
                 color: timerFg,
                 minWidth: 48,
                 textAlign: "right",
                 transition: "color 500ms",
+                fontFamily: "var(--font-geist-mono), monospace",
+                fontVariantNumeric: "tabular-nums",
               }}
             >
               {timeUp
@@ -624,20 +666,17 @@ export function Level3Game({
           <button
             onClick={() => void runChecks()}
             disabled={isSubmitting || timeUp || !code.trim()}
-            className="btn-ghost"
+            className={`btn-ghost${isRunBusy ? " btn-ghost-busy" : ""}`}
             style={{
               height: 32,
               padding: "0 14px",
-              borderRadius: 8,
+              borderRadius: 10,
               fontSize: 12,
-              fontWeight: 700,
-              fontFamily: "inherit",
+              fontWeight: 450,
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
               cursor: isSubmitting || timeUp ? "not-allowed" : "pointer",
               position: "relative",
               overflow: "hidden",
-              color: isRunBusy ? "#fa5d19" : undefined,
-              borderColor: isRunBusy ? "rgba(250, 93, 25, 0.45)" : undefined,
-              background: isRunBusy ? "rgba(250, 93, 25, 0.04)" : undefined,
             }}
           >
             <span
@@ -654,33 +693,16 @@ export function Level3Game({
                 <span
                   style={{
                     fontSize: 11,
-                    color: "#fa5d19",
-                    minWidth: 8,
+                    minWidth: 10,
                     textAlign: "center",
+                    fontFamily: "var(--font-geist-mono), monospace",
                   }}
                   aria-hidden="true"
                 >
-                  {pulseGlyph}
+                  {spinnerGlyph}
                 </span>
               )}
             </span>
-            {isRunBusy && (
-              <span
-                aria-hidden="true"
-                style={{
-                  position: "absolute",
-                  left: `${8 + pulseFrame * 22}%`,
-                  bottom: 0,
-                  height: 2,
-                  width: "36%",
-                  background:
-                    "linear-gradient(90deg, rgba(250,93,25,0.08) 0%, rgba(250,93,25,0.3) 45%, #fa5d19 100%)",
-                  borderRadius: 999,
-                  transition: "left 140ms linear",
-                  zIndex: 1,
-                }}
-              />
-            )}
           </button>
           {runHint && (
             <span
@@ -698,7 +720,7 @@ export function Level3Game({
             <span
               style={{
                 fontSize: 10,
-                fontWeight: 700,
+                fontWeight: 500,
                 color: "#8a3d14",
                 background: "rgba(250, 93, 25, 0.12)",
                 border: "1px solid rgba(250, 93, 25, 0.25)",
@@ -708,33 +730,48 @@ export function Level3Game({
                 whiteSpace: "nowrap",
               }}
             >
-              INSTANT (CACHED)
+              Instant (cached)
             </span>
           )}
 
           <button
             onClick={() => void finishGame()}
             disabled={isSubmitting}
-            className="btn-heat"
+            className={`btn-heat${isSubmitting ? " btn-heat-busy" : ""}`}
             style={{
               height: 32,
-              padding: "0 20px",
-              borderRadius: 8,
+              padding: "0 18px",
+              borderRadius: 10,
               fontSize: 13,
-              fontWeight: 800,
-              fontFamily: "inherit",
-              letterSpacing: 1,
+              fontWeight: 450,
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+              letterSpacing: 0.3,
               cursor: isSubmitting ? "not-allowed" : "pointer",
-              opacity: isSubmitting ? 0.7 : 1,
               whiteSpace: "nowrap",
             }}
           >
-            {isSubmitting ? "SUBMITTING..." : "SUBMIT"}
+            {isSubmitting ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span>Submitting…</span>
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontFamily: "var(--font-geist-mono), monospace",
+                    minWidth: 10,
+                  }}
+                  aria-hidden="true"
+                >
+                  {spinnerGlyph}
+                </span>
+              </span>
+            ) : (
+              "Submit"
+            )}
           </button>
         </div>
       </div>
 
-      <div style={{ flex: 1, minHeight: 0, padding: 12 }}>
+      <div style={{ flex: 1, minHeight: 0, padding: 12, position: "relative", zIndex: 1 }}>
         <div
           style={{
             height: "100%",
@@ -746,18 +783,33 @@ export function Level3Game({
             style={{
               width: `${leftPaneWidth}%`,
               background: "#fff",
-              border: "1px solid #e5e5e5",
+              border: "1px solid #e8e8e8",
               borderRadius: 12,
               padding: 14,
               overflowY: "auto",
               minHeight: 0,
             }}
           >
-            <p style={{ fontSize: 12, color: "rgba(0,0,0,0.5)", margin: 0 }}>
-              <strong>Level 3:</strong> {challenge.taskName}
+            <p
+              style={{
+                fontSize: 12,
+                color: "rgba(0,0,0,0.5)",
+                margin: 0,
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+              }}
+            >
+              <strong style={{ fontWeight: 500 }}>Level 3:</strong> {challenge.taskName}
             </p>
-            <p style={{ fontSize: 11, color: "rgba(0,0,0,0.45)", margin: "4px 0 0" }}>
-              Assigned language: <strong>{challenge.language}</strong> • submit one flat file
+            <p
+              style={{
+                fontSize: 11,
+                color: "rgba(0,0,0,0.35)",
+                margin: "4px 0 0",
+                fontFamily: "var(--font-geist-mono), monospace",
+              }}
+            >
+              Assigned language: <strong style={{ fontWeight: 500 }}>{challenge.language}</strong> •
+              submit one flat file
             </p>
 
             <div
@@ -805,7 +857,7 @@ export function Level3Game({
             style={{
               width: `${100 - leftPaneWidth}%`,
               background: "#fff",
-              border: "1px solid #e5e5e5",
+              border: "1px solid #e8e8e8",
               borderRadius: 12,
               padding: 14,
               minHeight: 0,
@@ -814,8 +866,18 @@ export function Level3Game({
               gap: 8,
             }}
           >
-            <p style={{ fontSize: 12, color: "rgba(0,0,0,0.5)", margin: 0 }}>
-              Paste code for <strong>main.{extensionForLanguage(challenge.language)}</strong>
+            <p
+              style={{
+                fontSize: 12,
+                color: "rgba(0,0,0,0.5)",
+                margin: 0,
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+              }}
+            >
+              Paste code for{" "}
+              <strong style={{ fontWeight: 500 }}>
+                main.{extensionForLanguage(challenge.language)}
+              </strong>
             </p>
 
             <div
@@ -848,7 +910,7 @@ export function Level3Game({
                     background: "linear-gradient(180deg, #fff3eb 0%, #fffaf7 100%)",
                     color: "rgba(0,0,0,0.62)",
                     fontSize: 11,
-                    fontWeight: 700,
+                    fontWeight: 500,
                   }}
                 >
                   <span>main.{extensionForLanguage(challenge.language)}</span>
@@ -907,7 +969,7 @@ export function Level3Game({
                 style={{
                   flex: 1 - editorHeightRatio,
                   minHeight: 0,
-                  border: "1px solid #e5e5e5",
+                  border: "1px solid #e8e8e8",
                   borderRadius: 8,
                   overflowY: "auto",
                 }}
@@ -940,11 +1002,19 @@ export function Level3Game({
                           gap: 10,
                         }}
                       >
-                        <div style={{ color: "#262626" }}>{check.name}</div>
+                        <div
+                          style={{
+                            color: "#262626",
+                            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                          }}
+                        >
+                          {check.name}
+                        </div>
                         <div
                           style={{
                             fontSize: 11,
-                            fontWeight: 700,
+                            fontWeight: 500,
+                            fontFamily: "var(--font-geist-mono), monospace",
                             color:
                               status === true
                                 ? "#1a9338"

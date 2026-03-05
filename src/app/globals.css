@@ -64,7 +64,7 @@
   --color-background-base: #f9f9f9;
 
   --color-border-faint: #f0f0f0;
-  --color-border-muted: #e5e5e5;
+  --color-border-muted: #e8e8e8;
   --color-border-loud: #d1d1d1;
 
   --color-black-alpha-3: rgba(0, 0, 0, 0.03);
@@ -103,19 +103,57 @@ body {
   color: white;
   border: 1px solid #f25515;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
-  box-shadow: none;
+  transition:
+    all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+    scale 0.1s,
+    box-shadow 0.1s;
+  box-shadow:
+    inset 0px -6px 12px 0px rgba(250, 25, 25, 0.2),
+    0px 2px 4px 0px rgba(250, 93, 25, 0.12),
+    0px 1px 1px 0px rgba(250, 93, 25, 0.12),
+    0px 0.5px 0.5px 0px rgba(250, 93, 25, 0.16),
+    0px 0.25px 0.25px 0px rgba(250, 93, 25, 0.2);
 }
 .btn-heat:hover {
-  background: #f25515;
-  border-color: #e54e10;
+  box-shadow:
+    inset 0px -6px 12px 0px rgba(250, 25, 25, 0.2),
+    0px 4px 8px 0px rgba(250, 93, 25, 0.18),
+    0px 2px 2px 0px rgba(250, 93, 25, 0.14),
+    0px 1px 1px 0px rgba(250, 93, 25, 0.18),
+    0px 0.5px 0.5px 0px rgba(250, 93, 25, 0.22);
 }
 .btn-heat:active {
-  transform: translateY(1px);
+  transform: scale(0.995);
 }
 .btn-heat:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* ─── Heat button submitting/busy state ─── */
+.btn-heat-busy {
+  animation: heat-breathe 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  pointer-events: none;
+}
+@keyframes heat-breathe {
+  0%,
+  100% {
+    box-shadow:
+      inset 0px -6px 12px 0px rgba(250, 25, 25, 0.2),
+      0px 2px 4px 0px rgba(250, 93, 25, 0.12),
+      0px 1px 1px 0px rgba(250, 93, 25, 0.12),
+      0px 0.5px 0.5px 0px rgba(250, 93, 25, 0.16),
+      0px 0.25px 0.25px 0px rgba(250, 93, 25, 0.2);
+  }
+  50% {
+    box-shadow:
+      inset 0px -6px 12px 0px rgba(250, 25, 25, 0.3),
+      0px 6px 16px 0px rgba(250, 93, 25, 0.24),
+      0px 3px 4px 0px rgba(250, 93, 25, 0.18),
+      0px 1.5px 2px 0px rgba(250, 93, 25, 0.22),
+      0px 0.5px 0.5px 0px rgba(250, 93, 25, 0.26),
+      0px 0px 24px 0px rgba(250, 93, 25, 0.08);
+  }
 }
 
 /* ─── Ghost button ─── */
@@ -132,6 +170,43 @@ body {
 }
 .btn-ghost:active {
   transform: scale(0.99);
+}
+.btn-ghost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ─── Ghost button busy (heat-tinted) ─── */
+.btn-ghost-busy {
+  color: #fa5d19;
+  border-color: rgba(250, 93, 25, 0.45);
+  background: rgba(250, 93, 25, 0.04);
+  pointer-events: none;
+  overflow: hidden;
+}
+.btn-ghost-busy::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 36%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(250, 93, 25, 0.08) 0%,
+    rgba(250, 93, 25, 0.3) 45%,
+    #fa5d19 100%
+  );
+  animation: run-shimmer 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes run-shimmer {
+  0% {
+    left: -36%;
+  }
+  100% {
+    left: 100%;
+  }
 }
 
 /* ─── Difficulty badges ─── */

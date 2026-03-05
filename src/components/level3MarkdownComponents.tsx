@@ -6,10 +6,11 @@ export const L3_MARKDOWN_COMPONENTS = {
     <h1
       style={{
         fontSize: 28,
-        fontWeight: 800,
+        fontWeight: 500,
         letterSpacing: -0.8,
         margin: "0 0 14px",
         color: COLORS.TEXT_DARK,
+        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
       }}
       {...props}
     />
@@ -18,10 +19,11 @@ export const L3_MARKDOWN_COMPONENTS = {
     <h2
       style={{
         fontSize: 20,
-        fontWeight: 800,
+        fontWeight: 500,
         margin: "24px 0 10px",
         color: COLORS.PRIMARY,
         letterSpacing: -0.4,
+        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
       }}
       {...props}
     />
@@ -30,18 +32,39 @@ export const L3_MARKDOWN_COMPONENTS = {
     <h3
       style={{
         fontSize: 16,
-        fontWeight: 700,
+        fontWeight: 500,
         margin: "18px 0 8px",
         color: COLORS.TEXT_DARK,
+        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
       }}
       {...props}
     />
   ),
-  p: ({ ...props }) => <p style={{ margin: "0 0 14px", color: "rgba(0,0,0,0.72)" }} {...props} />,
+  p: ({ ...props }) => (
+    <p
+      style={{
+        margin: "0 0 14px",
+        color: "rgba(0,0,0,0.72)",
+        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+      }}
+      {...props}
+    />
+  ),
   ul: ({ ...props }) => <ul style={{ margin: "0 0 14px", paddingLeft: 22 }} {...props} />,
   ol: ({ ...props }) => <ol style={{ margin: "0 0 14px", paddingLeft: 22 }} {...props} />,
-  li: ({ ...props }) => <li style={{ margin: "0 0 6px", color: "rgba(0,0,0,0.72)" }} {...props} />,
-  strong: ({ ...props }) => <strong style={{ color: COLORS.TEXT_DARK }} {...props} />,
+  li: ({ ...props }) => (
+    <li
+      style={{
+        margin: "0 0 6px",
+        color: "rgba(0,0,0,0.72)",
+        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+      }}
+      {...props}
+    />
+  ),
+  strong: ({ ...props }) => (
+    <strong style={{ color: COLORS.TEXT_DARK, fontWeight: 500 }} {...props} />
+  ),
   code: ({ className, children, ...props }: { className?: string; children?: ReactNode }) => {
     const inline = !className;
     if (inline) {
@@ -54,6 +77,7 @@ export const L3_MARKDOWN_COMPONENTS = {
             padding: "2px 6px",
             color: COLORS.PRIMARY,
             fontSize: "0.92em",
+            fontFamily: "var(--font-geist-mono), monospace",
           }}
           {...props}
         >
@@ -74,6 +98,7 @@ export const L3_MARKDOWN_COMPONENTS = {
           color: COLORS.TEXT_DARK,
           fontSize: 13,
           lineHeight: 1.6,
+          fontFamily: "var(--font-geist-mono), monospace",
         }}
         className={className}
         {...props}
@@ -105,7 +130,8 @@ export const L3_MARKDOWN_COMPONENTS = {
         textAlign: "left",
         background: "#fff7f2",
         color: COLORS.TEXT_DARK,
-        fontWeight: 700,
+        fontWeight: 500,
+        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
       }}
       {...props}
     />
@@ -117,6 +143,7 @@ export const L3_MARKDOWN_COMPONENTS = {
         padding: "9px 10px",
         textAlign: "left",
         color: "rgba(0,0,0,0.72)",
+        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
       }}
       {...props}
     />

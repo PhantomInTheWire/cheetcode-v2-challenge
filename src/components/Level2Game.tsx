@@ -206,9 +206,26 @@ export function Level2Game({
         flexDirection: "column",
         overflow: "hidden",
         background: "#f9f9f9",
-        fontFamily: "'SF Mono', 'Fira Code', var(--font-geist-mono), monospace",
+        fontFamily: "var(--font-geist-mono), monospace",
+        position: "relative",
       }}
     >
+      {/* ── Grid background (firecrawl dashboard pattern) ── */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          opacity: 0.4,
+          backgroundImage: `
+            linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)
+          `,
+          backgroundSize: "8px 8px",
+        }}
+      />
+
       {/* Header bar */}
       <div
         style={{
@@ -218,8 +235,12 @@ export function Level2Game({
           alignItems: "center",
           justifyContent: "space-between",
           padding: "0 14px",
-          borderBottom: "1px solid #e5e5e5",
-          background: "#ffffff",
+          borderBottom: "1px solid #e8e8e8",
+          background: "rgba(255,255,255,0.85)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          position: "relative",
+          zIndex: 10,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -242,24 +263,34 @@ export function Level2Game({
           >
             Firecrawl CTF
           </span>
-          <span style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", marginLeft: 4 }}>@{github}</span>
+          <span style={{ fontSize: 12, color: "rgba(0,0,0,0.12)" }}>·</span>
+          <span
+            style={{
+              fontSize: 12,
+              color: "rgba(0,0,0,0.3)",
+              fontFamily: "var(--font-geist-mono), monospace",
+            }}
+          >
+            @{github}
+          </span>
           {canAutoSolve && (
             <button
               onClick={() => void autoSolve()}
               style={{
-                marginLeft: 8,
+                marginLeft: 4,
                 padding: "2px 10px",
-                fontSize: 10,
-                fontWeight: 600,
-                background: "#f3f3f3",
-                color: "rgba(0,0,0,0.5)",
-                border: "1px solid #e5e5e5",
-                borderRadius: 4,
+                fontSize: 11,
+                fontWeight: 450,
+                background: "rgba(0,0,0,0.04)",
+                color: "rgba(0,0,0,0.45)",
+                border: "1px solid #e8e8e8",
+                borderRadius: 8,
                 cursor: "pointer",
-                fontFamily: "inherit",
+                fontFamily: "var(--font-geist-mono), monospace",
+                transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
               }}
             >
-              ⚡ Auto Solve
+              Auto Solve
             </button>
           )}
           <span
@@ -269,8 +300,11 @@ export function Level2Game({
               background: "rgba(250, 93, 25, 0.15)",
               color: "#fa5d19",
               borderRadius: 4,
-              fontWeight: 600,
+              fontWeight: 500,
               marginLeft: 8,
+              fontFamily: "var(--font-geist-mono), monospace",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
             }}
           >
             LEVEL 2
@@ -279,13 +313,15 @@ export function Level2Game({
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           {/* Solved */}
-          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span
               style={{
-                fontSize: 10,
-                fontWeight: 600,
+                fontSize: 11,
+                fontWeight: 500,
                 color: "rgba(0,0,0,0.35)",
                 textTransform: "uppercase",
+                letterSpacing: 0.5,
+                fontFamily: "var(--font-geist-mono), monospace",
               }}
             >
               Solved
@@ -293,12 +329,14 @@ export function Level2Game({
             <span
               style={{
                 fontSize: 16,
-                fontWeight: 800,
+                fontWeight: 500,
                 color: solvedLocal === 10 ? "#1a9338" : "#262626",
+                fontFamily: "var(--font-geist-mono), monospace",
+                fontVariantNumeric: "tabular-nums",
               }}
             >
               {solvedLocal}
-              <span style={{ color: "rgba(0,0,0,0.25)" }}>/10</span>
+              <span style={{ color: "rgba(0,0,0,0.2)" }}>/10</span>
             </span>
           </div>
           {/* Timer */}
@@ -306,8 +344,8 @@ export function Level2Game({
             <div
               style={{
                 width: 140,
-                height: 5,
-                background: "#e5e5e5",
+                height: 4,
+                background: "#e8e8e8",
                 borderRadius: 4,
                 overflow: "hidden",
               }}
@@ -324,12 +362,14 @@ export function Level2Game({
             </div>
             <span
               style={{
-                fontSize: 18,
-                fontWeight: 800,
+                fontSize: 16,
+                fontWeight: 500,
                 color: timerFg,
                 minWidth: 48,
                 textAlign: "right",
                 transition: "color 500ms",
+                fontFamily: "var(--font-geist-mono), monospace",
+                fontVariantNumeric: "tabular-nums",
                 ...(secondsLeft <= 10
                   ? { animation: "timer-pulse 0.6s ease-in-out infinite" }
                   : {}),
@@ -345,18 +385,18 @@ export function Level2Game({
             className="btn-heat"
             style={{
               height: 32,
-              padding: "0 20px",
-              borderRadius: 8,
+              padding: "0 18px",
+              borderRadius: 10,
               fontSize: 13,
-              fontWeight: 800,
-              fontFamily: "inherit",
-              letterSpacing: 1,
+              fontWeight: 450,
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+              letterSpacing: 0.3,
               cursor: isSubmitting ? "not-allowed" : "pointer",
               opacity: isSubmitting ? 0.7 : 1,
               whiteSpace: "nowrap",
             }}
           >
-            {isSubmitting ? "SUBMITTING..." : "FINISH & SUBMIT"}
+            {isSubmitting ? "Submitting..." : "Finish & Submit"}
           </button>
         </div>
       </div>
@@ -367,22 +407,39 @@ export function Level2Game({
           flex: 1,
           overflowY: "auto",
           padding: 16,
+          position: "relative",
+          zIndex: 1,
         }}
       >
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
           <div
             style={{
               background: "#fff",
-              border: "1px solid #e5e5e5",
+              border: "1px solid #e8e8e8",
               borderRadius: 12,
               padding: "16px 20px",
               marginBottom: 16,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.02)",
             }}
           >
-            <p style={{ fontSize: 12, color: "rgba(0,0,0,0.5)", margin: 0 }}>
-              <strong>Level 2:</strong> Chromium Search Challenge
+            <p
+              style={{
+                fontSize: 12,
+                color: "rgba(0,0,0,0.5)",
+                margin: 0,
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+              }}
+            >
+              <strong style={{ fontWeight: 500 }}>Level 2:</strong> Chromium Search Challenge
             </p>
-            <p style={{ fontSize: 11, color: "rgba(0,0,0,0.4)", margin: "4px 0 0" }}>
+            <p
+              style={{
+                fontSize: 11,
+                color: "rgba(0,0,0,0.35)",
+                margin: "4px 0 0",
+                fontFamily: "var(--font-geist-mono), monospace",
+              }}
+            >
               Target: Chromium commit 69c7c0a024efdc5bec0a9075e306e180b51e4278
             </p>
           </div>
@@ -390,7 +447,7 @@ export function Level2Game({
           {problems.map((problem, idx) => {
             const status = localCorrect[problem.id];
             const borderColor =
-              status === true ? "#22c55e" : status === false ? "#ef4444" : "#e5e5e5";
+              status === true ? "#22c55e" : status === false ? "#ef4444" : "#e8e8e8";
             const bgColor = status === true ? "#f0fdf4" : status === false ? "#fef2f2" : "#ffffff";
 
             return (
@@ -399,19 +456,21 @@ export function Level2Game({
                 style={{
                   background: bgColor,
                   border: `1px solid ${borderColor}`,
-                  borderRadius: 8,
+                  borderRadius: 12,
                   padding: 16,
                   marginBottom: 12,
                   transition: "all 300ms",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.02)",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                   <span
                     style={{
                       fontSize: 11,
-                      fontWeight: 700,
+                      fontWeight: 500,
                       color: "#fa5d19",
                       minWidth: 28,
+                      fontFamily: "var(--font-geist-mono), monospace",
                     }}
                   >
                     #{idx + 1}
@@ -423,6 +482,7 @@ export function Level2Game({
                         color: "#262626",
                         margin: "0 0 12px",
                         lineHeight: 1.5,
+                        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                       }}
                     >
                       {problem.question}
@@ -441,12 +501,19 @@ export function Level2Game({
                           height: 36,
                           padding: "0 12px",
                           fontSize: 13,
-                          fontFamily: "inherit",
-                          border: "1px solid #e5e5e5",
-                          borderRadius: 6,
+                          fontFamily: "var(--font-geist-mono), monospace",
+                          border: "1px solid #e8e8e8",
+                          borderRadius: 8,
                           background: status === true ? "#f0fdf4" : "#fafafa",
                           color: status === true ? "#1a9338" : "#262626",
                           outline: "none",
+                          transition: "border-color 0.2s",
+                        }}
+                        onFocus={(e) => {
+                          if (status !== true) e.target.style.borderColor = "#fa5d19";
+                        }}
+                        onBlur={(e) => {
+                          if (status !== true) e.target.style.borderColor = "#e8e8e8";
                         }}
                       />
                       <button
@@ -455,20 +522,25 @@ export function Level2Game({
                         style={{
                           height: 36,
                           padding: "0 16px",
-                          borderRadius: 6,
+                          borderRadius: 8,
                           border: "none",
                           fontSize: 12,
-                          fontWeight: 600,
-                          fontFamily: "inherit",
+                          fontWeight: 450,
+                          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                           cursor:
                             timeUp || status === true || !(answers[problem.id] || "").trim()
                               ? "not-allowed"
                               : "pointer",
-                          background: status === true ? "rgba(26,147,56,0.1)" : "#fa5d19",
+                          background: status === true ? "rgba(26,147,56,0.08)" : "#ff4c00",
                           color: status === true ? "#1a9338" : "#fff",
+                          transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
+                          boxShadow:
+                            status === true
+                              ? "none"
+                              : "0px 1px 2px rgba(250,93,25,0.12), 0px 0.5px 0.5px rgba(250,93,25,0.16)",
                         }}
                       >
-                        {status === true ? "✓ CORRECT" : status === false ? "✗ RETRY" : "CHECK"}
+                        {status === true ? "Passed" : status === false ? "Retry" : "Check"}
                       </button>
                     </div>
                   </div>
@@ -485,7 +557,9 @@ export function Level2Game({
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.85)",
+            background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -498,21 +572,44 @@ export function Level2Game({
               background: "#ffffff",
               borderRadius: 20,
               padding: "48px 56px",
-              border: "1px solid #e5e5e5",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+              border: "1px solid #e8e8e8",
+              boxShadow: "0 24px 48px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.08)",
+              maxWidth: 480,
             }}
           >
+            {/* Flame logo */}
+            <div style={{ marginBottom: 20 }}>
+              <svg
+                width="40"
+                height="40"
+                viewBox="0 0 600 600"
+                preserveAspectRatio="xMidYMid meet"
+                style={{ display: "inline-block" }}
+                dangerouslySetInnerHTML={{ __html: FIRECRAWL_FLAME_SVG }}
+              />
+            </div>
             <p
               style={{
-                fontSize: 52,
-                fontWeight: 800,
-                color: solvedLocal === 10 ? "#1a9338" : "#dc2626",
+                fontSize: 40,
+                fontWeight: 500,
+                color: solvedLocal === 10 ? "#1a9338" : "#262626",
                 margin: 0,
+                lineHeight: 1.1,
+                letterSpacing: -0.5,
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
               }}
             >
-              {isSubmitting ? "SUBMITTING..." : solvedLocal === 10 ? "ALL CLEAR" : "TIME'S UP"}
+              {isSubmitting ? "Submitting..." : solvedLocal === 10 ? "All Clear" : "Time\u2019s Up"}
             </p>
-            <p style={{ fontSize: 22, color: "rgba(0,0,0,0.45)", margin: "8px 0 0" }}>
+            <p
+              style={{
+                fontSize: 16,
+                color: "rgba(0,0,0,0.4)",
+                margin: "12px 0 0",
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                fontWeight: 400,
+              }}
+            >
               {solvedLocal}/10 solved
             </p>
             {!isSubmitting && (
@@ -520,36 +617,54 @@ export function Level2Game({
                 onClick={() => void finishGame()}
                 className="btn-heat"
                 style={{
-                  marginTop: 32,
-                  padding: "14px 48px",
+                  marginTop: 28,
+                  padding: "12px 44px",
                   borderRadius: 10,
-                  fontSize: 16,
-                  fontWeight: 800,
-                  fontFamily: "inherit",
-                  letterSpacing: 1,
+                  fontSize: 14,
+                  fontWeight: 450,
+                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  letterSpacing: 0.3,
                 }}
               >
-                SEE RESULTS
+                See Results
               </button>
             )}
             {isSubmitting && !submitError && (
-              <p style={{ fontSize: 14, color: "rgba(0,0,0,0.35)", marginTop: 20 }}>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "rgba(0,0,0,0.3)",
+                  marginTop: 20,
+                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                }}
+              >
                 Validating your answers...
               </p>
             )}
             {submitError && (
               <div style={{ marginTop: 20 }}>
-                <p style={{ fontSize: 14, color: "#dc2626", margin: "0 0 12px" }}>{submitError}</p>
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: "#dc2626",
+                    margin: "0 0 12px",
+                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  }}
+                >
+                  {submitError}
+                </p>
                 <button
                   onClick={() => setSubmitError(null)}
                   style={{
                     padding: "8px 16px",
-                    borderRadius: 6,
-                    border: "1px solid #e5e5e5",
-                    background: "#fff",
+                    borderRadius: 8,
+                    border: "1px solid #e8e8e8",
+                    background: "rgba(0,0,0,0.04)",
                     fontSize: 12,
-                    fontWeight: 600,
+                    fontWeight: 450,
                     cursor: "pointer",
+                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                    transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
                   }}
                 >
                   Try Again

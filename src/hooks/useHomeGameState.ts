@@ -143,7 +143,9 @@ export function useHomeGameState({
     ): T => {
       if (typeof window === "undefined") return fallback;
       try {
-        const raw = window.localStorage.getItem(sessionScopedStorageKey(storageKey, activeSessionId));
+        const raw = window.localStorage.getItem(
+          sessionScopedStorageKey(storageKey, activeSessionId),
+        );
         if (raw) return JSON.parse(raw) as T;
       } catch {
         // Fall back to the legacy aggregate cache below.
@@ -296,9 +298,7 @@ export function useHomeGameState({
         level1DraftsRef,
       );
       setCodes(
-        Object.fromEntries(
-          level1Problems.map((p) => [p.id, drafts[p.id] ?? p.starterCode]),
-        ),
+        Object.fromEntries(level1Problems.map((p) => [p.id, drafts[p.id] ?? p.starterCode])),
       );
       const passState = readSessionScopedValue(
         LEVEL1_PASS_STORAGE_KEY,

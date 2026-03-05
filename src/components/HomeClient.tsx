@@ -16,7 +16,19 @@ const HomeClientController = dynamic(
   () => import("@/components/HomeClientController").then((m) => m.HomeClientController),
   {
     loading: () => (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "#f9f9f9",
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+          color: "rgba(0,0,0,0.35)",
+          fontSize: 14,
+        }}
+      >
+        Loading...
+      </div>
     ),
   },
 );
