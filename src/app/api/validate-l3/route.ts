@@ -39,7 +39,16 @@ export async function POST(request: Request) {
     const sessionResult = await requireOwnedSession(sessionId, github, 3);
     if ("response" in sessionResult) return sessionResult.response;
 
-    const { convex } = sessionResult;
+    const {
+      convex,
+      session: { problemIds },
+    } = sessionResult;
+    const assignedProblemId = problemIds[0];
+    const assignedChallengeId = assignedProblemId?.split(":").slice(0, 3).join(":");
+    if (!assignedChallengeId || challengeId !== assignedChallengeId) {
+      return NextResponse.json({ error: "challenge does not match session" }, { status: 400 });
+    }
+
     const result = await validateLevel3Submission(challengeId, code);
     const clientResult = sanitizeLevel3ValidationForClient(result);
 

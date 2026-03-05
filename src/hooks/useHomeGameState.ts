@@ -38,6 +38,8 @@ type UseHomeGameStateArgs = {
   canAutoSolve: boolean;
 };
 
+type LegacySessionStorageRef<T> = { current: Record<string, T> | null };
+
 const ACTIVE_SESSION_STORAGE_KEY = "cheetcode.activeSession";
 const SESSION_SNAPSHOT_STORAGE_KEY = "cheetcode.sessionSnapshot";
 const FLOW_SCREEN_STORAGE_KEY = "cheetcode.flowScreen";
@@ -49,6 +51,10 @@ const LEVEL1_PASS_STORAGE_KEY = "cheetcode.level1Pass";
 const DRAFT_PERSIST_DEBOUNCE_MS = 250;
 const RESTORE_REQUEST_TIMEOUT_MS = 8_000;
 const ORIGINAL_TWEET_URL = "https://x.com/CalebPeffer/status/2024167056372097131";
+
+function sessionScopedStorageKey(baseKey: string, sessionId: string) {
+  return `${baseKey}:${sessionId}`;
+}
 
 export function useHomeGameState({
   github,
@@ -124,6 +130,38 @@ export function useHomeGameState({
         ref.current = fallback;
       }
       return ref.current;
+    },
+    [],
+  );
+
+  const readSessionScopedValue = useCallback(
+    <T>(
+      storageKey: string,
+      activeSessionId: string,
+      fallback: T,
+      legacyRef?: LegacySessionStorageRef<T>,
+    ): T => {
+      if (typeof window === "undefined") return fallback;
+      try {
+        const raw = window.localStorage.getItem(sessionScopedStorageKey(storageKey, activeSessionId));
+        if (raw) return JSON.parse(raw) as T;
+      } catch {
+        // Fall back to the legacy aggregate cache below.
+      }
+      if (!legacyRef) return fallback;
+      const legacyCache = getDraftCache(storageKey, legacyRef, {} as Record<string, T>);
+      return legacyCache[activeSessionId] ?? fallback;
+    },
+    [getDraftCache],
+  );
+
+  const writeSessionScopedValue = useCallback(
+    <T>(storageKey: string, activeSessionId: string, value: T) => {
+      if (typeof window === "undefined") return;
+      window.localStorage.setItem(
+        sessionScopedStorageKey(storageKey, activeSessionId),
+        JSON.stringify(value),
+      );
     },
     [],
   );
@@ -214,12 +252,13 @@ export function useHomeGameState({
         setL2Problems(payload.problems as Level2Problem[]);
         setProblems([]);
         setL3Challenge(null);
-        const drafts = getDraftCache(
+        const drafts = readSessionScopedValue(
           LEVEL2_DRAFTS_STORAGE_KEY,
+          payload.sessionId,
+          {} as Record<string, string>,
           level2DraftsRef,
-          {} as Record<string, Record<string, string>>,
         );
-        setL2Answers(drafts[payload.sessionId] ?? {});
+        setL2Answers(drafts);
         setCodes({});
         setL3CodeDraft("");
         setLocalPass({});
@@ -233,12 +272,13 @@ export function useHomeGameState({
         setL2Problems([]);
         setL2Answers({});
         setCodes({});
-        const drafts = getDraftCache(
+        const drafts = readSessionScopedValue(
           LEVEL3_DRAFTS_STORAGE_KEY,
+          payload.sessionId,
+          challenge.starterCode,
           level3DraftsRef,
-          {} as Record<string, string>,
         );
-        setL3CodeDraft(drafts[payload.sessionId] ?? challenge.starterCode);
+        setL3CodeDraft(drafts);
         setLocalPass({});
         return;
       }
@@ -249,24 +289,26 @@ export function useHomeGameState({
       setL3Challenge(null);
       setL2Answers({});
       setL3CodeDraft("");
-      const drafts = getDraftCache(
+      const drafts = readSessionScopedValue(
         LEVEL1_DRAFTS_STORAGE_KEY,
+        payload.sessionId,
+        {} as Record<string, string>,
         level1DraftsRef,
-        {} as Record<string, Record<string, string>>,
       );
       setCodes(
         Object.fromEntries(
-          level1Problems.map((p) => [p.id, drafts[payload.sessionId]?.[p.id] ?? p.starterCode]),
+          level1Problems.map((p) => [p.id, drafts[p.id] ?? p.starterCode]),
         ),
       );
-      const passState = getDraftCache(
+      const passState = readSessionScopedValue(
         LEVEL1_PASS_STORAGE_KEY,
+        payload.sessionId,
+        {} as Record<string, boolean | null>,
         level1PassRef,
-        {} as Record<string, Record<string, boolean | null>>,
       );
-      setLocalPass(passState[payload.sessionId] ?? {});
+      setLocalPass(passState);
     },
-    [getDraftCache],
+    [readSessionScopedValue],
   );
 
   useEffect(() => {
@@ -799,62 +841,38 @@ export function useHomeGameState({
   useEffect(() => {
     if (typeof window === "undefined" || currentLevel !== 1 || !sessionId || screen !== "playing")
       return;
-    const drafts = getDraftCache(
-      LEVEL1_DRAFTS_STORAGE_KEY,
-      level1DraftsRef,
-      {} as Record<string, Record<string, string>>,
-    );
-    drafts[sessionId] = codes;
     const timeoutId = window.setTimeout(() => {
-      window.localStorage.setItem(LEVEL1_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+      writeSessionScopedValue(LEVEL1_DRAFTS_STORAGE_KEY, sessionId, codes);
     }, DRAFT_PERSIST_DEBOUNCE_MS);
     return () => window.clearTimeout(timeoutId);
-  }, [codes, currentLevel, getDraftCache, sessionId, screen]);
+  }, [codes, currentLevel, sessionId, screen, writeSessionScopedValue]);
 
   useEffect(() => {
     if (typeof window === "undefined" || currentLevel !== 1 || !sessionId || screen !== "playing")
       return;
-    const passState = getDraftCache(
-      LEVEL1_PASS_STORAGE_KEY,
-      level1PassRef,
-      {} as Record<string, Record<string, boolean | null>>,
-    );
-    passState[sessionId] = localPass;
     const timeoutId = window.setTimeout(() => {
-      window.localStorage.setItem(LEVEL1_PASS_STORAGE_KEY, JSON.stringify(passState));
+      writeSessionScopedValue(LEVEL1_PASS_STORAGE_KEY, sessionId, localPass);
     }, DRAFT_PERSIST_DEBOUNCE_MS);
     return () => window.clearTimeout(timeoutId);
-  }, [currentLevel, getDraftCache, localPass, sessionId, screen]);
+  }, [currentLevel, localPass, sessionId, screen, writeSessionScopedValue]);
 
   useEffect(() => {
     if (typeof window === "undefined" || currentLevel !== 2 || !sessionId || screen !== "playing")
       return;
-    const drafts = getDraftCache(
-      LEVEL2_DRAFTS_STORAGE_KEY,
-      level2DraftsRef,
-      {} as Record<string, Record<string, string>>,
-    );
-    drafts[sessionId] = l2Answers;
     const timeoutId = window.setTimeout(() => {
-      window.localStorage.setItem(LEVEL2_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+      writeSessionScopedValue(LEVEL2_DRAFTS_STORAGE_KEY, sessionId, l2Answers);
     }, DRAFT_PERSIST_DEBOUNCE_MS);
     return () => window.clearTimeout(timeoutId);
-  }, [currentLevel, getDraftCache, l2Answers, sessionId, screen]);
+  }, [currentLevel, l2Answers, sessionId, screen, writeSessionScopedValue]);
 
   useEffect(() => {
     if (typeof window === "undefined" || currentLevel !== 3 || !sessionId || screen !== "playing")
       return;
-    const drafts = getDraftCache(
-      LEVEL3_DRAFTS_STORAGE_KEY,
-      level3DraftsRef,
-      {} as Record<string, string>,
-    );
-    drafts[sessionId] = l3CodeDraft;
     const timeoutId = window.setTimeout(() => {
-      window.localStorage.setItem(LEVEL3_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+      writeSessionScopedValue(LEVEL3_DRAFTS_STORAGE_KEY, sessionId, l3CodeDraft);
     }, DRAFT_PERSIST_DEBOUNCE_MS);
     return () => window.clearTimeout(timeoutId);
-  }, [currentLevel, getDraftCache, l3CodeDraft, sessionId, screen]);
+  }, [currentLevel, l3CodeDraft, sessionId, screen, writeSessionScopedValue]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !sessionId || screen !== "playing") return;

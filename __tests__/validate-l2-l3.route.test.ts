@@ -109,7 +109,7 @@ describe("validate l2/l3 routes", () => {
     const req = new Request("http://localhost/api/validate-l3", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ sessionId: "s3", challengeId: "any", code: "int main(){return 0;}" }),
+      body: JSON.stringify({ sessionId: "s3", challengeId: "p1", code: "int main(){return 0;}" }),
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
@@ -145,7 +145,7 @@ describe("validate l2/l3 routes", () => {
     const req = new Request("http://localhost/api/validate-l3", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ sessionId: "s3", challengeId: "any", code: "bad" }),
+      body: JSON.stringify({ sessionId: "s3", challengeId: "p1", code: "bad" }),
     });
 
     const res = await POST(req);
@@ -153,5 +153,33 @@ describe("validate l2/l3 routes", () => {
     const body = (await res.json()) as { error: string; results: Array<{ message: string }> };
     expect(body.error).toBe("redacted");
     expect(body.results[0]?.message).toBe("fail");
+  });
+
+  it("/api/validate-l3 rejects challenge ids that do not match the session", async () => {
+    hoisted.requireOwnedSessionMock.mockResolvedValueOnce({
+      session: {
+        github: "tester",
+        level: 3,
+        startedAt: 1_000,
+        expiresAt: 121_000,
+        problemIds: ["assigned:rust:check-1"],
+      },
+      convex: { action: hoisted.actionMock },
+    });
+
+    const { POST } = await import("../src/app/api/validate-l3/route");
+    const req = new Request("http://localhost/api/validate-l3", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        sessionId: "s3",
+        challengeId: "other:rust:check-1",
+        code: "int main(){return 0;}",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    expect(hoisted.validateL3Mock).not.toHaveBeenCalled();
   });
 });

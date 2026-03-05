@@ -16,10 +16,21 @@ export default async function HomePage() {
 
   try {
     const convex = new ConvexHttpClient(ENV.NEXT_PUBLIC_CONVEX_URL);
-    initialLeaderboard = (await convex.query(api.leaderboard.getAll)) ?? [];
-    if (initialGithub) {
-      initialUnlockedLevel =
-        (await convex.query(api.leaderboard.getMyLevel, { github: initialGithub })) ?? 1;
+    const [leaderboardResult, unlockedLevelResult] = await Promise.allSettled([
+      convex.query(api.leaderboard.getAll),
+      initialGithub ? convex.query(api.leaderboard.getMyLevel, { github: initialGithub }) : 1,
+    ]);
+
+    if (leaderboardResult.status === "fulfilled") {
+      initialLeaderboard = leaderboardResult.value ?? [];
+    } else {
+      console.error("Failed to preload leaderboard:", leaderboardResult.reason);
+    }
+
+    if (unlockedLevelResult.status === "fulfilled") {
+      initialUnlockedLevel = unlockedLevelResult.value ?? 1;
+    } else {
+      console.error("Failed to preload unlocked level:", unlockedLevelResult.reason);
     }
   } catch (error) {
     console.error("Failed to preload game bootstrap data:", error);

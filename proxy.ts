@@ -20,6 +20,10 @@ function setFingerprintCookie(response: NextResponse, value: string): void {
   });
 }
 
+function isFallbackFingerprint(value: string | undefined): boolean {
+  return value?.startsWith("fallback-") ?? false;
+}
+
 function rateLimitBody(pathname: string): Record<string, unknown> {
   if (
     pathname === "/api/validate-l1" ||
@@ -58,7 +62,14 @@ export async function proxy(request: NextRequest) {
     rawClientFingerprint && /^[A-Za-z0-9._-]{8,128}$/.test(rawClientFingerprint)
       ? rawClientFingerprint
       : "";
-  const fingerprint = fingerprintCookie || normalizedClientFingerprint || crypto.randomUUID();
+  const shouldPromoteClientFingerprint =
+    !!normalizedClientFingerprint &&
+    (!fingerprintCookie ||
+      (isFallbackFingerprint(fingerprintCookie) &&
+        !isFallbackFingerprint(normalizedClientFingerprint)));
+  const fingerprint = shouldPromoteClientFingerprint
+    ? normalizedClientFingerprint
+    : fingerprintCookie || normalizedClientFingerprint || crypto.randomUUID();
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete(SHADOW_BAN_HEADER);
@@ -83,7 +94,9 @@ export async function proxy(request: NextRequest) {
       status: 429,
       headers: { "retry-after": String(retryAfterSeconds || 1) },
     });
-    if (!fingerprintCookie) setFingerprintCookie(response, fingerprint);
+    if (!fingerprintCookie || shouldPromoteClientFingerprint) {
+      setFingerprintCookie(response, fingerprint);
+    }
     return response;
   }
 
@@ -93,7 +106,9 @@ export async function proxy(request: NextRequest) {
   }
 
   const response = NextResponse.next({ request: { headers: responseHeaders } });
-  if (!fingerprintCookie) setFingerprintCookie(response, fingerprint);
+  if (!fingerprintCookie || shouldPromoteClientFingerprint) {
+    setFingerprintCookie(response, fingerprint);
+  }
   return response;
 }
 

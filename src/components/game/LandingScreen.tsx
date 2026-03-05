@@ -125,12 +125,13 @@ X*XXXXX+X*
   <+++*>`,
 ];
 
+const BRAILLE_SPINNER_FRAMES = ["\u28FE", "\u28FD", "\u28FB", "\u28BF", "\u28BF", "\u28DF", "\u28EF", "\u28F7"];
+
 // ── Braille spinner ───────────────────────────────────────────────────
 function BrailleSpinner() {
-  const frames = ["\u28FE", "\u28FD", "\u28FB", "\u28BF", "\u28BF", "\u28DF", "\u28EF", "\u28F7"];
   const [i, setI] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setI((p) => (p + 1) % frames.length), 80);
+    const t = setInterval(() => setI((p) => (p + 1) % BRAILLE_SPINNER_FRAMES.length), 80);
     return () => clearInterval(t);
   }, []);
   return (
@@ -139,7 +140,7 @@ function BrailleSpinner() {
       aria-label="Loading"
       style={{ fontFamily: "var(--font-geist-mono), monospace" }}
     >
-      {frames[i]}
+      {BRAILLE_SPINNER_FRAMES[i]}
     </span>
   );
 }
@@ -183,12 +184,8 @@ export function LandingScreen({
   const availableLevels =
     unlockedLevel < 2 && !isLocalDev ? [1] : unlockedLevel < 3 && !isLocalDev ? [1, 2] : [1, 2, 3];
 
-  const [loaded, setLoaded] = useState(false);
   const [flameFrame, setFlameFrame] = useState(0);
 
-  useEffect(() => {
-    setLoaded(true);
-  }, []);
   useEffect(() => {
     const t = setInterval(() => setFlameFrame((p) => (p + 1) % FIRE_TEXTURE_FRAMES.length), 85);
     return () => clearInterval(t);
@@ -384,9 +381,9 @@ export function LandingScreen({
             width: "100%",
             maxWidth: 640,
             textAlign: "center",
-            opacity: loaded ? 1 : 0,
-            transform: loaded ? "translateY(0)" : "translateY(12px)",
-            transition: "all 0.5s cubic-bezier(0.25, 0.1, 0.25, 1)",
+            opacity: 0,
+            transform: "translateY(12px)",
+            animation: "landing-screen-enter 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards",
           }}
         >
           {/* ── Logo ───────────────────────────────────────────── */}
@@ -394,7 +391,6 @@ export function LandingScreen({
             <div
               style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             >
-              {/* eslint-disable-next-line react/no-danger */}
               <svg
                 width="28"
                 height="28"
@@ -799,6 +795,18 @@ export function LandingScreen({
             </span>
           </div>
         </div>
+        <style jsx>{`
+          @keyframes landing-screen-enter {
+            from {
+              opacity: 0;
+              transform: translateY(12px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        `}</style>
       </div>
     </div>
   );

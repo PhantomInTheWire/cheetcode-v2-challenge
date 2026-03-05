@@ -13,14 +13,15 @@ export async function POST(request: Request) {
   const authResult = await requireAuthenticatedGithub(request);
   if ("response" in authResult) return authResult.response;
   const { github } = authResult;
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+  const convexSecret = process.env.CONVEX_MUTATION_SECRET;
+
+  if (!convexUrl || !convexSecret) {
+    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+  }
 
   try {
     const body = await request.json();
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-    const convexSecret = process.env.CONVEX_MUTATION_SECRET;
-    if (!convexUrl || !convexSecret) {
-      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
-    }
     const convex = new ConvexHttpClient(convexUrl);
     const result = await convex.action(api.leads.submit, {
       secret: convexSecret,
@@ -32,8 +33,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Lead submission failed";
     console.error("/api/leads error:", err);
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: "Lead submission failed" }, { status: 400 });
   }
 }

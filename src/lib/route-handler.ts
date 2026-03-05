@@ -39,7 +39,9 @@ export async function withAuthenticatedSession<TBody extends { sessionId: string
     if ("response" in authResult) return authResult.response;
     const { github } = authResult;
 
-    const sessionResult = await requireOwnedSession(body.sessionId, github, expectedLevel);
+    const sessionResult = await requireOwnedSession(body.sessionId, github, expectedLevel, {
+      allowExpired: true,
+    });
     if ("response" in sessionResult) return sessionResult.response;
     const { session, convex } = sessionResult;
 

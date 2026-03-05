@@ -54,4 +54,20 @@ describe("/api/leads", () => {
     const body = (await res.json()) as { ok: boolean; upserted: string };
     expect(body.ok).toBe(true);
   });
+
+  it("returns 500 when Convex env vars are missing", async () => {
+    delete process.env.NEXT_PUBLIC_CONVEX_URL;
+
+    const { POST } = await import("../src/app/api/leads/route");
+    const req = new Request("http://localhost/api/leads", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: "x@y.com", sessionId: "abc" }),
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(500);
+    expect(hoisted.actionMock).not.toHaveBeenCalled();
+    await expect(res.json()).resolves.toEqual({ error: "Server configuration error" });
+  });
 });

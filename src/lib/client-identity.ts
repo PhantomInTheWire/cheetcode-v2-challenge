@@ -1,19 +1,22 @@
 "use client";
 
-import FingerprintJS from "@fingerprintjs/fingerprintjs";
-
 const FP_STORAGE_KEY = "ctf:fp:visitor-id";
 let fpPromise: Promise<string> | null = null;
+let inMemoryFingerprint: string | null = null;
 
 function safeReadStoredFingerprint(): string | null {
+  if (inMemoryFingerprint) return inMemoryFingerprint;
   try {
-    return window.localStorage.getItem(FP_STORAGE_KEY);
+    const stored = window.localStorage.getItem(FP_STORAGE_KEY);
+    if (stored) inMemoryFingerprint = stored;
+    return stored;
   } catch {
     return null;
   }
 }
 
 function safeWriteStoredFingerprint(value: string): void {
+  inMemoryFingerprint = value;
   try {
     window.localStorage.setItem(FP_STORAGE_KEY, value);
   } catch {
@@ -29,11 +32,11 @@ function fallbackFingerprint(): string {
   return generated;
 }
 
-export async function getClientFingerprint(): Promise<string> {
-  if (typeof window === "undefined") return "server";
+function ensureFingerprintFetch(): Promise<string> {
   if (!fpPromise) {
     fpPromise = (async () => {
       try {
+        const { default: FingerprintJS } = await import("@fingerprintjs/fingerprintjs");
         const agent = await FingerprintJS.load();
         const { visitorId } = await agent.get();
         if (!visitorId) return fallbackFingerprint();
@@ -47,10 +50,29 @@ export async function getClientFingerprint(): Promise<string> {
   return fpPromise;
 }
 
+export async function getClientFingerprint(): Promise<string> {
+  if (typeof window === "undefined") return "server";
+  return ensureFingerprintFetch();
+}
+
 export async function clientFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const fingerprint = await getClientFingerprint();
   const headers = new Headers(init?.headers ?? {});
-  headers.set("x-client-fingerprint", fingerprint);
+  if (typeof window === "undefined") {
+    headers.set("x-client-fingerprint", "server");
+  } else {
+    const method = (init?.method ?? "GET").toUpperCase();
+    const isMutation = method !== "GET" && method !== "HEAD";
+    const stored = safeReadStoredFingerprint();
+    if (stored) {
+      headers.set("x-client-fingerprint", stored);
+      void ensureFingerprintFetch();
+    } else if (isMutation) {
+      headers.set("x-client-fingerprint", await ensureFingerprintFetch());
+    } else {
+      headers.set("x-client-fingerprint", fallbackFingerprint());
+      void ensureFingerprintFetch();
+    }
+  }
 
   return fetch(input, {
     ...init,

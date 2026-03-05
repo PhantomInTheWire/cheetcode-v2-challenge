@@ -106,6 +106,33 @@ describe("finish l2/l3 routes", () => {
     expect(telemetryCall?.status).toBe("passed");
   });
 
+  it("/api/finish-l2 still records results after the session expiry time", async () => {
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(50_000);
+    const { POST } = await import("../src/app/api/finish-l2/route");
+    hoisted.queryMock.mockResolvedValueOnce({
+      github: "tester",
+      level: 2,
+      startedAt: 1_000,
+      expiresAt: 46_000,
+      problemIds: ["l2_1"],
+    });
+
+    const req = new Request("http://localhost/api/finish-l2", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        sessionId: "s1",
+        answers: { l2_1: "kOperationAborted" },
+        timeElapsed: 60_000,
+      }),
+    });
+
+    const res = await POST(req);
+    nowSpy.mockRestore();
+    expect(res.status).toBe(200);
+    expect(hoisted.actionMock).toHaveBeenCalledTimes(2);
+  });
+
   it("/api/finish-l2 rejects non-level-2 sessions", async () => {
     const { POST } = await import("../src/app/api/finish-l2/route");
     hoisted.queryMock.mockResolvedValueOnce({
