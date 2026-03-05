@@ -11,6 +11,11 @@ const extByLanguage: Record<string, "c" | "cpp" | "rs"> = {
 
 const assetCache = new Map<string, string>();
 
+type Level3AuxiliarySource = {
+  filename: string;
+  content: string;
+};
+
 export function languageToExt(language: string): "c" | "cpp" | "rs" {
   const ext = extByLanguage[language];
   if (!ext) {
@@ -43,6 +48,14 @@ export function readLevel3TaskAsset(taskId: string, filename: string): string {
   }
 }
 
+function resolveAuxiliaryFilenames(taskId: string, language: string): string[] {
+  if (taskId !== "cpu-16bit-emulator") return [];
+  if (language === "C") return ["support.c"];
+  if (language === "C++") return ["support.cpp"];
+  if (language === "Rust") return ["support.rs"];
+  return [];
+}
+
 export function resolveLevel3TaskAssets(
   taskId: string,
   language: string,
@@ -51,14 +64,20 @@ export function resolveLevel3TaskAssets(
   starterCode: string;
   harnessSource: string;
   solutionCode: string;
+  auxiliarySources: Level3AuxiliarySource[];
   ext: "c" | "cpp" | "rs";
 } {
   const ext = languageToExt(language);
+  const auxiliarySources = resolveAuxiliaryFilenames(taskId, language).map((filename) => ({
+    filename,
+    content: readLevel3TaskAsset(taskId, filename),
+  }));
   return {
     specTemplate: readLevel3TaskAsset(taskId, "spec.md"),
     starterCode: readLevel3TaskAsset(taskId, `main.${ext}`),
     harnessSource: readLevel3TaskAsset(taskId, "harness.c"),
     solutionCode: readLevel3TaskAsset(taskId, `solution.${ext}`),
+    auxiliarySources,
     ext,
   };
 }

@@ -6,7 +6,9 @@ describe("level3 challenge templates", () => {
   it("loads non-empty spec and starter templates", () => {
     const challenge = generateLevel3Challenge();
     expect(challenge.spec.trim().length).toBeGreaterThan(200);
-    expect(challenge.starterCode.trim().length).toBeGreaterThan(200);
+    expect(challenge.starterCode).toContain("cpu_reset");
+    expect(challenge.starterCode).toContain("cpu_run");
+    expect(challenge.starterCode.trim().length).toBeLessThan(2500);
   });
 
   it("includes expected language variants", () => {

@@ -20,6 +20,11 @@ Your submission must provide the following exported functions:
 - `int cpu_mem_read16(int addr)`
 - `int cpu_run(int max_cycles)`
 
+Starter Template Note
+
+- The starter is intentionally minimal and may include only light scaffolding.
+- Full conformance is still required: hidden validation checks the full behavior in this specification.
+
 Machine Model
 
 - Data width: 16 bits.

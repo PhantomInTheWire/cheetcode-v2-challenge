@@ -2,7 +2,7 @@ import { Sandbox } from "@vercel/sandbox";
 import { createHash } from "node:crypto";
 import { getLevel3ChallengeFromId } from "./problems";
 import { buildLevel3SandboxRuntimeRunner } from "./sandboxRunner";
-import { languageToExt, readLevel3TaskAsset } from "./taskAssets";
+import { languageToExt, resolveLevel3TaskAssets } from "./taskAssets";
 import { getKvJson, setKvJson } from "@/lib/abuse/kv";
 
 export type Level3ValidationResult = {
@@ -285,9 +285,13 @@ async function ensureRuntimePrepared(
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`failed to enforce sandbox network policy: ${message}`);
   }
-  const harnessSource = readLevel3TaskAsset(taskId, "harness.c");
+  const assets = resolveLevel3TaskAssets(taskId, language);
   await runtime.sandbox.writeFiles([
-    { path: "harness.c", content: Buffer.from(harnessSource, "utf8") },
+    { path: "harness.c", content: Buffer.from(assets.harnessSource, "utf8") },
+    ...assets.auxiliarySources.map((source) => ({
+      path: source.filename,
+      content: Buffer.from(source.content, "utf8"),
+    })),
     {
       path: "runner.mjs",
       content: Buffer.from(buildLevel3SandboxRuntimeRunner(taskId, language), "utf8"),
