@@ -44,6 +44,8 @@ export function LandingScreen({
   submitError,
 }: LandingScreenProps) {
   const totalSeconds = ROUND_DURATION_SECONDS + 60 + 120;
+  const totalTasks = PROBLEMS_PER_SESSION + LEVEL2_TOTAL + LEVEL3_TOTAL;
+  const secsPerTask = Math.floor(totalSeconds / totalTasks);
   const totalTimeLabel = `${totalSeconds} secs`;
   const availableLevels =
     unlockedLevel < 2 && !isLocalDev ? [1] : unlockedLevel < 3 && !isLocalDev ? [1, 2] : [1, 2, 3];
@@ -136,17 +138,18 @@ export function LandingScreen({
         {/* Info chips */}
         <div
           style={{
-            display: "flex",
-            flexWrap: "wrap",
+            display: "grid",
+            gridTemplateColumns: "repeat(2, max-content)",
             justifyContent: "center",
             gap: 10,
             marginTop: 28,
           }}
         >
           {[
-            `${PROBLEMS_PER_SESSION + LEVEL2_TOTAL + LEVEL3_TOTAL} total tasks`,
+            `${totalTasks} total tasks`,
             `${totalTimeLabel} total time`,
-          ].map((t) => (
+            `${secsPerTask} sec/task`,
+          ].map((t, index) => (
             <span
               key={t}
               style={{
@@ -156,6 +159,8 @@ export function LandingScreen({
                 padding: "8px 16px",
                 fontSize: 13,
                 color: COLORS.TEXT_MUTED,
+                gridColumn: index === 2 ? "1 / -1" : "auto",
+                justifySelf: index === 2 ? "center" : "auto",
               }}
             >
               {t}

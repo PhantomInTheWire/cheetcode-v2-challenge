@@ -208,7 +208,7 @@ export function Level3Game({
   );
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 100);
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -247,7 +247,14 @@ export function Level3Game({
     clearRunHintTimer();
     setRunHint(null);
     setRunUiPhase("idle");
-  }, [challenge.id, challenge.starterCode, sessionId]);
+  }, [
+    challenge.id,
+    challenge.starterCode,
+    clearRunCachedTimer,
+    clearRunHintTimer,
+    clearRunPhaseTimer,
+    sessionId,
+  ]);
 
   useEffect(() => {
     onCodeChangeAction?.(code);

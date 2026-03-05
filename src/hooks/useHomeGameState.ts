@@ -72,7 +72,6 @@ export function useHomeGameState({
   const [didBootstrapSession, setDidBootstrapSession] = useState(false);
   const [needsRestoreVerification, setNeedsRestoreVerification] = useState(false);
   const [hasStoredActiveSession, setHasStoredActiveSession] = useState(false);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [sessionId, setSessionId] = useState<Id<"sessions"> | null>(null);
   const [expiresAt, setExpiresAt] = useState(0);
   const [problems, setProblems] = useState<GameProblem[]>([]);
@@ -930,8 +929,6 @@ export function useHomeGameState({
     isRestoringSession,
     didBootstrapSession,
     hasStoredActiveSession,
-    showLeaderboard,
-    setShowLeaderboard,
     sessionId,
     expiresAt,
     problems,

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { useSyncExternalStore } from "react";
 import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
@@ -12,39 +13,103 @@ import { useHomeGameState } from "@/hooks/useHomeGameState";
 const MOBILE_BREAKPOINT = 900;
 const LandingScreen = dynamic(() =>
   import("@/components/game/LandingScreen").then((m) => m.LandingScreen),
+  {
+    loading: () => (
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+    ),
+  },
 );
-const Level1Game = dynamic(() => import("@/components/game/Level1Game").then((m) => m.Level1Game));
-const Level2Game = dynamic(() => import("@/components/Level2Game").then((m) => m.Level2Game));
-const Level3Game = dynamic(() => import("@/components/Level3Game").then((m) => m.Level3Game));
+const Level1Game = dynamic(
+  () => import("@/components/game/Level1Game").then((m) => m.Level1Game),
+  {
+    loading: () => (
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+    ),
+  },
+);
+const Level2Game = dynamic(
+  () => import("@/components/Level2Game").then((m) => m.Level2Game),
+  {
+    loading: () => (
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+    ),
+  },
+);
+const Level3Game = dynamic(
+  () => import("@/components/Level3Game").then((m) => m.Level3Game),
+  {
+    loading: () => (
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+    ),
+  },
+);
 const Level2PrereqScreen = dynamic(() =>
   import("@/components/game/Level2PrereqScreen").then((m) => m.Level2PrereqScreen),
+  {
+    loading: () => (
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+    ),
+  },
 );
 const Level3PrereqScreen = dynamic(() =>
   import("@/components/game/Level3PrereqScreen").then((m) => m.Level3PrereqScreen),
+  {
+    loading: () => (
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+    ),
+  },
 );
 const MobileGateScreen = dynamic(() =>
   import("@/components/game/MobileGateScreen").then((m) => m.MobileGateScreen),
+  {
+    loading: () => (
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+    ),
+  },
 );
 const RestoreScreen = dynamic(() =>
   import("@/components/game/RestoreScreen").then((m) => m.RestoreScreen),
+  {
+    loading: () => (
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+    ),
+  },
 );
 const ResultsScreen = dynamic(() =>
   import("@/components/game/ResultsScreen").then((m) => m.ResultsScreen),
+  {
+    loading: () => (
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+    ),
+  },
 );
 
 function useIsMobile() {
+  const query = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`;
+  const mediaQueryList =
+    typeof window !== "undefined" ? window.matchMedia(query) : null;
+
   return useSyncExternalStore(
     (onStoreChange) => {
-      const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
-      mql.addEventListener("change", onStoreChange);
-      return () => mql.removeEventListener("change", onStoreChange);
+      if (!mediaQueryList) return () => {};
+      mediaQueryList.addEventListener("change", onStoreChange);
+      return () => mediaQueryList.removeEventListener("change", onStoreChange);
     },
-    () => window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`).matches,
+    () => mediaQueryList?.matches ?? false,
     () => false,
   );
 }
 
 type HomeGameState = ReturnType<typeof useHomeGameState>;
+type LeaderboardRow = { github: string; elo: number; solved: number; timeSecs: number };
+type AuthStatus = ReturnType<typeof useSession>["status"];
+
+type HomeClientProps = {
+  initialAuthStatus: AuthStatus;
+  initialGithub: string;
+  initialLeaderboard: LeaderboardRow[];
+  initialUnlockedLevel: number;
+};
 
 function goBackToLanding(
   clearStoredFlowScreen: HomeGameState["clearStoredFlowScreen"],
@@ -146,9 +211,7 @@ function renderPlayingScreen(params: {
 
 function renderHomeScreen(params: {
   isMobile: boolean;
-  leaderboard: ReturnType<typeof useQuery<typeof api.leaderboard.getAll>> extends infer T
-    ? Exclude<T, undefined>
-    : never;
+  leaderboard: LeaderboardRow[];
   displayedSolveTarget: HomeGameState["displayedSolveTarget"];
   didBootstrapSession: HomeGameState["didBootstrapSession"];
   hasStoredActiveSession: HomeGameState["hasStoredActiveSession"];
@@ -156,10 +219,10 @@ function renderHomeScreen(params: {
   screen: HomeGameState["screen"];
   isAuthenticated: boolean;
   github: string;
-  authStatus: ReturnType<typeof useSession>["status"];
+  authStatus: AuthStatus;
   authSession: ReturnType<typeof useSession>["data"];
-  showLeaderboard: HomeGameState["showLeaderboard"];
-  setShowLeaderboard: HomeGameState["setShowLeaderboard"];
+  showLeaderboard: boolean;
+  setShowLeaderboard: Dispatch<SetStateAction<boolean>>;
   unlockedLevel: number;
   isLocalDev: boolean;
   startGame: HomeGameState["startGame"];
@@ -342,16 +405,29 @@ function renderHomeScreen(params: {
   return null;
 }
 
-export default function Home() {
+export function HomeClient({
+  initialAuthStatus,
+  initialGithub,
+  initialLeaderboard,
+  initialUnlockedLevel,
+}: HomeClientProps) {
   const { data: authSession, status: authStatus } = useSession();
-  const github = authSession?.user?.githubUsername ?? "";
-  const isAuthenticated = authStatus === "authenticated" && !!github;
-  const leaderboardQuery = useQuery(api.leaderboard.getAll);
-  const leaderboard = leaderboardQuery ?? [];
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const isMobile = useIsMobile();
+  const github = authSession?.user?.githubUsername ?? initialGithub;
+  const effectiveAuthStatus =
+    authStatus === "loading" && initialAuthStatus !== "loading" ? initialAuthStatus : authStatus;
+  const isAuthenticated = effectiveAuthStatus === "authenticated" && !!github;
+  const shouldLoadLeaderboard = showLeaderboard || isMobile;
+  const leaderboardQuery = useQuery(
+    api.leaderboard.getAll,
+    shouldLoadLeaderboard ? {} : "skip",
+  ) as LeaderboardRow[] | undefined;
+  const leaderboard = leaderboardQuery ?? initialLeaderboard;
   const unlockedLevel = useQuery(api.leaderboard.getMyLevel, github ? { github } : "skip") ?? 1;
+  const effectiveUnlockedLevel = github ? unlockedLevel : initialUnlockedLevel;
   const isLocalDev = isClientDevMode();
   const canAutoSolve = isClientDevMode();
-  const isMobile = useIsMobile();
 
   const {
     screen,
@@ -364,8 +440,6 @@ export default function Home() {
     isRestoringSession,
     didBootstrapSession,
     hasStoredActiveSession,
-    showLeaderboard,
-    setShowLeaderboard,
     sessionId,
     expiresAt,
     problems,
@@ -411,10 +485,10 @@ export default function Home() {
     copyToClipboard,
   } = useHomeGameState({
     github,
-    authStatus,
+    authStatus: effectiveAuthStatus,
     isAuthenticated,
     leaderboard,
-    unlockedLevel,
+    unlockedLevel: effectiveUnlockedLevel,
     isLocalDev,
     canAutoSolve,
   });
@@ -429,11 +503,11 @@ export default function Home() {
     screen,
     isAuthenticated,
     github,
-    authStatus,
+    authStatus: effectiveAuthStatus,
     authSession,
     showLeaderboard,
     setShowLeaderboard,
-    unlockedLevel,
+    unlockedLevel: effectiveUnlockedLevel,
     isLocalDev,
     startGame,
     submitError,

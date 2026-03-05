@@ -48,7 +48,7 @@ export function Level2Game({
   const initialAnswersRef = useRef(initialAnswers ?? {});
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 100);
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 

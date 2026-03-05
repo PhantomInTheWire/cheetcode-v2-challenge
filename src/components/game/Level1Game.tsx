@@ -60,7 +60,7 @@ export function Level1Game({
       setTimeLeftMs(Math.max(0, expiresAt - Date.now()));
     };
     syncTimeLeft();
-    const id = window.setInterval(syncTimeLeft, 100);
+    const id = window.setInterval(syncTimeLeft, 1000);
     return () => window.clearInterval(id);
   }, [expiresAt]);
 

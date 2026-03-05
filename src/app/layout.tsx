@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { ConvexClientProvider } from "@/components/ConvexClientProvider";
-import { AuthProvider } from "@/components/AuthProvider";
 import { GAME_DESCRIPTION, SITE_URL } from "@/lib/constants";
 
 const geistSans = Geist({
@@ -24,7 +22,7 @@ export const metadata: Metadata = {
     description: GAME_DESCRIPTION,
     url: SITE_URL,
     siteName: "CheetCode CTF",
-    images: [{ url: "/opengraph-image" }],
+    images: [{ url: "/opengraph-image.png" }],
   },
 };
 
@@ -35,11 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider>
-          <ConvexClientProvider>{children}</ConvexClientProvider>
-        </AuthProvider>
-      </body>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>{children}</body>
     </html>
   );
 }
