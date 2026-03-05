@@ -36,49 +36,93 @@ export function Level3PrereqScreen({
             className="btn-heat"
             onClick={() => void onStart(pendingLevel ?? 3, level3Preview?.challengeId)}
             disabled={level3PreviewLoading}
-            style={{ height: 36, padding: "0 16px", borderRadius: 8, fontWeight: 700 }}
+            style={{
+              height: 36,
+              padding: "0 18px",
+              borderRadius: 10,
+              fontWeight: 450,
+              fontSize: 13,
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            }}
           >
             {level3PreviewLoading ? "Loading..." : "Compiler Ready, Start Level 3"}
           </button>
           <button
             className="btn-ghost"
             onClick={onBack}
-            style={{ height: 36, padding: "0 16px", borderRadius: 8, fontWeight: 700 }}
+            style={{
+              height: 36,
+              padding: "0 18px",
+              borderRadius: 10,
+              fontWeight: 450,
+              fontSize: 13,
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            }}
           >
             Back
           </button>
         </>
       }
     >
-      <p style={{ margin: "10px 0 0", fontSize: 13, color: "rgba(0,0,0,0.7)" }}>
+      <p
+        style={{
+          margin: "12px 0 0",
+          fontSize: 14,
+          color: "rgba(0,0,0,0.6)",
+          lineHeight: 1.6,
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+        }}
+      >
         {level3PreviewLoading ? (
           "Loading your next Level 3 challenge details..."
         ) : level3Preview ? (
           <>
-            Your next Level 3 challenge is <strong>{level3Preview.taskName}</strong> in{" "}
-            <strong>{level3Preview.language}</strong>. Confirm your compiler is ready.
+            Your next Level 3 challenge is{" "}
+            <strong style={{ fontWeight: 500 }}>{level3Preview.taskName}</strong> in{" "}
+            <strong style={{ fontWeight: 500 }}>{level3Preview.language}</strong>. Confirm your
+            compiler is ready.
           </>
         ) : (
           <>
-            Confirm you have a <strong>C</strong>, <strong>C++</strong>, or <strong>Rust</strong>{" "}
-            compiler ready for the Level 3 systems challenge.
+            Confirm you have a <strong style={{ fontWeight: 500 }}>C</strong>,{" "}
+            <strong style={{ fontWeight: 500 }}>C++</strong>, or{" "}
+            <strong style={{ fontWeight: 500 }}>Rust</strong> compiler ready for the Level 3 systems
+            challenge.
           </>
         )}
       </p>
       <div
         style={{
-          marginTop: 14,
-          background: "#fff7f2",
-          border: "1px solid #ffd5c0",
+          marginTop: 16,
+          background: "#fafafa",
+          border: "1px solid #e8e8e8",
           borderRadius: 12,
-          padding: 12,
+          padding: 14,
         }}
       >
-        <p style={{ margin: 0, fontSize: 12, color: "rgba(0,0,0,0.7)" }}>Suggested local check:</p>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 13,
+            color: "rgba(0,0,0,0.55)",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+          }}
+        >
+          Suggested local check:
+        </p>
         <CommandBlock command={compilerCommand} onCopy={onCopy} />
       </div>
       {level3PreviewError && (
-        <p style={{ margin: "10px 0 0", fontSize: 12, color: "#dc2626" }}>{level3PreviewError}</p>
+        <p
+          style={{
+            margin: "12px 0 0",
+            fontSize: 13,
+            color: "#dc2626",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+          }}
+        >
+          {level3PreviewError}
+        </p>
       )}
     </PrereqScreenShell>
   );

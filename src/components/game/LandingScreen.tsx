@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { signIn, signOut } from "next-auth/react";
 import Image from "next/image";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
-import { COLORS } from "@/lib/theme";
+import { FIRECRAWL_FLAME_SVG } from "@/components/game/firecrawl-flame";
 import {
   ROUND_DURATION_SECONDS,
   PROBLEMS_PER_SESSION,
@@ -28,6 +29,138 @@ type LandingScreenProps = {
   submitError: string | null;
 };
 
+// ── Firecrawl-style ASCII flame texture ───────────────────────────────
+// Matches firecrawl.dev: 9px font, 11px leading, rgba(0,0,0,0.2), ~783px wide
+const FIRE_TEXTURE_FRAMES = [
+  `                                                                                                                                                 
+                                                                                                                                                 
+                                                                                                                                                 
+                                                                                 ...                                                             
+                                                                         ......::..                                                              
+                                                                           .:..=                                                                 
+                                                                            ..                                                                   
+                                                              .      ...... ..                                                                   
+                                                              ....=..--:+:. . ..                                                                 
+                                              .:--:..          ..-=--=-:.... .                          .                                         
+                                              ..::--:.         .---==--:: .. .:               .:-::..                                             
+                                               ..:--.:         ..---=-=--::....-=....         . .:::....:..                                       
+                                                .:--::.          .:-===-:::=.. ..:-::-:..      ..:::- .....                                       
+                                  ..-     .  .  ..==-:...        ..-=+=-:-...  ..==++-::.   .   ::-::..-...         .....                         
+                                 .::::     ..   .:+=-::.  ..     .-=++=-:...   .:---=-::+......:.:X--:..:.....= ....:--::.                        
+                         .........-::::..:+::.. ..-==::.-..     .:===++=- ...  :-:--==-::...  .::-+==::...::-:..-..:----:..                       
+                  .:.=. ..:--+=-----:::....:.    .::=+-.=.      ::::--+=-:: ..:-::-==+-:.     :.::-++= --::-+X=-=----=---:.. ....                 
+          .-...  .:::: ..:=+XX++==+=:.:.....     ..:-++::::.-.  .:::--=XX==-::::.:--+X-:.    .:.: :-=X=--:::-=+= ==--==+--:.-..::..   ...=.      
+         ........::=-::..:-++XX++-+=--:.-.       .:-++++-:.:--..::::--=+XXX+=--::-+--==-:. .::.::: :-=+--::-=+X+-+==:==+=-::::-::...  . ....     
+        .+..::::-:---:-:::-+ XXXX++==+-::...=. .::-+X ===-::::-------==++X.XX+==--=---=+=:..:..::::--==+=--+XXXXX+=====++=-==----::...:.::.:.    
+         .:.::--=====++====XXXXXXX+==+==+=-:::::-==++==++==--=::--==++==+XXX-XX++.======X+-::.::=-=++==++++XXXXXXX+==-=+=++ ++==----::::::::.=.  
+     ..  ..::-===+==++XX+XXXXXXXXX++=++X+X+=-=== +=++=++XX:==---=+++++++=+++XXXX++=====-+XX==-===-+X==++XXXXXXXXXX+=-==++X+X+-+===+=-----::....  `,
+  `                                                                                                                                                 
+                                                                                                                                                 
+                                                                                                                                                 
+                                                                                  ...                                                            
+                                                                          ......::..                                                             
+                                                                            .:..=                                                                
+                                                                             ..                                                                  
+                                                               .      ...... ..                                                                  
+                                                               ....=..--:+:. . ..                                                                
+                                               .:--:..          ..-=--=-:.... .                          .                                        
+                                               ..::--:.         .---==--:: .. .:               .:-::..                                            
+                                                ..:--.:         ..---=-=--::....-=....         . .:::....:..                                      
+                                                 .:--::.          .:-===-:::=.. ..:-::-:..      ..:::- .....                                      
+                                   ..-     .  .  ..==-:...        ..-=+=-:-...  ..==++-::.   .   ::-::..-...         .....                        
+                                  .::::     ..   .:+=-::.  ..     .-=++=-:...   .:---=-::+......:.:X--:..:.....= ....:--::.                       
+                          .........-::::..:+::.. ..-==::.-..     .:===++=- ...  :-:--==-::...  .::-+==::...::-:..-..:----:..                      
+                   .:.=. ..:--+=-----:::....:.    .::=+-.=.      ::::--+=-:: ..:-::-==+-:.     :.::-++= --::-+X=-=----=---:.. ....                
+           .-...  .:::: ..:=+XX++==+=:.:.....     ..:-++::::.-.  .:::--=XX==-::::.:--+X-:.    .:.: :-=X=--:::-=+= ==--==+--:.-..::..   ...=.     
+          ........::=-::..:-++XX++-+=--:.-.       .:-++++-:.:--..::::--=+XXX+=--::-+--==-:. .::.::: :-=+--::-=+X+-+==:==+=-::::-::...  . ....    
+         .+..::::-:---:-:::-+ XXXX++==+-::...=. .::-+X ===-::::-------==++X.XX+==--=---=+=:..:..::::--==+=--+XXXXX+=====++=-==----::...:.::.:.   
+          .:.::--=====++====XXXXXXX+==+==+=-:::::-==++==++==--=::--==++==+XXX-XX++.======X+-::.::=-=++==++++XXXXXXX+==-=+=++ ++==----::::::::.=. 
+      ..  ..::-===+==++XX+XXXXXXXXX++=++X+X+=-=== +=++=++XX:==---=+++++++=+++XXXX++=====-+XX==-===-+X==++XXXXXXXXXX+=-==++X+X+-+===+=-----::.... `,
+  `                                                                                                                                                 
+                                                                                                                                                 
+                                                                                                                                                 
+                                                                                ...                                                              
+                                                                        ......::..                                                               
+                                                                          .:..=                                                                  
+                                                                           ..                                                                    
+                                                             .      ...... ..                                                                    
+                                                             ....=..--:+:. . ..                                                                  
+                                             .:--:..          ..-=--=-:.... .                          .                                          
+                                             ..::--:.         .---==--:: .. .:               .:-::..                                              
+                                              ..:--.:         ..---=-=--::....-=....         . .:::....:..                                        
+                                               .:--::.          .:-===-:::=.. ..:-::-:..      ..:::- .....                                        
+                                 ..-     .  .  ..==-:...        ..-=+=-:-...  ..==++-::.   .   ::-::..-...         .....                          
+                                .::::     ..   .:+=-::.  ..     .-=++=-:...   .:---=-::+......:.:X--:..:.....= ....:--::.                         
+                        .........-::::..:+::.. ..-==::.-..     .:===++=- ...  :-:--==-::...  .::-+==::...::-:..-..:----:..                        
+                 .:.=. ..:--+=-----:::....:.    .::=+-.=.      ::::--+=-:: ..:-::-==+-:.     :.::-++= --::-+X=-=----=---:.. ....                  
+         .-...  .:::: ..:=+XX++==+=:.:.....     ..:-++::::.-.  .:::--=XX==-::::.:--+X-:.    .:.: :-=X=--:::-=+= ==--==+--:.-..::..   ...=.       
+        ........::=-::..:-++XX++-+=--:.-.       .:-++++-:.:--..::::--=+XXX+=--::-+--==-:. .::.::: :-=+--::-=+X+-+==:==+=-::::-::...  . ....      
+       .+..::::-:---:-:::-+ XXXX++==+-::...=. .::-+X ===-::::-------==++X.XX+==--=---=+=:..:..::::--==+=--+XXXXX+=====++=-==----::...:.::.:.     
+        .:.::--=====++====XXXXXXX+==+==+=-:::::-==++==++==--=::--==++==+XXX-XX++.======X+-::.::=-=++==++++XXXXXXX+==-=+=++ ++==----::::::::.=.   
+    ..  ..::-===+==++XX+XXXXXXXXX++=++X+X+=-=== +=++=++XX:==---=+++++++=+++XXXX++=====-+XX==-===-+X==++XXXXXXXXXX+=-==++X+X+-+===+=-----::....   `,
+];
+
+// ── Animated side ASCII art frames (small orange blocks, firecrawl style) ──
+const SIDE_ASCII_FRAMES = [
+  `  <++++>
+ ++XXXXX++
+ +XXXXXXX+
+X+XXXXX+X+
+ +XXXXXXX+
+ ++XXXXX++
+  <++++>`,
+  `  <++*+>
+ +*XXXXX++
+ +XXXX*XX+
+X+XXXXX+X+
+ +XX*XXXX+
+ ++XXXXX*+
+  <+*++>`,
+  `  <*+++>
+ ++XXX*X++
+ +XXXXXXX+
+X*XXXXX+X*
+ +XXXXXXX+
+ ++X*XXX++
+  <+++*>`,
+];
+
+// ── Braille spinner ───────────────────────────────────────────────────
+function BrailleSpinner() {
+  const frames = ["\u28FE", "\u28FD", "\u28FB", "\u28BF", "\u28BF", "\u28DF", "\u28EF", "\u28F7"];
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setI((p) => (p + 1) % frames.length), 80);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <span
+      role="status"
+      aria-label="Loading"
+      style={{ fontFamily: "var(--font-geist-mono), monospace" }}
+    >
+      {frames[i]}
+    </span>
+  );
+}
+
+// ── Exact Firecrawl button shadow (from computed styles on firecrawl.dev) ──
+const HEAT_SHADOW = `
+  inset 0px -6px 12px 0px rgba(250,25,25,0.2),
+  0px 2px 4px 0px rgba(250,93,25,0.12),
+  0px 1px 1px 0px rgba(250,93,25,0.12),
+  0px 0.5px 0.5px 0px rgba(250,93,25,0.16),
+  0px 0.25px 0.25px 0px rgba(250,93,25,0.2)
+`;
+
+const HEAT_SHADOW_HOVER = `
+  inset 0px -6px 12px 0px rgba(250,25,25,0.2),
+  0px 4px 8px 0px rgba(250,93,25,0.18),
+  0px 2px 2px 0px rgba(250,93,25,0.14),
+  0px 1px 1px 0px rgba(250,93,25,0.18),
+  0px 0.5px 0.5px 0px rgba(250,93,25,0.22)
+`;
+
 export function LandingScreen({
   isAuthenticated,
   github,
@@ -50,327 +183,622 @@ export function LandingScreen({
   const availableLevels =
     unlockedLevel < 2 && !isLocalDev ? [1] : unlockedLevel < 3 && !isLocalDev ? [1, 2] : [1, 2, 3];
 
+  const [loaded, setLoaded] = useState(false);
+  const [flameFrame, setFlameFrame] = useState(0);
+
+  useEffect(() => {
+    setLoaded(true);
+  }, []);
+  useEffect(() => {
+    const t = setInterval(() => setFlameFrame((p) => (p + 1) % FIRE_TEXTURE_FRAMES.length), 85);
+    return () => clearInterval(t);
+  }, []);
+
+  const levelMeta: Record<number, { desc: string; time: string }> = {
+    1: { desc: "Algo", time: `${ROUND_DURATION_SECONDS}s` },
+    2: { desc: "Source", time: "60s" },
+    3: { desc: "Systems", time: "120s" },
+  };
+
   return (
     <div
       style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        background: COLORS.BG_PAGE,
-        padding: "80px 24px",
-        fontFamily: "var(--font-geist-mono), monospace",
+        height: "100vh",
+        background: "#f9f9f9",
+        color: "#262626",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
-      <div style={{ width: "100%", maxWidth: 600, textAlign: "center" }}>
-        {/* Logo */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            marginBottom: 40,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 40 }}>🔥</span>
-            <h1
-              style={{
-                fontSize: 36,
-                fontWeight: 800,
-                color: COLORS.PRIMARY,
-                margin: 0,
-                letterSpacing: -1,
-              }}
-            >
-              FIRECRAWL CTF
-            </h1>
-          </div>
-          <a
-            href={SITE_URL}
+      {/* ── Background: grid + radial gradient (firecrawl dashboard bg) ── */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          opacity: 0.5,
+          backgroundImage: `
+            linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)
+          `,
+          backgroundSize: "8px 8px",
+        }}
+      />
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          background: `
+            radial-gradient(ellipse at top left, rgba(250,93,25,0.05) 0%, transparent 50%),
+            radial-gradient(ellipse at bottom right, rgba(250,93,25,0.03) 0%, transparent 50%)
+          `,
+        }}
+      />
+
+      {/* ── Main content ─────────────────────────────────────── */}
+      <div
+        style={{
+          position: "relative",
+          zIndex: 10,
+          height: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "40px 24px",
+          overflow: "hidden",
+        }}
+      >
+        {/* ── Firecrawl-style decorative labels ── */}
+        {[
+          { text: "[ CTF ]", top: 32, left: 24 },
+          { text: "[ ALGO ]", bottom: 32, left: 24 },
+          { text: "[ 240s ]", top: 32, right: 24 },
+          { text: "[ SHIP ]", bottom: 32, right: 24 },
+        ].map((label, i) => (
+          <div
+            key={i}
             style={{
+              position: "absolute",
+              top: label.top,
+              bottom: label.bottom,
+              left: label.left,
+              right: label.right,
               fontSize: 12,
-              color: COLORS.TEXT_MUTED,
-              marginTop: 6,
-              textDecoration: "none",
-              fontWeight: 500,
+              fontFamily: "var(--font-geist-mono), monospace",
+              color: "rgba(0,0,0,0.12)",
+              pointerEvents: "none",
+              userSelect: "none",
+              zIndex: 2,
+              width: 102,
+              textAlign: "center",
             }}
           >
-            cheetcode-ctf.firecrawl.dev
-          </a>
-        </div>
+            {label.text}
+          </div>
+        ))}
 
-        {/* Headline card */}
+        {/* ── Animated orange ASCII art blocks on sides (firecrawl hero style) ── */}
         <div
           style={{
-            background: COLORS.BG_CARD,
-            border: `1px solid ${COLORS.BORDER_LIGHT}`,
-            borderRadius: 16,
-            padding: "48px 40px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+            position: "absolute",
+            left: 16,
+            top: "50%",
+            transform: "translateY(-50%)",
+            fontSize: 8,
+            lineHeight: "10px",
+            color: "#fa5d19",
+            opacity: 0.3,
+            whiteSpace: "pre",
+            fontFamily: "var(--font-geist-mono), monospace",
+            pointerEvents: "none",
+            userSelect: "none",
+            zIndex: 2,
           }}
         >
-          <p
-            style={{
-              fontSize: 44,
-              fontWeight: 800,
-              color: COLORS.TEXT_DARK,
-              margin: 0,
-              lineHeight: 1.1,
-              letterSpacing: -0.5,
-            }}
-          >
-            3 levels. {totalTimeLabel}.
-          </p>
-          <p
-            style={{
-              fontSize: 17,
-              color: COLORS.TEXT_MUTED,
-              margin: "12px 0 0",
-              fontWeight: 500,
-            }}
-          >
-            Build fast. Think clearly. Ship correct code.
-          </p>
+          {SIDE_ASCII_FRAMES[flameFrame % SIDE_ASCII_FRAMES.length]}
         </div>
-
-        {/* Info chips */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(2, max-content)",
-            justifyContent: "center",
-            gap: 10,
-            marginTop: 28,
+            position: "absolute",
+            right: 16,
+            top: "50%",
+            transform: "translateY(-50%) scaleX(-1)",
+            fontSize: 8,
+            lineHeight: "10px",
+            color: "#fa5d19",
+            opacity: 0.3,
+            whiteSpace: "pre",
+            fontFamily: "var(--font-geist-mono), monospace",
+            pointerEvents: "none",
+            userSelect: "none",
+            zIndex: 2,
           }}
         >
-          {[
-            `${totalTasks} total tasks`,
-            `${totalTimeLabel} total time`,
-            `${secsPerTask} sec/task`,
-          ].map((t, index) => (
-            <span
-              key={t}
-              style={{
-                background: COLORS.BG_CARD,
-                border: `1px solid ${COLORS.BORDER_LIGHT}`,
-                borderRadius: 8,
-                padding: "8px 16px",
-                fontSize: 13,
-                color: COLORS.TEXT_MUTED,
-                gridColumn: index === 2 ? "1 / -1" : "auto",
-                justifySelf: index === 2 ? "center" : "auto",
-              }}
+          {SIDE_ASCII_FRAMES[(flameFrame + 1) % SIDE_ASCII_FRAMES.length]}
+        </div>
+
+        {/* ── ASCII flame bleed at bottom edges ── */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: -280,
+            width: 783,
+            height: 160,
+            zIndex: 1,
+            pointerEvents: "none",
+            userSelect: "none",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 9,
+              lineHeight: "11px",
+              color: "rgba(0,0,0,0.18)",
+              whiteSpace: "pre",
+              fontFamily: "'Roboto Mono', var(--font-geist-mono), monospace",
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+            }}
+          >
+            {FIRE_TEXTURE_FRAMES[flameFrame]}
+          </div>
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            bottom: 0,
+            right: -280,
+            width: 783,
+            height: 160,
+            zIndex: 1,
+            pointerEvents: "none",
+            userSelect: "none",
+            overflow: "hidden",
+            transform: "scaleX(-1)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 9,
+              lineHeight: "11px",
+              color: "rgba(0,0,0,0.18)",
+              whiteSpace: "pre",
+              fontFamily: "'Roboto Mono', var(--font-geist-mono), monospace",
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+            }}
+          >
+            {FIRE_TEXTURE_FRAMES[flameFrame]}
+          </div>
+        </div>
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 640,
+            textAlign: "center",
+            opacity: loaded ? 1 : 0,
+            transform: loaded ? "translateY(0)" : "translateY(12px)",
+            transition: "all 0.5s cubic-bezier(0.25, 0.1, 0.25, 1)",
+          }}
+        >
+          {/* ── Logo ───────────────────────────────────────────── */}
+          <div style={{ marginBottom: 32 }}>
+            <div
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             >
-              {t}
-            </span>
-          ))}
-        </div>
-
-        {/* Auth + Start card */}
-        <div
-          style={{
-            maxWidth: 420,
-            margin: "36px auto 0",
-            background: COLORS.BG_CARD,
-            border: `1px solid ${COLORS.BORDER_LIGHT}`,
-            borderRadius: 16,
-            padding: "28px 32px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-          }}
-        >
-          {authStatus === "loading" && (
-            <p style={{ fontSize: 13, color: COLORS.TEXT_MUTED, textAlign: "center" }}>
-              Loading...
-            </p>
-          )}
-
-          {authStatus === "unauthenticated" && (
-            <>
-              <p
+              {/* eslint-disable-next-line react/no-danger */}
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 600 600"
+                preserveAspectRatio="xMidYMid meet"
+                style={{ display: "inline-block", verticalAlign: "middle" }}
+                dangerouslySetInnerHTML={{ __html: FIRECRAWL_FLAME_SVG }}
+              />
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: 450,
+                  color: "#262626",
+                  letterSpacing: 0.5,
+                  fontFamily: "var(--font-geist-mono), monospace",
+                }}
+              >
+                Firecrawl CTF
+              </span>
+              <span
                 style={{
                   fontSize: 12,
-                  fontWeight: 500,
-                  color: COLORS.TEXT_MUTED,
-                  marginBottom: 12,
-                  textAlign: "center",
+                  color: "rgba(0,0,0,0.16)",
+                  fontFamily: "var(--font-geist-mono), monospace",
                 }}
               >
-                Sign in to play — your GitHub identity is your scoreboard entry
-              </p>
-              <button
-                onClick={() => signIn("github")}
+                ·
+              </span>
+              <a
+                href={SITE_URL}
                 style={{
-                  width: "100%",
-                  height: 52,
-                  borderRadius: 12,
-                  fontSize: 15,
-                  fontWeight: 700,
-                  fontFamily: "inherit",
-                  background: "#24292f",
-                  color: "#ffffff",
-                  border: "none",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 10,
-                  transition: "background 0.2s",
+                  fontSize: 12,
+                  color: "rgba(0,0,0,0.3)",
+                  textDecoration: "none",
+                  fontWeight: 400,
+                  fontFamily: "var(--font-geist-mono), monospace",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "#1b1f23")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "#24292f")}
               >
-                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-                </svg>
-                Sign in with GitHub
-              </button>
-            </>
-          )}
+                cheetcode-ctf.firecrawl.dev
+              </a>
+            </div>
+          </div>
 
-          {isAuthenticated && (
-            <>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 16,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  {authSession.user.image && (
-                    <Image
-                      src={authSession.user.image}
-                      alt=""
-                      width={32}
-                      height={32}
-                      style={{ borderRadius: "50%", border: `1px solid ${COLORS.BORDER_LIGHT}` }}
-                    />
-                  )}
-                  <div>
-                    <p
-                      style={{ fontSize: 14, fontWeight: 600, color: COLORS.TEXT_DARK, margin: 0 }}
-                    >
-                      @{github}
-                    </p>
-                    <p style={{ fontSize: 11, color: COLORS.TEXT_MUTED, margin: 0 }}>
-                      Verified via GitHub OAuth
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => signOut()}
+          {/* ── Hero heading — firecrawl.dev style ─────────────── */}
+          <h1
+            style={{
+              fontSize: 52,
+              fontWeight: 500,
+              lineHeight: "56px",
+              letterSpacing: -0.52,
+              color: "#262626",
+              margin: 0,
+              fontFamily: "var(--font-geist-sans), system-ui, -apple-system, sans-serif",
+            }}
+          >
+            3 levels. <span style={{ color: "#fa5d19" }}>{totalTimeLabel}.</span>
+          </h1>
+          <p
+            style={{
+              fontSize: 16,
+              lineHeight: "24px",
+              color: "rgba(0,0,0,0.5)",
+              margin: "12px 0 0",
+              fontWeight: 400,
+              fontFamily: "var(--font-geist-sans), system-ui, -apple-system, sans-serif",
+            }}
+          >
+            Design, Orchestrate, and Ship Systems.
+          </p>
+
+          {/* ── Stats row ──────────────────────────────────────── */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: 24,
+              marginTop: 24,
+              fontSize: 12,
+              color: "rgba(0,0,0,0.16)",
+              fontFamily: "var(--font-geist-mono), monospace",
+            }}
+          >
+            <span>
+              [ <span style={{ color: "#fa5d19" }}>{totalTasks}</span> tasks ]
+            </span>
+            <span>
+              [ <span style={{ color: "#fa5d19" }}>{totalSeconds}</span> secs ]
+            </span>
+            <span>
+              [ <span style={{ color: "#fa5d19" }}>{secsPerTask}</span> sec/task ]
+            </span>
+          </div>
+
+          {/* ── Auth + Level select ────────────────────────────── */}
+          <div style={{ marginTop: 40 }}>
+            {authStatus === "loading" && (
+              <p style={{ fontSize: 14, color: "rgba(0,0,0,0.35)", margin: 0 }}>
+                <BrailleSpinner /> &nbsp;Loading...
+              </p>
+            )}
+
+            {authStatus === "unauthenticated" && (
+              <div style={{ maxWidth: 380, margin: "0 auto" }}>
+                <p
                   style={{
-                    fontSize: 11,
-                    color: COLORS.TEXT_MUTED,
-                    background: "none",
+                    fontSize: 13,
+                    color: "rgba(0,0,0,0.4)",
+                    marginBottom: 16,
+                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  }}
+                >
+                  Sign in to play — your GitHub identity is your scoreboard entry.
+                </p>
+                <button
+                  onClick={() => signIn("github")}
+                  style={{
+                    width: "100%",
+                    height: 40,
+                    borderRadius: 10,
+                    fontSize: 14,
+                    fontWeight: 450,
+                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                    background: "#24292f",
+                    color: "#ffffff",
                     border: "none",
                     cursor: "pointer",
-                    textDecoration: "underline",
-                    fontFamily: "inherit",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
                   }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#1b1f23")}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#24292f";
+                    e.currentTarget.style.transform = "scale(1)";
+                  }}
+                  onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.995)")}
+                  onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
                 >
-                  sign out
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                  </svg>
+                  Sign in with GitHub
                 </button>
               </div>
-              {/* Error display */}
-              {submitError && (
+            )}
+
+            {isAuthenticated && (
+              <>
+                {/* User pill + sign out */}
                 <div
                   style={{
-                    marginBottom: 16,
-                    padding: "12px 16px",
-                    background: COLORS.ERROR_LIGHT,
-                    border: `1px solid ${COLORS.ERROR}`,
-                    borderRadius: 12,
-                    color: COLORS.ERROR,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    textAlign: "center",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    marginBottom: 24,
                   }}
                 >
-                  {submitError}
-                </div>
-              )}
-              <p
-                style={{
-                  margin: "0 0 10px",
-                  fontSize: 12,
-                  color: COLORS.TEXT_MUTED,
-                  textAlign: "left",
-                }}
-              >
-                Select level
-              </p>
-              <div
-                style={{
-                  display: "grid",
-                  gap: 10,
-                  gridTemplateColumns:
-                    availableLevels.length === 1
-                      ? "1fr"
-                      : availableLevels.length === 2
-                        ? "repeat(2, minmax(0, 1fr))"
-                        : "repeat(3, minmax(0, 1fr))",
-                }}
-              >
-                {availableLevels.map((level) => (
-                  <button
-                    key={level}
-                    onClick={() => startGame(level)}
-                    className="btn-heat"
+                  <div
                     style={{
-                      width: "100%",
-                      minHeight: 46,
-                      borderRadius: 12,
-                      fontSize: 12,
-                      fontWeight: 800,
-                      letterSpacing: 0.2,
-                      fontFamily: "inherit",
-                      display: "flex",
+                      display: "inline-flex",
                       alignItems: "center",
-                      justifyContent: "center",
-                      whiteSpace: "nowrap",
-                      padding: "0 10px",
+                      gap: 8,
+                      padding: "4px 12px 4px 4px",
+                      background: "rgba(0,0,0,0.04)",
+                      borderRadius: 999,
                     }}
                   >
-                    {level === 1 ? "Start Level 1" : `Play Level ${level}`}
+                    {authSession?.user?.image && (
+                      <Image
+                        src={authSession.user.image}
+                        alt=""
+                        width={22}
+                        height={22}
+                        style={{ borderRadius: "50%", border: "1px solid rgba(0,0,0,0.06)" }}
+                      />
+                    )}
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 450,
+                        color: "#262626",
+                        fontFamily: "var(--font-geist-mono), monospace",
+                      }}
+                    >
+                      {github}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => signOut()}
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 450,
+                      color: "rgba(0,0,0,0.3)",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                      padding: "4px 8px",
+                      borderRadius: 8,
+                      transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "rgba(0,0,0,0.6)";
+                      e.currentTarget.style.background = "rgba(0,0,0,0.04)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "rgba(0,0,0,0.3)";
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    Sign out
                   </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+                </div>
 
-        {/* Leaderboard toggle */}
-        <button
-          onClick={() => setShowLeaderboard((c) => !c)}
-          style={{
-            display: "block",
-            margin: "28px auto 0",
-            background: "none",
-            border: "none",
-            color: COLORS.TEXT_MUTED,
-            fontSize: 13,
-            cursor: "pointer",
-            textDecoration: "underline",
-            textUnderlineOffset: 4,
-            fontFamily: "inherit",
-          }}
-        >
-          {showLeaderboard ? "hide leaderboard" : "view leaderboard"}
-        </button>
+                {/* Error */}
+                {submitError && (
+                  <div
+                    style={{
+                      maxWidth: 480,
+                      margin: "0 auto 16px",
+                      padding: "8px 16px",
+                      background: "rgba(235,52,36,0.05)",
+                      border: "1px solid rgba(235,52,36,0.12)",
+                      borderRadius: 10,
+                      color: "#eb3424",
+                      fontSize: 13,
+                      fontWeight: 450,
+                      textAlign: "center",
+                      fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                    }}
+                  >
+                    {submitError}
+                  </div>
+                )}
 
-        {showLeaderboard && (
-          <div style={{ marginTop: 20, display: "flex", justifyContent: "center" }}>
-            <LeaderboardTable
-              rows={leaderboard}
-              totalSolveTarget={TOTAL_SOLVE_TARGET}
-              displayedSolveTarget={displayedSolveTarget}
-            />
+                {/* Level buttons */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    justifyContent: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {availableLevels.map((level) => {
+                    const meta = levelMeta[level] || { desc: `L${level}`, time: "" };
+                    const isFirst = level === Math.min(...availableLevels);
+
+                    return (
+                      <button
+                        key={level}
+                        onClick={() => startGame(level)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 8,
+                          height: 40,
+                          minWidth: 150,
+                          padding: "0 20px",
+                          borderRadius: 10,
+                          fontSize: 14,
+                          fontWeight: 450,
+                          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                          cursor: "pointer",
+                          transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
+                          border: "none",
+                          background: isFirst ? "#ff4c00" : "rgba(0,0,0,0.04)",
+                          color: isFirst ? "#ffffff" : "#262626",
+                          boxShadow: isFirst ? HEAT_SHADOW : "none",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (isFirst) {
+                            e.currentTarget.style.boxShadow = HEAT_SHADOW_HOVER;
+                          } else {
+                            e.currentTarget.style.background = "rgba(0,0,0,0.06)";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "scale(1)";
+                          if (isFirst) {
+                            e.currentTarget.style.boxShadow = HEAT_SHADOW;
+                          } else {
+                            e.currentTarget.style.background = "rgba(0,0,0,0.04)";
+                          }
+                        }}
+                        onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.995)")}
+                        onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                      >
+                        <span
+                          style={{
+                            opacity: isFirst ? 0.8 : 0.4,
+                            fontSize: 11,
+                            fontWeight: 450,
+                            fontFamily: "var(--font-geist-mono), monospace",
+                          }}
+                        >
+                          L{level}
+                        </span>
+                        <span>{meta.desc}</span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            opacity: isFirst ? 0.7 : 0.35,
+                            fontVariantNumeric: "tabular-nums",
+                            fontFamily: "var(--font-geist-mono), monospace",
+                          }}
+                        >
+                          {meta.time}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
-        )}
+
+          {/* ── Leaderboard ─────────────────────────────────────── */}
+          <div style={{ marginTop: 32 }}>
+            <button
+              onClick={() => setShowLeaderboard((c: boolean) => !c)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                background: "rgba(0,0,0,0.04)",
+                border: "none",
+                color: "#262626",
+                fontSize: 14,
+                fontWeight: 450,
+                cursor: "pointer",
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
+                padding: "8px 16px",
+                borderRadius: 10,
+                height: 36,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(0,0,0,0.06)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(0,0,0,0.04)";
+              }}
+              onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.99)")}
+              onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ opacity: 0.5 }}
+              >
+                <path d="M12 20V10" />
+                <path d="M18 20V4" />
+                <path d="M6 20v-4" />
+              </svg>
+              {showLeaderboard ? "Hide leaderboard" : "Leaderboard"}
+            </button>
+          </div>
+
+          {showLeaderboard && (
+            <div style={{ marginTop: 16, display: "flex", justifyContent: "center" }}>
+              <LeaderboardTable
+                rows={leaderboard}
+                totalSolveTarget={TOTAL_SOLVE_TARGET}
+                displayedSolveTarget={displayedSolveTarget}
+              />
+            </div>
+          )}
+
+          {/* ── Footer ─────────────────────────────────────────── */}
+          <div
+            style={{
+              marginTop: 40,
+              paddingTop: 20,
+              borderTop: "1px solid rgba(0,0,0,0.05)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 8,
+              fontSize: 12,
+              color: "rgba(0,0,0,0.16)",
+              fontFamily: "var(--font-geist-mono), monospace",
+            }}
+          >
+            <span>firecrawl</span>
+            <span>·</span>
+            <span>cheetcode ctf</span>
+            <span>·</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <BrailleSpinner /> v2.0
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );

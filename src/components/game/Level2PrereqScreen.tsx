@@ -28,53 +28,113 @@ export function Level2PrereqScreen({
           <button
             className="btn-heat"
             onClick={() => void onStart(pendingLevel ?? 2)}
-            style={{ height: 36, padding: "0 16px", borderRadius: 8, fontWeight: 700 }}
+            style={{
+              height: 36,
+              padding: "0 18px",
+              borderRadius: 10,
+              fontWeight: 450,
+              fontSize: 13,
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            }}
           >
             I&apos;m Ready, Start Level 2
           </button>
           <button
             className="btn-ghost"
             onClick={onBack}
-            style={{ height: 36, padding: "0 16px", borderRadius: 8, fontWeight: 700 }}
+            style={{
+              height: 36,
+              padding: "0 18px",
+              borderRadius: 10,
+              fontWeight: 450,
+              fontSize: 13,
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            }}
           >
             Back
           </button>
         </>
       }
     >
-      <p style={{ margin: "10px 0 0", fontSize: 13, color: "rgba(0,0,0,0.7)" }}>
+      <p
+        style={{
+          margin: "12px 0 0",
+          fontSize: 14,
+          color: "rgba(0,0,0,0.6)",
+          lineHeight: 1.6,
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+        }}
+      >
         Level 2 expects your agent to reason over Chromium source code. Choose one setup path
         (Option A or Option B):
       </p>
-      <ol style={{ margin: "14px 0 0", paddingLeft: 20, fontSize: 13, color: "#262626" }}>
+      <ol
+        style={{
+          margin: "14px 0 0",
+          paddingLeft: 20,
+          fontSize: 14,
+          color: "#262626",
+          lineHeight: 1.7,
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+        }}
+      >
         <li>
-          <strong>Option A:</strong> Clone Chromium locally so your agent can search the codebase
-          directly.
+          <strong style={{ fontWeight: 500 }}>Option A:</strong> Clone Chromium locally so your
+          agent can search the codebase directly.
         </li>
         <li>
-          <strong>Option B:</strong> Use Firecrawl cli and skill with your favourite ai agent and
-          source.chromium.org for web-based exploration.
+          <strong style={{ fontWeight: 500 }}>Option B:</strong> Use Firecrawl cli and skill with
+          your favourite ai agent and source.chromium.org for web-based exploration.
         </li>
       </ol>
       <div
         style={{
-          marginTop: 14,
-          background: "#fff7f2",
-          border: "1px solid #ffd5c0",
+          marginTop: 16,
+          background: "#fafafa",
+          border: "1px solid #e8e8e8",
           borderRadius: 12,
-          padding: 12,
+          padding: 14,
         }}
       >
-        <p style={{ margin: 0, fontSize: 12, color: "rgba(0,0,0,0.7)" }}>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 13,
+            color: "rgba(0,0,0,0.55)",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+          }}
+        >
           If you choose Option A, run:
         </p>
         <CommandBlock command={CHROMIUM_CLONE_COMMAND} onCopy={onCopy} />
-        <p style={{ margin: 0, fontSize: 12, color: "rgba(0,0,0,0.7)" }}>
+        <p
+          style={{
+            margin: "12px 0 0",
+            fontSize: 13,
+            color: "rgba(0,0,0,0.55)",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+          }}
+        >
           If you choose Option B, run:
         </p>
         <CommandBlock command={FIRECRAWL_COMMAND} onCopy={onCopy} />
-        <p style={{ margin: "8px 0 0", fontSize: 12, color: "rgba(0,0,0,0.7)" }}>
-          Then search Chromium at: https://source.chromium.org
+        <p
+          style={{
+            margin: "10px 0 0",
+            fontSize: 13,
+            color: "rgba(0,0,0,0.55)",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+          }}
+        >
+          Then search Chromium at:{" "}
+          <a
+            href="https://source.chromium.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "#fa5d19", textDecoration: "none", fontWeight: 450 }}
+          >
+            source.chromium.org
+          </a>
         </p>
       </div>
     </PrereqScreenShell>

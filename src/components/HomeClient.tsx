@@ -11,72 +11,63 @@ import { isClientDevMode } from "@/lib/myEnv";
 import { useHomeGameState } from "@/hooks/useHomeGameState";
 
 const MOBILE_BREAKPOINT = 900;
-const LandingScreen = dynamic(() =>
-  import("@/components/game/LandingScreen").then((m) => m.LandingScreen),
+const LandingScreen = dynamic(
+  () => import("@/components/game/LandingScreen").then((m) => m.LandingScreen),
   {
     loading: () => (
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
     ),
   },
 );
-const Level1Game = dynamic(
-  () => import("@/components/game/Level1Game").then((m) => m.Level1Game),
+const Level1Game = dynamic(() => import("@/components/game/Level1Game").then((m) => m.Level1Game), {
+  loading: () => (
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+  ),
+});
+const Level2Game = dynamic(() => import("@/components/Level2Game").then((m) => m.Level2Game), {
+  loading: () => (
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+  ),
+});
+const Level3Game = dynamic(() => import("@/components/Level3Game").then((m) => m.Level3Game), {
+  loading: () => (
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
+  ),
+});
+const Level2PrereqScreen = dynamic(
+  () => import("@/components/game/Level2PrereqScreen").then((m) => m.Level2PrereqScreen),
   {
     loading: () => (
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
     ),
   },
 );
-const Level2Game = dynamic(
-  () => import("@/components/Level2Game").then((m) => m.Level2Game),
+const Level3PrereqScreen = dynamic(
+  () => import("@/components/game/Level3PrereqScreen").then((m) => m.Level3PrereqScreen),
   {
     loading: () => (
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
     ),
   },
 );
-const Level3Game = dynamic(
-  () => import("@/components/Level3Game").then((m) => m.Level3Game),
+const MobileGateScreen = dynamic(
+  () => import("@/components/game/MobileGateScreen").then((m) => m.MobileGateScreen),
   {
     loading: () => (
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
     ),
   },
 );
-const Level2PrereqScreen = dynamic(() =>
-  import("@/components/game/Level2PrereqScreen").then((m) => m.Level2PrereqScreen),
+const RestoreScreen = dynamic(
+  () => import("@/components/game/RestoreScreen").then((m) => m.RestoreScreen),
   {
     loading: () => (
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
     ),
   },
 );
-const Level3PrereqScreen = dynamic(() =>
-  import("@/components/game/Level3PrereqScreen").then((m) => m.Level3PrereqScreen),
-  {
-    loading: () => (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
-    ),
-  },
-);
-const MobileGateScreen = dynamic(() =>
-  import("@/components/game/MobileGateScreen").then((m) => m.MobileGateScreen),
-  {
-    loading: () => (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
-    ),
-  },
-);
-const RestoreScreen = dynamic(() =>
-  import("@/components/game/RestoreScreen").then((m) => m.RestoreScreen),
-  {
-    loading: () => (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
-    ),
-  },
-);
-const ResultsScreen = dynamic(() =>
-  import("@/components/game/ResultsScreen").then((m) => m.ResultsScreen),
+const ResultsScreen = dynamic(
+  () => import("@/components/game/ResultsScreen").then((m) => m.ResultsScreen),
   {
     loading: () => (
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
@@ -86,8 +77,7 @@ const ResultsScreen = dynamic(() =>
 
 function useIsMobile() {
   const query = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`;
-  const mediaQueryList =
-    typeof window !== "undefined" ? window.matchMedia(query) : null;
+  const mediaQueryList = typeof window !== "undefined" ? window.matchMedia(query) : null;
 
   return useSyncExternalStore(
     (onStoreChange) => {
@@ -419,10 +409,9 @@ export function HomeClient({
     authStatus === "loading" && initialAuthStatus !== "loading" ? initialAuthStatus : authStatus;
   const isAuthenticated = effectiveAuthStatus === "authenticated" && !!github;
   const shouldLoadLeaderboard = showLeaderboard || isMobile;
-  const leaderboardQuery = useQuery(
-    api.leaderboard.getAll,
-    shouldLoadLeaderboard ? {} : "skip",
-  ) as LeaderboardRow[] | undefined;
+  const leaderboardQuery = useQuery(api.leaderboard.getAll, shouldLoadLeaderboard ? {} : "skip") as
+    | LeaderboardRow[]
+    | undefined;
   const leaderboard = leaderboardQuery ?? initialLeaderboard;
   const unlockedLevel = useQuery(api.leaderboard.getMyLevel, github ? { github } : "skip") ?? 1;
   const effectiveUnlockedLevel = github ? unlockedLevel : initialUnlockedLevel;

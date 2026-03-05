@@ -5,6 +5,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { isClientDevMode } from "../lib/myEnv";
 import { clientFetch } from "../lib/client-identity";
 import { COLORS } from "../lib/theme";
+import { FIRECRAWL_FLAME_SVG } from "./game/firecrawl-flame";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import CodeMirror from "@uiw/react-codemirror";
@@ -91,7 +92,10 @@ function editorExtensionFor(language: string) {
 
 async function hashText(input: string): Promise<string> {
   if (typeof window !== "undefined" && window.crypto?.subtle) {
-    const hashBuffer = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+    const hashBuffer = await window.crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(input),
+    );
     return Array.from(new Uint8Array(hashBuffer))
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
@@ -323,7 +327,7 @@ export function Level3Game({
       ? "COMPILING..."
       : runUiPhase === "running"
         ? "RUNNING TESTS..."
-        : `RUN ${LEVEL3_RUN_SMOKE_CHECKS} TESTS`;
+        : `RUN`;
 
   async function runChecks() {
     const nowMs = Date.now();
@@ -503,9 +507,24 @@ export function Level3Game({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 16 }}>🔥</span>
-          <span style={{ fontSize: 13, fontWeight: 800, color: "#fa5d19", letterSpacing: -0.5 }}>
-            FIRECRAWL CTF
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 600 600"
+            preserveAspectRatio="xMidYMid meet"
+            style={{ display: "inline-block", verticalAlign: "middle", flexShrink: 0 }}
+            dangerouslySetInnerHTML={{ __html: FIRECRAWL_FLAME_SVG }}
+          />
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 450,
+              color: "#262626",
+              letterSpacing: 0.3,
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            }}
+          >
+            Firecrawl CTF
           </span>
           <span style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", marginLeft: 4 }}>@{github}</span>
           {canAutoSolve && (
@@ -710,7 +729,7 @@ export function Level3Game({
               whiteSpace: "nowrap",
             }}
           >
-            {isSubmitting ? "SUBMITTING..." : "FINISH & SUBMIT"}
+            {isSubmitting ? "SUBMITTING..." : "SUBMIT"}
           </button>
         </div>
       </div>

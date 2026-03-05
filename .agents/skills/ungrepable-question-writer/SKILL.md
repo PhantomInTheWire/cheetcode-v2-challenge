@@ -19,23 +19,27 @@ Before generating questions, either load an existing config from `references/` o
 
 ```markdown
 ## Project: <Name>
+
 Source: <absolute path to source root>
 Output: <path to questions JSON file>
-Extensions: <file extensions to search, e.g., *.cc, *.h, *.mm, *.py, *.rs>
-ID Prefix: <question ID prefix, e.g., "l2_">
+Extensions: <file extensions to search, e.g., _.cc, _.h, _.mm, _.py, \*.rs>
+ID Prefix: <question ID prefix, e.g., "l2\_">
 
 ### Architecture Layers
+
 <Describe the project's layer cake from user-facing down to internals.
- The question describes the top; the answer lives at the bottom.>
+The question describes the top; the answer lives at the bottom.>
 
 ### Synonym Table
+
 | Internal Term | Use Instead |
-|---|---|
-| ... | ... |
+| ------------- | ----------- |
+| ...           | ...         |
 
 ### Hotspot Areas
+
 <List directories/modules where interesting enums, constants, and
- error codes live on edge-case paths.>
+error codes live on edge-case paths.>
 ```
 
 If the user names a project that has a config in `references/`, load it. Otherwise, help them create one by exploring their codebase's directory structure, identifying the architecture layers, and building a synonym table from domain-specific jargon found in the code.
@@ -58,6 +62,7 @@ User-visible action (described in plain/physical language)
 ### 1. Find the Answer (Bottom-Up)
 
 Start from the deepest layers of the project (shared libraries, platform code, service layers). Find an **enum value or constant** that:
+
 - Lives on an **edge-case or failure path** (not the happy path)
 - Has a **specific, non-obvious name** (not generic like `kError` or `FAILURE`)
 - Is **unambiguous** -- only one correct token answers the question
@@ -67,6 +72,7 @@ Use the project's hotspot areas to focus the search. Read `.h` / header / defini
 ### 2. Trace the Call Chain Upward
 
 Starting from the answer token, find the chain of callers leading up to a user-visible action. The chain must span:
+
 - **5+ files** from **5+ different directory prefixes** (e.g., `net/cert/`, `chrome/browser/ssl/`, `content/browser/`, `third_party/blink/renderer/`, `services/network/`)
 - Each link should cross a meaningful boundary (IPC, abstraction layer, subsystem)
 
@@ -108,6 +114,7 @@ Grep the exact answer token in the source to confirm it's real and current. Reco
 ## Parallelization Strategy
 
 When creating multiple questions, launch one sub-agent per question. Each agent:
+
 - Targets a **different hotspot area** (no two agents explore the same subsystem)
 - Owns its question end-to-end: answer discovery -> chain tracing -> question writing -> grep verification
 - Returns results in the output format below
@@ -163,7 +170,7 @@ When setting up a new project, build the synonym table by:
 
 1. **Scan header files** in the hotspot areas for enum names, class names, and API names
 2. **Identify jargon** -- any term a developer would recognize but a non-developer wouldn't
-3. **Map each to a physical metaphor** -- think: what is this thing *like* in the real world?
+3. **Map each to a physical metaphor** -- think: what is this thing _like_ in the real world?
 4. **Test the mapping** -- could someone reconstruct the original term from the synonym? If yes, the synonym is too close. Make it more oblique.
 
-Good synonyms are **conceptually accurate but lexically distant**. "System buffer" for "clipboard" works because it's what a clipboard *is*, but the words share zero overlap. "Copy storage" would be too close -- "copy" appears in clipboard-related code everywhere.
+Good synonyms are **conceptually accurate but lexically distant**. "System buffer" for "clipboard" works because it's what a clipboard _is_, but the words share zero overlap. "Copy storage" would be too close -- "copy" appears in clipboard-related code everywhere.

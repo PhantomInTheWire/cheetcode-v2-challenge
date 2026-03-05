@@ -14,30 +14,36 @@ export function CommandBlock({
         fontSize: 12,
         color: "#262626",
         whiteSpace: "pre-wrap",
-        background: "#fff",
-        border: "1px solid #ffd5c0",
-        borderRadius: 8,
+        background: "#fafafa",
+        border: "1px solid #e8e8e8",
+        borderRadius: 10,
         padding: "10px 12px",
         overflowX: "auto",
         position: "relative",
+        fontFamily: "var(--font-geist-mono), monospace",
+        lineHeight: 1.6,
       }}
     >
       <button
         onClick={() => void onCopy(command)}
-        className="btn-ghost"
         aria-label="Copy command"
         title="Copy command"
         style={{
           position: "absolute",
           top: 8,
           right: 8,
-          height: 24,
-          width: 24,
+          height: 26,
+          width: 26,
           padding: 0,
-          borderRadius: 6,
+          borderRadius: 8,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          background: "rgba(0,0,0,0.04)",
+          border: "1px solid #e8e8e8",
+          cursor: "pointer",
+          color: "rgba(0,0,0,0.4)",
+          transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
         }}
       >
         <svg

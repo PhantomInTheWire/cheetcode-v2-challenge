@@ -2,6 +2,7 @@
 
 import React from "react";
 import { PROBLEMS_PER_SESSION, ROUND_DURATION_MS } from "@/lib/constants";
+import { FIRECRAWL_FLAME_SVG } from "@/components/game/firecrawl-flame";
 
 type GameProblem = {
   id: string;
@@ -35,6 +36,15 @@ type Level1GameProps = {
   ) => void;
   runLocalCheckAction: (problem: GameProblem) => void;
 };
+
+/* ── Firecrawl button shadow (matches LandingScreen) ── */
+const HEAT_SHADOW = `
+  inset 0px -6px 12px 0px rgba(250,25,25,0.2),
+  0px 2px 4px 0px rgba(250,93,25,0.12),
+  0px 1px 1px 0px rgba(250,93,25,0.12),
+  0px 0.5px 0.5px 0px rgba(250,93,25,0.16),
+  0px 0.25px 0.25px 0px rgba(250,93,25,0.2)
+`;
 
 export function Level1Game({
   github,
@@ -78,59 +88,106 @@ export function Level1Game({
         flexDirection: "column",
         overflow: "hidden",
         background: "#f9f9f9",
-        fontFamily: "'SF Mono', 'Fira Code', var(--font-geist-mono), monospace",
+        position: "relative",
       }}
     >
+      {/* ── Grid background (firecrawl dashboard pattern) ── */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          opacity: 0.4,
+          backgroundImage: `
+            linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)
+          `,
+          backgroundSize: "8px 8px",
+        }}
+      />
+
       {/* ── Header bar ── */}
       <div
         style={{
-          height: 44,
+          height: 48,
           flexShrink: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 14px",
-          borderBottom: "1px solid #e5e5e5",
-          background: "#ffffff",
+          padding: "0 16px",
+          borderBottom: "1px solid #e8e8e8",
+          background: "rgba(255,255,255,0.85)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          position: "relative",
+          zIndex: 10,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 16 }}>🔥</span>
-          <span style={{ fontSize: 13, fontWeight: 800, color: "#fa5d19", letterSpacing: -0.5 }}>
-            FIRECRAWL CTF
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 600 600"
+            preserveAspectRatio="xMidYMid meet"
+            style={{ display: "inline-block", verticalAlign: "middle", flexShrink: 0 }}
+            dangerouslySetInnerHTML={{ __html: FIRECRAWL_FLAME_SVG }}
+          />
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 450,
+              color: "#262626",
+              letterSpacing: 0.3,
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            }}
+          >
+            Firecrawl CTF
           </span>
-          <span style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", marginLeft: 4 }}>@{github}</span>
+          <span style={{ fontSize: 12, color: "rgba(0,0,0,0.12)" }}>·</span>
+          <span
+            style={{
+              fontSize: 12,
+              color: "rgba(0,0,0,0.3)",
+              fontFamily: "var(--font-geist-mono), monospace",
+            }}
+          >
+            @{github}
+          </span>
           {canAutoSolve && (
             <button
               onClick={autoSolveAction}
               disabled={isAutoSolving}
               style={{
-                marginLeft: 8,
+                marginLeft: 4,
                 padding: "2px 10px",
-                fontSize: 10,
-                fontWeight: 600,
-                background: "#f3f3f3",
-                color: "rgba(0,0,0,0.5)",
-                border: "1px solid #e5e5e5",
-                borderRadius: 4,
+                fontSize: 11,
+                fontWeight: 450,
+                background: "rgba(0,0,0,0.04)",
+                color: "rgba(0,0,0,0.45)",
+                border: "1px solid #e8e8e8",
+                borderRadius: 8,
                 cursor: isAutoSolving ? "not-allowed" : "pointer",
-                fontFamily: "inherit",
+                fontFamily: "var(--font-geist-mono), monospace",
+                transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
               }}
             >
-              {isAutoSolving ? "solving..." : "⚡ Auto Solve"}
+              {isAutoSolving ? "solving..." : "Auto Solve"}
             </button>
           )}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           {/* Solved */}
-          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span
               style={{
-                fontSize: 10,
-                fontWeight: 600,
+                fontSize: 11,
+                fontWeight: 450,
                 color: "rgba(0,0,0,0.35)",
                 textTransform: "uppercase",
+                letterSpacing: 0.5,
+                fontFamily: "var(--font-geist-mono), monospace",
               }}
             >
               Solved
@@ -138,21 +195,23 @@ export function Level1Game({
             <span
               style={{
                 fontSize: 16,
-                fontWeight: 800,
+                fontWeight: 500,
                 color: solvedLocal === PROBLEMS_PER_SESSION ? "#1a9338" : "#262626",
+                fontFamily: "var(--font-geist-mono), monospace",
+                fontVariantNumeric: "tabular-nums",
               }}
             >
               {solvedLocal}
-              <span style={{ color: "rgba(0,0,0,0.25)" }}>/{PROBLEMS_PER_SESSION}</span>
+              <span style={{ color: "rgba(0,0,0,0.2)" }}>/{PROBLEMS_PER_SESSION}</span>
             </span>
           </div>
           {/* Timer */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div
               style={{
-                width: 140,
-                height: 5,
-                background: "#e5e5e5",
+                width: 120,
+                height: 4,
+                background: "#e8e8e8",
                 borderRadius: 4,
                 overflow: "hidden",
               }}
@@ -169,12 +228,14 @@ export function Level1Game({
             </div>
             <span
               style={{
-                fontSize: 18,
-                fontWeight: 800,
+                fontSize: 16,
+                fontWeight: 500,
                 color: timerFg,
                 minWidth: 48,
                 textAlign: "right",
                 transition: "color 500ms",
+                fontFamily: "var(--font-geist-mono), monospace",
+                fontVariantNumeric: "tabular-nums",
                 ...(secondsLeft <= 10
                   ? { animation: "timer-pulse 0.6s ease-in-out infinite" }
                   : {}),
@@ -183,26 +244,30 @@ export function Level1Game({
               {timeUp ? "TIME" : `0:${String(secondsLeft).padStart(2, "0")}`}
             </span>
           </div>
-          {/* ── Big SUBMIT button ── */}
+          {/* ── SUBMIT button ── */}
           <button
             onClick={() => void finishGameAction()}
             disabled={isSubmitting}
-            className="btn-heat"
             style={{
               height: 32,
-              padding: "0 20px",
-              borderRadius: 8,
+              padding: "0 18px",
+              borderRadius: 10,
               fontSize: 13,
-              fontWeight: 800,
-              fontFamily: "inherit",
-              letterSpacing: 1,
+              fontWeight: 450,
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+              letterSpacing: 0.3,
               cursor: isSubmitting ? "not-allowed" : "pointer",
-              opacity: isSubmitting ? 0.7 : 1,
+              opacity: isSubmitting ? 0.6 : 1,
               whiteSpace: "nowrap",
               position: "relative",
+              background: "#ff4c00",
+              color: "#ffffff",
+              border: "1px solid #f25515",
+              boxShadow: HEAT_SHADOW,
+              transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
             }}
           >
-            {isSubmitting ? "SUBMITTING..." : "FINISH & SUBMIT"}
+            {isSubmitting ? "Submitting..." : "Finish & Submit"}
             {submitError && (
               <div
                 style={{
@@ -212,13 +277,14 @@ export function Level1Game({
                   background: "#fef2f2",
                   border: "1px solid #ef4444",
                   color: "#dc2626",
-                  padding: "4px 8px",
-                  borderRadius: 4,
-                  fontSize: 10,
-                  fontWeight: 600,
+                  padding: "6px 10px",
+                  borderRadius: 8,
+                  fontSize: 11,
+                  fontWeight: 450,
                   whiteSpace: "normal",
                   width: 200,
                   zIndex: 100,
+                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 }}
               >
                 {submitError}
@@ -228,7 +294,7 @@ export function Level1Game({
         </div>
       </div>
 
-      {/* ── 5×2 Challenge Grid ── */}
+      {/* ── Challenge Grid ── */}
       <div
         style={{
           flex: 1,
@@ -236,10 +302,12 @@ export function Level1Game({
           gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
           gridAutoRows: "minmax(560px, auto)",
           alignContent: "start",
-          gap: 8,
-          padding: 8,
+          gap: 6,
+          padding: 6,
           minHeight: 0,
           overflowY: "auto",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         {problems.map((problem, idx) => {
@@ -253,7 +321,7 @@ export function Level1Game({
               : "idle";
 
           const borderColor =
-            status === "passed" ? "#22c55e" : status === "failed" ? "#ef4444" : "#e5e5e5";
+            status === "passed" ? "#22c55e" : status === "failed" ? "#ef4444" : "#e8e8e8";
           const bgColor =
             status === "passed" ? "#f0fdf4" : status === "failed" ? "#fef2f2" : "#ffffff";
 
@@ -264,17 +332,17 @@ export function Level1Game({
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
-                borderRadius: 8,
+                borderRadius: 12,
                 border: `1px solid ${borderColor}`,
                 background: bgColor,
-                transition: "all 300ms",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.02)",
               }}
             >
               {/* Panel header */}
               <div
                 style={{
-                  padding: "5px 8px",
+                  padding: "6px 10px",
                   borderBottom: "1px solid #f0f0f0",
                   display: "flex",
                   alignItems: "center",
@@ -282,17 +350,26 @@ export function Level1Game({
                   flexShrink: 0,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <span style={{ fontSize: 10, color: "rgba(0,0,0,0.3)" }}>#{idx + 1}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span
                     style={{
-                      fontSize: 11,
-                      fontWeight: 600,
+                      fontSize: 10,
+                      color: "rgba(0,0,0,0.25)",
+                      fontFamily: "var(--font-geist-mono), monospace",
+                    }}
+                  >
+                    #{idx + 1}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 500,
                       color: "#262626",
                       whiteSpace: "nowrap",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
-                      maxWidth: 120,
+                      maxWidth: 140,
+                      fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                     }}
                   >
                     {problem.title}
@@ -300,18 +377,19 @@ export function Level1Game({
                 </div>
                 <span
                   style={{
-                    fontSize: 9,
-                    padding: "1px 6px",
+                    fontSize: 10,
+                    padding: "1px 8px",
                     borderRadius: 999,
-                    fontWeight: 600,
+                    fontWeight: 500,
+                    fontFamily: "var(--font-geist-mono), monospace",
                     background:
                       problem.tier === "competitive"
-                        ? "rgba(147, 51, 234, 0.10)"
+                        ? "rgba(147, 51, 234, 0.08)"
                         : problem.tier === "hard"
-                          ? "rgba(220,38,38,0.10)"
+                          ? "rgba(220,38,38,0.08)"
                           : problem.tier === "medium"
-                            ? "rgba(180,83,9,0.10)"
-                            : "rgba(26,147,56,0.10)",
+                            ? "rgba(180,83,9,0.08)"
+                            : "rgba(26,147,56,0.08)",
                     color:
                       problem.tier === "competitive"
                         ? "#9333ea"
@@ -338,18 +416,27 @@ export function Level1Game({
                   >
                     <p
                       style={{
-                        fontSize: 10,
+                        fontSize: 11,
                         color: "rgba(0,0,0,0.5)",
-                        lineHeight: 1.4,
+                        lineHeight: 1.5,
                         margin: 0,
                         whiteSpace: "pre-wrap",
+                        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                       }}
                     >
                       {problem.description}
                     </p>
                   </div>
                 ) : (
-                  <p style={{ fontSize: 10, color: "rgba(0,0,0,0.5)", lineHeight: 1.4, margin: 0 }}>
+                  <p
+                    style={{
+                      fontSize: 11,
+                      color: "rgba(0,0,0,0.5)",
+                      lineHeight: 1.5,
+                      margin: 0,
+                      fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                    }}
+                  >
                     {problem.description.length > 280
                       ? `${problem.description.slice(0, 280)}...`
                       : problem.description}
@@ -365,17 +452,17 @@ export function Level1Game({
                     }
                     style={{
                       marginTop: 6,
-                      fontSize: 10,
-                      fontWeight: 700,
+                      fontSize: 11,
+                      fontWeight: 500,
                       color: "#fa5d19",
                       background: "none",
                       border: "none",
                       cursor: "pointer",
                       padding: 0,
-                      fontFamily: "inherit",
+                      fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                     }}
                   >
-                    {expandedQuestions[problem.id] ? "Collapse question" : "Expand question"}
+                    {expandedQuestions[problem.id] ? "Collapse" : "Expand"}
                   </button>
                 )}
               </div>
@@ -403,49 +490,60 @@ export function Level1Game({
                     minHeight: 320,
                     width: "100%",
                     resize: "none",
-                    background: "#fafafa",
+                    background: status === "passed" ? "#f0fdf4" : "#fafafa",
                     color: status === "passed" ? "#1a9338" : "#262626",
-                    border: "1px solid #e5e5e5",
-                    borderRadius: 4,
-                    padding: 6,
-                    fontSize: 10,
-                    lineHeight: 1.4,
-                    fontFamily: "inherit",
+                    border: "1px solid #e8e8e8",
+                    borderRadius: 8,
+                    padding: 8,
+                    fontSize: 11,
+                    lineHeight: 1.5,
+                    fontFamily: "var(--font-geist-mono), monospace",
                     outline: "none",
+                    transition: "border-color 0.2s",
+                  }}
+                  onFocus={(e) => {
+                    if (status !== "passed") e.target.style.borderColor = "#fa5d19";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "#e8e8e8";
                   }}
                 />
               </div>
 
               {/* Submit button */}
-              <div style={{ padding: "5px 8px", flexShrink: 0 }}>
+              <div style={{ padding: "6px 10px", flexShrink: 0 }}>
                 <button
                   onClick={() => runLocalCheckAction(problem)}
                   disabled={timeUp || status === "passed" || !(codes[problem.id] ?? "").trim()}
                   style={{
                     width: "100%",
-                    padding: "4px 0",
-                    borderRadius: 4,
+                    padding: "5px 0",
+                    borderRadius: 8,
                     border: "none",
-                    fontSize: 10,
-                    fontWeight: 600,
-                    fontFamily: "inherit",
+                    fontSize: 11,
+                    fontWeight: 450,
+                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                     cursor:
                       timeUp || status === "passed" || !(codes[problem.id] ?? "").trim()
                         ? "not-allowed"
                         : "pointer",
                     background:
-                      status === "passed" ? "rgba(26,147,56,0.1)" : timeUp ? "#e5e5e5" : "#fa5d19",
+                      status === "passed" ? "rgba(26,147,56,0.08)" : timeUp ? "#e8e8e8" : "#ff4c00",
                     color: status === "passed" ? "#1a9338" : timeUp ? "rgba(0,0,0,0.3)" : "#fff",
-                    transition: "all 150ms",
+                    transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
+                    boxShadow:
+                      status === "passed" || timeUp
+                        ? "none"
+                        : "0px 1px 2px rgba(250,93,25,0.12), 0px 0.5px 0.5px rgba(250,93,25,0.16)",
                   }}
                 >
                   {status === "passed"
-                    ? "✓ PASSED"
+                    ? "Passed"
                     : status === "failed"
-                      ? "✗ RETRY"
+                      ? "Retry"
                       : status === "submitting"
                         ? "..."
-                        : "SUBMIT"}
+                        : "Run Check"}
                 </button>
               </div>
             </div>
@@ -459,7 +557,9 @@ export function Level1Game({
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.85)",
+            background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -472,46 +572,80 @@ export function Level1Game({
               background: "#ffffff",
               borderRadius: 20,
               padding: "48px 56px",
-              border: "1px solid #e5e5e5",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+              border: "1px solid #e8e8e8",
+              boxShadow: "0 24px 48px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.08)",
+              maxWidth: 480,
             }}
           >
+            {/* Flame logo */}
+            <div style={{ marginBottom: 20 }}>
+              <svg
+                width="40"
+                height="40"
+                viewBox="0 0 600 600"
+                preserveAspectRatio="xMidYMid meet"
+                style={{ display: "inline-block" }}
+                dangerouslySetInnerHTML={{ __html: FIRECRAWL_FLAME_SVG }}
+              />
+            </div>
             <p
               style={{
-                fontSize: 52,
-                fontWeight: 800,
-                color: solvedLocal === PROBLEMS_PER_SESSION ? "#1a9338" : "#dc2626",
+                fontSize: 40,
+                fontWeight: 500,
+                color: solvedLocal === PROBLEMS_PER_SESSION ? "#1a9338" : "#262626",
                 margin: 0,
+                lineHeight: 1.1,
+                letterSpacing: -0.5,
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
               }}
             >
               {isSubmitting
-                ? "SUBMITTING..."
+                ? "Submitting..."
                 : solvedLocal === PROBLEMS_PER_SESSION
-                  ? "ALL CLEAR 🔥"
-                  : "TIME'S UP"}
+                  ? "All Clear"
+                  : "Time\u2019s Up"}
             </p>
-            <p style={{ fontSize: 22, color: "rgba(0,0,0,0.45)", margin: "8px 0 0" }}>
+            <p
+              style={{
+                fontSize: 16,
+                color: "rgba(0,0,0,0.4)",
+                margin: "12px 0 0",
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                fontWeight: 400,
+              }}
+            >
               {solvedLocal}/{PROBLEMS_PER_SESSION} solved locally
             </p>
             {!isSubmitting && (
               <button
                 onClick={() => void finishGameAction()}
-                className="btn-heat"
                 style={{
-                  marginTop: 32,
-                  padding: "14px 48px",
+                  marginTop: 28,
+                  padding: "12px 44px",
                   borderRadius: 10,
-                  fontSize: 16,
-                  fontWeight: 800,
-                  fontFamily: "inherit",
-                  letterSpacing: 1,
+                  fontSize: 14,
+                  fontWeight: 450,
+                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  background: "#ff4c00",
+                  color: "#ffffff",
+                  border: "1px solid #f25515",
+                  cursor: "pointer",
+                  boxShadow: HEAT_SHADOW,
+                  transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
                 }}
               >
-                SEE RESULTS
+                See Results
               </button>
             )}
             {isSubmitting && (
-              <p style={{ fontSize: 14, color: "rgba(0,0,0,0.35)", marginTop: 20 }}>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "rgba(0,0,0,0.3)",
+                  marginTop: 20,
+                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                }}
+              >
                 Validating your solutions on the server...
               </p>
             )}

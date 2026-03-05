@@ -1,6 +1,7 @@
 # Chromium Configuration
 
 ## Project: Chromium
+
 Source: `/Users/ghost/chromium/src`
 Output: `data/level2-questions.json`
 Extensions: `*.cc, *.h, *.mm, *.mojom`
@@ -75,6 +76,7 @@ User-visible action (browser UI, web page behavior)
 ### Hotspot Areas
 
 #### Enterprise
+
 - `chrome/browser/enterprise/data_controls/` -- DLP clipboard/paste/print
 - `chrome/browser/enterprise/connectors/analysis/` -- content scanning
 - `chrome/browser/enterprise/connectors/device_trust/` -- device attestation
@@ -84,19 +86,23 @@ User-visible action (browser UI, web page behavior)
 - `chrome/browser/enterprise/platform_auth/` -- SSO/Entra, URL session auth
 
 #### Policy
+
 - `components/policy/core/common/cloud/` -- cloud policy fetch/validate/store
 - `components/policy/core/common/` -- merge, schema validation
 - `components/policy/proto/` -- wire format
 
 #### Updater
+
 - `chrome/updater/` -- update checking, blocking, installation
 - `components/update_client/` -- protocol, states, errors
 
 #### Device Trust
+
 - `components/enterprise/device_trust/` -- attestation flow, key management
 - `components/enterprise/device_attestation/` -- attestation primitives
 
 #### FIDO / WebAuthn
+
 - `device/fido/` -- CTAP2, authenticator management, auth token requester
 - `device/fido/mac/` -- Touch ID, Secure Enclave FIDO
 - `device/fido/win/` -- Windows Hello
@@ -104,17 +110,20 @@ User-visible action (browser UI, web page behavior)
 - `content/browser/webauth/` -- browser-side WebAuthn
 
 #### Bluetooth
+
 - `device/bluetooth/` -- platform Bluetooth abstractions
 - `content/browser/bluetooth/` -- browser-process Bluetooth
 - `third_party/blink/renderer/modules/bluetooth/` -- Blink Web Bluetooth
 
 #### Media Capture
+
 - `media/capture/video/` -- video capture abstractions
-- `media/capture/video/apple/` -- macOS AVFoundation (*.mm)
+- `media/capture/video/apple/` -- macOS AVFoundation (\*.mm)
 - `media/capture/video/win/` -- Windows MediaFoundation
 - `content/browser/renderer_host/media/` -- media stream management
 
 #### USB / HID / Serial
+
 - `services/device/usb/` -- USB service layer
 - `services/device/hid/` -- HID service layer
 - `services/device/serial/` -- Serial service
@@ -122,27 +131,32 @@ User-visible action (browser UI, web page behavior)
 - `chrome/browser/hid/` -- Chrome HID permissions
 
 #### Network / Certificates
+
 - `net/cert/` -- certificate verification, CT, path building
 - `net/ssl/` -- SSL client, handshake errors
 - `net/base/` -- net error codes (net_error_list.h)
 - `net/http/` -- HTTP auth, transport security (HSTS)
 
 #### Extensions
+
 - `extensions/browser/` -- extension loading, install, management
 - `extensions/common/` -- manifest parsing, permissions, errors
 - `extensions/browser/install/` -- CRX install pipeline
 
 #### Printing
+
 - `printing/` -- core printing library, backends
 - `chrome/browser/printing/` -- Chrome print UI
 - `printing/backend/` -- platform backends (CUPS, Win GDI)
 
 #### Payments
+
 - `components/payments/` -- payment request handling
 - `third_party/blink/renderer/modules/payments/` -- Blink Payment Request
 - `components/autofill/core/browser/payments/` -- autofill payments
 
-#### macOS Objective-C (*.mm) -- platform edge cases
+#### macOS Objective-C (\*.mm) -- platform edge cases
+
 - `chrome/browser/enterprise/connectors/device_trust/key_management/core/mac/`
 - `chrome/updater/mac/setup/` -- Keystone migration, wake tasks, launchd
 - `chrome/updater/mac/keystone/` -- legacy ksadmin/ksinstall compat

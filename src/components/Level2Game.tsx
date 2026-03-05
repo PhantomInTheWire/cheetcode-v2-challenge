@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { isClientDevMode } from "../lib/myEnv";
 import { clientFetch } from "../lib/client-identity";
+import { FIRECRAWL_FLAME_SVG } from "./game/firecrawl-flame";
 
 const ROUND_DURATION_L2_MS = 60_000;
 const LEVEL2_STATUS_STORAGE_KEY = "cheetcode.level2Status";
@@ -222,9 +223,24 @@ export function Level2Game({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 16 }}>🔥</span>
-          <span style={{ fontSize: 13, fontWeight: 800, color: "#fa5d19", letterSpacing: -0.5 }}>
-            FIRECRAWL CTF
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 600 600"
+            preserveAspectRatio="xMidYMid meet"
+            style={{ display: "inline-block", verticalAlign: "middle", flexShrink: 0 }}
+            dangerouslySetInnerHTML={{ __html: FIRECRAWL_FLAME_SVG }}
+          />
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 450,
+              color: "#262626",
+              letterSpacing: 0.3,
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            }}
+          >
+            Firecrawl CTF
           </span>
           <span style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", marginLeft: 4 }}>@{github}</span>
           {canAutoSolve && (
@@ -494,7 +510,7 @@ export function Level2Game({
                 margin: 0,
               }}
             >
-              {isSubmitting ? "SUBMITTING..." : solvedLocal === 10 ? "ALL CLEAR 🔥" : "TIME'S UP"}
+              {isSubmitting ? "SUBMITTING..." : solvedLocal === 10 ? "ALL CLEAR" : "TIME'S UP"}
             </p>
             <p style={{ fontSize: 22, color: "rgba(0,0,0,0.45)", margin: "8px 0 0" }}>
               {solvedLocal}/10 solved
