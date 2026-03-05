@@ -141,11 +141,7 @@ export const recordResultsInternal = internalMutation({
         });
       }
     } else {
-      const updates: Record<string, unknown> = {};
-
-      if (solvedCount > 0 || elo > 0) {
-        updates.attempts = nextAttempts;
-      }
+      const updates: Record<string, unknown> = { attempts: nextAttempts };
 
       if (shouldUpdateBests) {
         Object.assign(updates, {
@@ -165,9 +161,7 @@ export const recordResultsInternal = internalMutation({
         updates.unlockedLevel = unlockedLevel;
       }
 
-      if (Object.keys(updates).length > 0) {
-        await ctx.db.patch(existing._id, updates);
-      }
+      await ctx.db.patch(existing._id, updates);
     }
 
     const top = await ctx.db.query("leaderboard").withIndex("by_elo").order("desc").take(100);

@@ -3,7 +3,7 @@ import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import { requireOwnedSession } from "../../../lib/session-auth";
 import { evalWithDeadline } from "../../../lib/quickjsTimeout";
 import { resolveSubmittedFunction } from "../../../lib/quickjsResolve";
-import { buildArgs } from "../../../lib/testcaseArgs";
+import { buildArgs, normalizeTestCasesWithArgs } from "../../../lib/testcaseArgs";
 import {
   SANDBOX_FLAG,
   QUICKJS_TEST_TIMEOUT_MS,
@@ -13,6 +13,7 @@ import {
 } from "../../../lib/quickjs-shared";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { recordBuiltTelemetry } from "../../../lib/attempt-telemetry";
+import { PROBLEM_BANK } from "../../../../server/level1/problems";
 
 /**
  * POST /api/validate-l1
@@ -31,8 +32,8 @@ type TestCase = {
 
 type Payload = {
   sessionId: string;
+  problemId: string;
   code: string;
-  testCases: TestCase[];
 };
 
 type FailedCase = {
@@ -142,16 +143,26 @@ export async function POST(request: Request) {
     if ("response" in authResult) return authResult.response;
     const { github } = authResult;
 
-    const { sessionId, code, testCases } = (await request.json()) as Payload;
+    const { sessionId, problemId, code } = (await request.json()) as Payload;
 
-    if (!sessionId || !code || !Array.isArray(testCases)) {
+    if (!sessionId || !problemId || !code) {
       return NextResponse.json({ passed: false, error: "Invalid request" }, { status: 400 });
     }
 
     const sessionResult = await requireOwnedSession(sessionId, github, 1);
     if ("response" in sessionResult) return sessionResult.response;
 
-    const { convex } = sessionResult;
+    const { convex, session } = sessionResult;
+    if (!session.problemIds.includes(problemId)) {
+      return NextResponse.json({ passed: false, error: "Problem not assigned to session" }, { status: 400 });
+    }
+
+    const problem = PROBLEM_BANK.find((entry) => entry.id === problemId);
+    if (!problem) {
+      return NextResponse.json({ passed: false, error: "Problem not found" }, { status: 404 });
+    }
+
+    const testCases = normalizeTestCasesWithArgs(problem.signature, problem.testCases) as TestCase[];
     const qjs = await getQJS();
     const result = runValidation(qjs, code, testCases);
 
@@ -186,6 +197,7 @@ export async function POST(request: Request) {
       failCount: result.passed ? 0 : 1,
       artifact: {
         sessionId,
+        problemId,
         code,
         testCases,
         validation: result,

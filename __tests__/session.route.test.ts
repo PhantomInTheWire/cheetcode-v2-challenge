@@ -39,6 +39,20 @@ describe("/api/session", () => {
     hoisted.actionMock.mockReset();
     hoisted.getLevel3ChallengeFromIdMock.mockReset();
     hoisted.requireAuthMock.mockResolvedValue({ ok: true, github: "tester" });
+    hoisted.actionMock.mockResolvedValue({
+      level: 1,
+      problems: [
+        {
+          id: "p1",
+          title: "T",
+          tier: "easy",
+          description: "D",
+          signature: "solve(a, b)",
+          starterCode: "",
+          testCases: [{ input: { a: 1, b: 2 }, expected: 3 }],
+        },
+      ],
+    });
     process.env.NEXT_PUBLIC_CONVEX_URL = "https://example.convex.cloud";
     process.env.CONVEX_MUTATION_SECRET = "secret";
   });

@@ -67,7 +67,8 @@ export async function clientFetch(input: RequestInfo | URL, init?: RequestInit):
       headers.set("x-client-fingerprint", stored);
       void ensureFingerprintFetch();
     } else if (isMutation) {
-      headers.set("x-client-fingerprint", await ensureFingerprintFetch());
+      headers.set("x-client-fingerprint", fallbackFingerprint());
+      void ensureFingerprintFetch();
     } else {
       headers.set("x-client-fingerprint", fallbackFingerprint());
       void ensureFingerprintFetch();

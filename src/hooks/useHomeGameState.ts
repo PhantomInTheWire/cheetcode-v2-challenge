@@ -19,12 +19,10 @@ type LeaderboardRow = { solved: number };
 
 type StoredResultsScreen = {
   screen: "results";
+  github: string;
   currentLevel: number;
   sessionId: Id<"sessions"> | null;
   results: ResultsData;
-  email: string;
-  xHandle: string;
-  flag: string;
   submittedLead: boolean;
 };
 
@@ -335,15 +333,19 @@ export function useHomeGameState({
         const resultsRaw = window.localStorage.getItem(RESULTS_SCREEN_STORAGE_KEY);
         if (resultsRaw) {
           const storedResults = JSON.parse(resultsRaw) as Partial<StoredResultsScreen>;
-          if (storedResults.screen === "results" && storedResults.results) {
+          if (
+            storedResults.screen === "results" &&
+            storedResults.results &&
+            storedResults.github === github
+          ) {
             setCurrentLevel(
               typeof storedResults.currentLevel === "number" ? storedResults.currentLevel : 1,
             );
             setSessionId(storedResults.sessionId ?? null);
             setResults(storedResults.results);
-            setEmail(storedResults.email ?? "");
-            setXHandle(storedResults.xHandle ?? "");
-            setFlag(storedResults.flag ?? "");
+            setEmail("");
+            setXHandle("");
+            setFlag("");
             setSubmittedLead(storedResults.submittedLead === true);
             setScreen("results");
           } else {
@@ -399,6 +401,7 @@ export function useHomeGameState({
     clearStoredFlowScreen,
     clearStoredResults,
     clearStoredSession,
+    github,
   ]);
 
   useEffect(() => {
@@ -664,8 +667,8 @@ export function useHomeGameState({
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             sessionId,
+            problemId: problem.id,
             code: codes[problem.id] ?? problem.starterCode,
-            testCases: problem.testCases,
           }),
         });
         const data = await res.json();
@@ -749,8 +752,12 @@ export function useHomeGameState({
     const text = `I just scored ${results.elo.toLocaleString()} (rank #${results.rank}) on CheetCode CTF — ${PROBLEMS_PER_SESSION} problems, ${ROUND_DURATION_SECONDS} seconds. Think your agent can beat it? 🔥`;
     const fullText = `${text}\n\n${ORIGINAL_TWEET_URL}`;
     const tweetUrl = `https://x.com/intent/post?text=${encodeURIComponent(fullText)}`;
-    await navigator.clipboard.writeText(fullText);
     window.open(tweetUrl, "_blank", "noopener,noreferrer");
+    try {
+      await navigator.clipboard.writeText(fullText);
+    } catch (err) {
+      console.error("copy share text failed:", err);
+    }
   }, [results]);
 
   const autoSolve = useCallback(async () => {
@@ -785,7 +792,7 @@ export function useHomeGameState({
         const validationRes = await clientFetch("/api/validate-batch", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ items }),
+          body: JSON.stringify({ sessionId, items }),
         });
 
         if (validationRes.ok) {
@@ -813,7 +820,7 @@ export function useHomeGameState({
                 const single = await clientFetch("/api/validate-l1", {
                   method: "POST",
                   headers: { "content-type": "application/json" },
-                  body: JSON.stringify({ sessionId, code, testCases: problem.testCases }),
+                  body: JSON.stringify({ sessionId, problemId: problem.id, code }),
                 });
                 if (!single.ok) return [problem.id, null] as const;
                 const singleData = await single.json();
@@ -906,24 +913,20 @@ export function useHomeGameState({
     if (typeof window === "undefined" || screen !== "results" || !results) return;
     persistResultsScreen({
       screen: "results",
+      github,
       currentLevel,
       sessionId,
       results,
-      email,
-      xHandle,
-      flag,
       submittedLead,
     });
   }, [
     currentLevel,
-    email,
-    flag,
+    github,
     persistResultsScreen,
     results,
     screen,
     sessionId,
     submittedLead,
-    xHandle,
   ]);
 
   const copyToClipboard = useCallback(async (text: string) => {

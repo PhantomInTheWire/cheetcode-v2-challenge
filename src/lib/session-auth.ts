@@ -16,7 +16,7 @@ export async function requireOwnedSession(
   sessionId: string,
   github: string,
   expectedLevel?: 1 | 2 | 3,
-  options?: { allowExpired?: boolean },
+  options?: { expiryGraceMs?: number },
 ): Promise<{ session: OwnedSession; convex: ConvexHttpClient } | { response: NextResponse }> {
   const convex = new ConvexHttpClient(ENV.NEXT_PUBLIC_CONVEX_URL);
   const session = (await convex.query(api.submissions.getSession, {
@@ -29,7 +29,8 @@ export async function requireOwnedSession(
   if (session.github !== github) {
     return { response: NextResponse.json({ error: "unauthorized" }, { status: 401 }) };
   }
-  if (!options?.allowExpired && session.expiresAt <= Date.now()) {
+  const expiryGraceMs = Math.max(0, options?.expiryGraceMs ?? 0);
+  if (session.expiresAt + expiryGraceMs <= Date.now()) {
     return { response: NextResponse.json({ error: "session expired" }, { status: 410 }) };
   }
   if (expectedLevel && (session.level ?? 1) !== expectedLevel) {

@@ -154,6 +154,115 @@ function BrailleSpinner() {
   );
 }
 
+function AnimatedLandingDecor() {
+  const [flameFrame, setFlameFrame] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setFlameFrame((p) => (p + 1) % FIRE_TEXTURE_FRAMES.length), 85);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <>
+      <div
+        style={{
+          position: "absolute",
+          left: 16,
+          top: "50%",
+          transform: "translateY(-50%)",
+          fontSize: 8,
+          lineHeight: "10px",
+          color: "#fa5d19",
+          opacity: 0.3,
+          whiteSpace: "pre",
+          fontFamily: "var(--font-geist-mono), monospace",
+          pointerEvents: "none",
+          userSelect: "none",
+          zIndex: 2,
+        }}
+      >
+        {SIDE_ASCII_FRAMES[flameFrame % SIDE_ASCII_FRAMES.length]}
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          right: 16,
+          top: "50%",
+          transform: "translateY(-50%) scaleX(-1)",
+          fontSize: 8,
+          lineHeight: "10px",
+          color: "#fa5d19",
+          opacity: 0.3,
+          whiteSpace: "pre",
+          fontFamily: "var(--font-geist-mono), monospace",
+          pointerEvents: "none",
+          userSelect: "none",
+          zIndex: 2,
+        }}
+      >
+        {SIDE_ASCII_FRAMES[(flameFrame + 1) % SIDE_ASCII_FRAMES.length]}
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: -280,
+          width: 783,
+          height: 160,
+          zIndex: 1,
+          pointerEvents: "none",
+          userSelect: "none",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 9,
+            lineHeight: "11px",
+            color: "rgba(0,0,0,0.18)",
+            whiteSpace: "pre",
+            fontFamily: "'Roboto Mono', var(--font-geist-mono), monospace",
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+          }}
+        >
+          {FIRE_TEXTURE_FRAMES[flameFrame]}
+        </div>
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          bottom: 0,
+          right: -280,
+          width: 783,
+          height: 160,
+          zIndex: 1,
+          pointerEvents: "none",
+          userSelect: "none",
+          overflow: "hidden",
+          transform: "scaleX(-1)",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 9,
+            lineHeight: "11px",
+            color: "rgba(0,0,0,0.18)",
+            whiteSpace: "pre",
+            fontFamily: "'Roboto Mono', var(--font-geist-mono), monospace",
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+          }}
+        >
+          {FIRE_TEXTURE_FRAMES[flameFrame]}
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Exact Firecrawl button shadow (from computed styles on firecrawl.dev) ──
 const HEAT_SHADOW = `
   inset 0px -6px 12px 0px rgba(250,25,25,0.2),
@@ -192,13 +301,6 @@ export function LandingScreen({
   const totalTimeLabel = `${totalSeconds} secs`;
   const availableLevels =
     unlockedLevel < 2 && !isLocalDev ? [1] : unlockedLevel < 3 && !isLocalDev ? [1, 2] : [1, 2, 3];
-
-  const [flameFrame, setFlameFrame] = useState(0);
-
-  useEffect(() => {
-    const t = setInterval(() => setFlameFrame((p) => (p + 1) % FIRE_TEXTURE_FRAMES.length), 85);
-    return () => clearInterval(t);
-  }, []);
 
   const levelMeta: Record<number, { desc: string; time: string }> = {
     1: { desc: "Algo", time: `${ROUND_DURATION_SECONDS}s` },
@@ -287,104 +389,7 @@ export function LandingScreen({
           </div>
         ))}
 
-        {/* ── Animated orange ASCII art blocks on sides (firecrawl hero style) ── */}
-        <div
-          style={{
-            position: "absolute",
-            left: 16,
-            top: "50%",
-            transform: "translateY(-50%)",
-            fontSize: 8,
-            lineHeight: "10px",
-            color: "#fa5d19",
-            opacity: 0.3,
-            whiteSpace: "pre",
-            fontFamily: "var(--font-geist-mono), monospace",
-            pointerEvents: "none",
-            userSelect: "none",
-            zIndex: 2,
-          }}
-        >
-          {SIDE_ASCII_FRAMES[flameFrame % SIDE_ASCII_FRAMES.length]}
-        </div>
-        <div
-          style={{
-            position: "absolute",
-            right: 16,
-            top: "50%",
-            transform: "translateY(-50%) scaleX(-1)",
-            fontSize: 8,
-            lineHeight: "10px",
-            color: "#fa5d19",
-            opacity: 0.3,
-            whiteSpace: "pre",
-            fontFamily: "var(--font-geist-mono), monospace",
-            pointerEvents: "none",
-            userSelect: "none",
-            zIndex: 2,
-          }}
-        >
-          {SIDE_ASCII_FRAMES[(flameFrame + 1) % SIDE_ASCII_FRAMES.length]}
-        </div>
-
-        {/* ── ASCII flame bleed at bottom edges ── */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: -280,
-            width: 783,
-            height: 160,
-            zIndex: 1,
-            pointerEvents: "none",
-            userSelect: "none",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 9,
-              lineHeight: "11px",
-              color: "rgba(0,0,0,0.18)",
-              whiteSpace: "pre",
-              fontFamily: "'Roboto Mono', var(--font-geist-mono), monospace",
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-            }}
-          >
-            {FIRE_TEXTURE_FRAMES[flameFrame]}
-          </div>
-        </div>
-        <div
-          style={{
-            position: "absolute",
-            bottom: 0,
-            right: -280,
-            width: 783,
-            height: 160,
-            zIndex: 1,
-            pointerEvents: "none",
-            userSelect: "none",
-            overflow: "hidden",
-            transform: "scaleX(-1)",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 9,
-              lineHeight: "11px",
-              color: "rgba(0,0,0,0.18)",
-              whiteSpace: "pre",
-              fontFamily: "'Roboto Mono', var(--font-geist-mono), monospace",
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-            }}
-          >
-            {FIRE_TEXTURE_FRAMES[flameFrame]}
-          </div>
-        </div>
+        <AnimatedLandingDecor />
         <div
           style={{
             width: "100%",

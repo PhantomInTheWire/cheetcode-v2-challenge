@@ -83,7 +83,7 @@ describe("client-identity", () => {
     expect(headers.get("x-client-fingerprint")).toBeTruthy();
   });
 
-  it("waits for FingerprintJS before sending mutation requests", async () => {
+  it("sends mutation requests immediately with a fallback fingerprint while FingerprintJS resolves", async () => {
     mockWindow();
     let markGetStarted: (() => void) | null = null;
     let resolveGet: ((value: { visitorId: string }) => void) | null = null;
@@ -106,14 +106,12 @@ describe("client-identity", () => {
     const pendingFetch = mod.clientFetch("/api/x", { method: "POST" });
 
     await getStarted;
-    expect(fetchMock).not.toHaveBeenCalled();
-    resolveGet?.({ visitorId: "fp-123" });
-    await pendingFetch;
-
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [, init] = fetchMock.mock.calls[0] as [RequestInfo, RequestInit];
     const headers = new Headers(init.headers);
-    expect(headers.get("x-client-fingerprint")).toBe("fp-123");
+    expect(headers.get("x-client-fingerprint")).toMatch(/^fallback-/);
+    resolveGet?.({ visitorId: "fp-123" });
+    await pendingFetch;
   });
 
   it("reuses the same fallback fingerprint when localStorage is unavailable", async () => {

@@ -315,6 +315,10 @@ export function Level3Game({
   );
   const totalChecks = challenge.checks.length;
   const timeUp = timeLeftMs === 0;
+  const sourceExtension = useMemo(
+    () => extensionForLanguage(challenge.language),
+    [challenge.language],
+  );
   const editorExtensions = useMemo(
     () => [editorExtensionFor(challenge.language)],
     [challenge.language],
@@ -323,6 +327,42 @@ export function Level3Game({
     ? ["\u2026"]
     : ["\u28FE", "\u28FD", "\u28FB", "\u28BF", "\u287F", "\u28DF", "\u28EF", "\u28F7"];
   const spinnerGlyph = brailleSpinner[pulseFrame % brailleSpinner.length] ?? "\u28FE";
+  const handleCodeChange = useCallback((value: string) => {
+    setCode(value);
+  }, []);
+  const renderedSpec = useMemo(
+    () => (
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={L3_MARKDOWN_COMPONENTS}>
+        {challenge.spec}
+      </ReactMarkdown>
+    ),
+    [challenge.spec],
+  );
+  const renderedEditor = useMemo(
+    () => (
+      <CodeMirror
+        className="l3-code-editor"
+        value={code}
+        height="100%"
+        editable={!(timeUp || isSubmitting)}
+        basicSetup={{
+          lineNumbers: true,
+          foldGutter: true,
+          autocompletion: false,
+          highlightActiveLine: true,
+        }}
+        extensions={editorExtensions}
+        onChange={handleCodeChange}
+        style={{
+          height: "calc(100% - 34px)",
+          fontSize: 13,
+        }}
+      />
+    ),
+    [code, editorExtensions, handleCodeChange, isSubmitting, timeUp],
+  );
+  const pulseGlyphs = prefersReducedMotion ? ["."] : [".", "o", "O", "@"];
+  const pulseGlyph = pulseGlyphs[pulseFrame % pulseGlyphs.length] ?? ".";
   const isRunBusy = runUiPhase === "compiling" || runUiPhase === "running";
   const runButtonLabel =
     runUiPhase === "compiling"
@@ -821,9 +861,7 @@ export function Level3Game({
                 color: COLORS.TEXT_DARK,
               }}
             >
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={L3_MARKDOWN_COMPONENTS}>
-                {challenge.spec}
-              </ReactMarkdown>
+              {renderedSpec}
             </div>
           </div>
 
@@ -866,18 +904,8 @@ export function Level3Game({
               gap: 8,
             }}
           >
-            <p
-              style={{
-                fontSize: 12,
-                color: "rgba(0,0,0,0.5)",
-                margin: 0,
-                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              }}
-            >
-              Paste code for{" "}
-              <strong style={{ fontWeight: 500 }}>
-                main.{extensionForLanguage(challenge.language)}
-              </strong>
+            <p style={{ fontSize: 12, color: "rgba(0,0,0,0.5)", margin: 0 }}>
+              Paste code for <strong>main.{sourceExtension}</strong>
             </p>
 
             <div
@@ -913,27 +941,10 @@ export function Level3Game({
                     fontWeight: 500,
                   }}
                 >
-                  <span>main.{extensionForLanguage(challenge.language)}</span>
+                  <span>main.{sourceExtension}</span>
                   <span>{challenge.language}</span>
                 </div>
-                <CodeMirror
-                  className="l3-code-editor"
-                  value={code}
-                  height="100%"
-                  editable={!(timeUp || isSubmitting)}
-                  basicSetup={{
-                    lineNumbers: true,
-                    foldGutter: true,
-                    autocompletion: false,
-                    highlightActiveLine: true,
-                  }}
-                  extensions={editorExtensions}
-                  onChange={(value) => setCode(value)}
-                  style={{
-                    height: "calc(100% - 34px)",
-                    fontSize: 13,
-                  }}
-                />
+                {renderedEditor}
               </div>
 
               <div

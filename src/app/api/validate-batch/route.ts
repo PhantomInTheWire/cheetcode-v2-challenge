@@ -11,6 +11,7 @@ import {
   getQJS,
   type QuickJSWASMModule,
 } from "../../../lib/quickjs-shared";
+import { requireOwnedSession } from "../../../lib/session-auth";
 
 type TestCase = {
   input: Record<string, unknown>;
@@ -25,6 +26,7 @@ type BatchItem = {
 };
 
 type Payload = {
+  sessionId: string;
   items: BatchItem[];
 };
 
@@ -176,10 +178,20 @@ export async function POST(request: Request) {
   try {
     const authResult = await requireAuthenticatedGithub(request);
     if ("response" in authResult) return authResult.response;
+    const { github } = authResult;
 
     const body = (await request.json()) as Payload;
-    if (!body?.items || !Array.isArray(body.items)) {
+    if (!body?.sessionId || !body?.items || !Array.isArray(body.items)) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+
+    const sessionResult = await requireOwnedSession(body.sessionId, github, 1);
+    if ("response" in sessionResult) return sessionResult.response;
+
+    const sessionProblemIds = new Set(sessionResult.session.problemIds);
+    const hasInvalidProblem = body.items.some((item) => !sessionProblemIds.has(item.problemId));
+    if (hasInvalidProblem) {
+      return NextResponse.json({ error: "Invalid problem set for session" }, { status: 400 });
     }
 
     const qjs = await getQJS();

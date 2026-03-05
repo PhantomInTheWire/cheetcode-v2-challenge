@@ -1,9 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
-import { POST } from "../src/app/api/validate-batch/route";
 
 vi.mock("../src/lib/request-auth", () => ({
   requireAuthenticatedGithub: vi.fn(async () => ({ ok: true, github: "tester" })),
 }));
+
+vi.mock("../src/lib/session-auth", () => ({
+  requireOwnedSession: vi.fn(async () => ({
+    session: { problemIds: ["p1", "p2", "dragon-treasure-count", "loop"] },
+    convex: {},
+  })),
+}));
+
+async function getPost() {
+  return (await import("../src/app/api/validate-batch/route")).POST;
+}
 
 describe("/api/validate-batch", () => {
   it("validates multiple items independently in one batch", async () => {
@@ -11,6 +21,7 @@ describe("/api/validate-batch", () => {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
+        sessionId: "session-1",
         items: [
           {
             problemId: "p1",
@@ -26,6 +37,7 @@ describe("/api/validate-batch", () => {
       }),
     });
 
+    const POST = await getPost();
     const res = await POST(req);
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
@@ -40,6 +52,7 @@ describe("/api/validate-batch", () => {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
+        sessionId: "session-1",
         items: [
           {
             problemId: "dragon-treasure-count",
@@ -53,6 +66,7 @@ describe("/api/validate-batch", () => {
       }),
     });
 
+    const POST = await getPost();
     const res = await POST(req);
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
@@ -66,6 +80,7 @@ describe("/api/validate-batch", () => {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
+        sessionId: "session-1",
         items: [
           {
             problemId: "loop",
@@ -76,6 +91,7 @@ describe("/api/validate-batch", () => {
       }),
     });
 
+    const POST = await getPost();
     const res = await POST(req);
     expect(res.status).toBe(200);
     const body = (await res.json()) as {

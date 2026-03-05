@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getLevel3ChallengeFromId } from "../server/level3/problems";
 
 const l3Challenge = getLevel3ChallengeFromId("l3:cpu-16bit-emulator:c");
@@ -47,7 +47,11 @@ vi.mock("../server/level3/validation", () => ({
 }));
 
 describe("finish l2/l3 routes", () => {
+  let dateNowSpy: ReturnType<typeof vi.spyOn> | null = null;
+
   beforeEach(() => {
+    dateNowSpy?.mockRestore();
+    dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(10_000);
     hoisted.queryMock.mockReset();
     hoisted.actionMock.mockReset();
     hoisted.validateL3Mock.mockClear();
@@ -70,6 +74,11 @@ describe("finish l2/l3 routes", () => {
       rank: 1,
       timeRemaining: 1,
     });
+  });
+
+  afterEach(() => {
+    dateNowSpy?.mockRestore();
+    dateNowSpy = null;
   });
 
   it("/api/finish-l2 records results for authorized owner", async () => {
@@ -106,8 +115,8 @@ describe("finish l2/l3 routes", () => {
     expect(telemetryCall?.status).toBe("passed");
   });
 
-  it("/api/finish-l2 still records results after the session expiry time", async () => {
-    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(50_000);
+  it("/api/finish-l2 rejects submissions after the expiry grace window", async () => {
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(52_000);
     const { POST } = await import("../src/app/api/finish-l2/route");
     hoisted.queryMock.mockResolvedValueOnce({
       github: "tester",
@@ -129,8 +138,8 @@ describe("finish l2/l3 routes", () => {
 
     const res = await POST(req);
     nowSpy.mockRestore();
-    expect(res.status).toBe(200);
-    expect(hoisted.actionMock).toHaveBeenCalledTimes(2);
+    expect(res.status).toBe(410);
+    expect(hoisted.actionMock).not.toHaveBeenCalled();
   });
 
   it("/api/finish-l2 rejects non-level-2 sessions", async () => {

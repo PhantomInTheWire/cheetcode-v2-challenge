@@ -11,6 +11,7 @@ type OwnedSession = {
   expiresAt: number;
   level?: number;
 };
+const FINISH_ROUTE_EXPIRY_GRACE_MS = 5_000;
 
 /**
  * Common orchestration for "finish" routes:
@@ -40,7 +41,7 @@ export async function withAuthenticatedSession<TBody extends { sessionId: string
     const { github } = authResult;
 
     const sessionResult = await requireOwnedSession(body.sessionId, github, expectedLevel, {
-      allowExpired: true,
+      expiryGraceMs: FINISH_ROUTE_EXPIRY_GRACE_MS,
     });
     if ("response" in sessionResult) return sessionResult.response;
     const { session, convex } = sessionResult;
