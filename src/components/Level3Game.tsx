@@ -14,6 +14,11 @@ import { L3_MARKDOWN_COMPONENTS } from "./level3MarkdownComponents";
 
 const ROUND_DURATION_L3_MS = 120_000;
 const LEVEL3_STATUS_STORAGE_KEY = "cheetcode.level3Status";
+const LEVEL3_RUN_SMOKE_CHECKS = 5;
+const LEVEL3_RUN_DEBOUNCE_MS = 350;
+const LEVEL3_RUN_CACHE_TTL_MS = 90_000;
+const LEVEL3_CACHED_BADGE_MS = 1_200;
+const LEVEL3_PHASE_SWAP_MS = 700;
 
 type Level3Check = {
   id: string;
@@ -52,6 +57,26 @@ type Level3GameProps = {
   onFinishAction: (results: Level3FinishResult) => void;
 };
 
+type Level3ValidationRow = {
+  problemId: string;
+  correct: boolean;
+  message?: string;
+};
+
+type Level3ValidationPayload = {
+  compiled: boolean;
+  error: string;
+  staleSession?: boolean;
+  results: Level3ValidationRow[];
+};
+
+type L3RunCacheEntry = {
+  at: number;
+  response: Level3ValidationPayload;
+};
+
+type RunUiPhase = "idle" | "compiling" | "running" | "cached";
+
 function extensionForLanguage(language: string): string {
   if (language === "Rust") return "rs";
   if (language === "C++") return "cpp";
@@ -62,6 +87,22 @@ function extensionForLanguage(language: string): string {
 function editorExtensionFor(language: string) {
   if (language === "Rust") return rust();
   return cpp();
+}
+
+async function hashText(input: string): Promise<string> {
+  if (typeof window !== "undefined" && window.crypto?.subtle) {
+    const hashBuffer = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+  // Fallback for environments without Web Crypto.
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
 export function Level3Game({
@@ -81,6 +122,10 @@ export function Level3Game({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [compileError, setCompileError] = useState<string | null>(null);
   const [localCorrect, setLocalCorrect] = useState<Record<string, boolean | null>>({});
+  const [runUiPhase, setRunUiPhase] = useState<RunUiPhase>("idle");
+  const [runHint, setRunHint] = useState<string | null>(null);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [pulseFrame, setPulseFrame] = useState(0);
   const [leftPaneWidth, setLeftPaneWidth] = useState(48);
   const [editorHeightRatio, setEditorHeightRatio] = useState(0.75);
   const lockedTimeElapsedMsRef = useRef<number | null>(null);
@@ -88,6 +133,79 @@ export function Level3Game({
   const dragStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const verticalDragStateRef = useRef<{ startY: number; startRatio: number } | null>(null);
   const initialCodeRef = useRef(initialCode ?? challenge.starterCode);
+  const runCacheRef = useRef<Map<string, L3RunCacheEntry>>(new Map());
+  const runInFlightRef = useRef(false);
+  const runDebounceUntilRef = useRef(0);
+  const runPhaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const runCachedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const runHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearRunPhaseTimer = useCallback(() => {
+    if (runPhaseTimerRef.current) {
+      clearTimeout(runPhaseTimerRef.current);
+      runPhaseTimerRef.current = null;
+    }
+  }, []);
+  const clearRunCachedTimer = useCallback(() => {
+    if (runCachedTimerRef.current) {
+      clearTimeout(runCachedTimerRef.current);
+      runCachedTimerRef.current = null;
+    }
+  }, []);
+  const clearRunHintTimer = useCallback(() => {
+    if (runHintTimerRef.current) {
+      clearTimeout(runHintTimerRef.current);
+      runHintTimerRef.current = null;
+    }
+  }, []);
+
+  const showRunHint = useCallback(
+    (message: string, ttlMs = 900) => {
+      setRunHint(message);
+      clearRunHintTimer();
+      runHintTimerRef.current = setTimeout(() => {
+        setRunHint(null);
+        runHintTimerRef.current = null;
+      }, ttlMs);
+    },
+    [clearRunHintTimer],
+  );
+
+  const setRunPhaseIdle = useCallback(() => {
+    clearRunPhaseTimer();
+    setRunUiPhase("idle");
+  }, [clearRunPhaseTimer]);
+
+  const setRunPhaseCached = useCallback(() => {
+    clearRunPhaseTimer();
+    clearRunCachedTimer();
+    setRunUiPhase("cached");
+    runCachedTimerRef.current = setTimeout(() => {
+      setRunUiPhase("idle");
+      runCachedTimerRef.current = null;
+    }, LEVEL3_CACHED_BADGE_MS);
+  }, [clearRunCachedTimer, clearRunPhaseTimer]);
+
+  const applySmokeResults = useCallback((data: Level3ValidationPayload) => {
+    const nextState: Record<string, boolean | null> = {};
+    for (const result of data.results.slice(0, LEVEL3_RUN_SMOKE_CHECKS)) {
+      nextState[result.problemId] = result.correct;
+    }
+    setLocalCorrect(nextState);
+  }, []);
+
+  const applyValidationForRun = useCallback(
+    (data: Level3ValidationPayload) => {
+      if (data.compiled === false) {
+        setCompileError(data.error || "compile failed");
+        if (data.staleSession === true) {
+          throw new Error(data.error || "stale Level 3 session");
+        }
+      }
+      applySmokeResults(data);
+    },
+    [applySmokeResults],
+  );
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 100);
@@ -121,6 +239,14 @@ export function Level3Game({
     }
     lockedTimeElapsedMsRef.current = null;
     autoSubmittedRef.current = false;
+    runCacheRef.current.clear();
+    runInFlightRef.current = false;
+    runDebounceUntilRef.current = 0;
+    clearRunPhaseTimer();
+    clearRunCachedTimer();
+    clearRunHintTimer();
+    setRunHint(null);
+    setRunUiPhase("idle");
   }, [challenge.id, challenge.starterCode, sessionId]);
 
   useEffect(() => {
@@ -144,6 +270,31 @@ export function Level3Game({
     }
   }, [compileError, localCorrect, sessionId]);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setPrefersReducedMotion(mediaQuery.matches);
+    sync();
+    mediaQuery.addEventListener("change", sync);
+    return () => mediaQuery.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!isChecking || prefersReducedMotion) return;
+    const id = setInterval(() => {
+      setPulseFrame((value) => (value + 1) % 4);
+    }, 160);
+    return () => clearInterval(id);
+  }, [isChecking, prefersReducedMotion]);
+
+  useEffect(() => {
+    return () => {
+      clearRunPhaseTimer();
+      clearRunCachedTimer();
+      clearRunHintTimer();
+    };
+  }, [clearRunCachedTimer, clearRunHintTimer, clearRunPhaseTimer]);
+
   const timeLeftMs = useMemo(() => Math.max(0, expiresAt - now), [expiresAt, now]);
   const secondsLeft = Math.ceil(timeLeftMs / 1000);
   const progress = Math.max(0, Math.min(100, (timeLeftMs / ROUND_DURATION_L3_MS) * 100));
@@ -157,42 +308,71 @@ export function Level3Game({
     () => [editorExtensionFor(challenge.language)],
     [challenge.language],
   );
+  const pulseGlyphs = prefersReducedMotion ? ["."] : [".", "o", "O", "@"];
+  const pulseGlyph = pulseGlyphs[pulseFrame % pulseGlyphs.length] ?? ".";
+  const isRunBusy = runUiPhase === "compiling" || runUiPhase === "running";
+  const runButtonLabel =
+    runUiPhase === "compiling"
+      ? "COMPILING..."
+      : runUiPhase === "running"
+        ? "RUNNING TESTS..."
+        : `RUN ${LEVEL3_RUN_SMOKE_CHECKS} TESTS`;
 
   async function runChecks() {
+    const nowMs = Date.now();
+    if (runInFlightRef.current) {
+      showRunHint("Already running...");
+      return;
+    }
+    if (runDebounceUntilRef.current > nowMs) {
+      return;
+    }
+    runDebounceUntilRef.current = nowMs + LEVEL3_RUN_DEBOUNCE_MS;
+
+    runInFlightRef.current = true;
     setIsChecking(true);
     setCompileError(null);
     setSubmitError(null);
+    clearRunCachedTimer();
+    setRunHint(null);
+    setRunUiPhase("compiling");
+    clearRunPhaseTimer();
+    runPhaseTimerRef.current = setTimeout(() => {
+      setRunUiPhase((current) => (current === "compiling" ? "running" : current));
+      runPhaseTimerRef.current = null;
+    }, LEVEL3_PHASE_SWAP_MS);
+    let keepCachedPhase = false;
     try {
+      const codeHash = await hashText(code);
+      const cacheKey = `${sessionId}:${challenge.id}:${codeHash}`;
+      const cached = runCacheRef.current.get(cacheKey);
+      if (cached && nowMs - cached.at <= LEVEL3_RUN_CACHE_TTL_MS) {
+        applyValidationForRun(cached.response);
+        setRunPhaseCached();
+        keepCachedPhase = true;
+        return;
+      }
+
       const res = await clientFetch("/api/validate-l3", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ sessionId, challengeId: challenge.id, code }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as Level3ValidationPayload;
       if (!res.ok) {
         throw new Error(data.error || `validation failed: ${res.status}`);
       }
-      if (data.compiled === false) {
-        setCompileError(data.error || "compile failed");
-        if (data.staleSession === true) {
-          throw new Error(data.error || "stale Level 3 session");
-        }
-      }
-
-      const nextState: Record<string, boolean | null> = {};
-      for (const result of data.results as Array<{
-        problemId: string;
-        correct: boolean;
-        message?: string;
-      }>) {
-        nextState[result.problemId] = result.correct;
-      }
-      setLocalCorrect(nextState);
+      runCacheRef.current.set(cacheKey, { at: Date.now(), response: data });
+      applyValidationForRun(data);
     } catch (err) {
       console.error("Level 3 check failed:", err);
       setSubmitError(err instanceof Error ? err.message : "Test run failed. Please try again.");
     } finally {
+      runInFlightRef.current = false;
       setIsChecking(false);
+      if (!keepCachedPhase) {
+        setRunPhaseIdle();
+      }
     }
   }
 
@@ -417,7 +597,7 @@ export function Level3Game({
 
           <button
             onClick={() => void runChecks()}
-            disabled={isChecking || isSubmitting || timeUp || !code.trim()}
+            disabled={isSubmitting || timeUp || !code.trim()}
             className="btn-ghost"
             style={{
               height: 32,
@@ -426,11 +606,85 @@ export function Level3Game({
               fontSize: 12,
               fontWeight: 700,
               fontFamily: "inherit",
-              cursor: isChecking || isSubmitting || timeUp ? "not-allowed" : "pointer",
+              cursor: isSubmitting || timeUp ? "not-allowed" : "pointer",
+              position: "relative",
+              overflow: "hidden",
+              color: isRunBusy ? "#fa5d19" : undefined,
+              borderColor: isRunBusy ? "rgba(250, 93, 25, 0.45)" : undefined,
+              background: isRunBusy ? "rgba(250, 93, 25, 0.04)" : undefined,
             }}
           >
-            {isChecking ? "RUNNING..." : "RUN TESTS"}
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                position: "relative",
+                zIndex: 2,
+              }}
+            >
+              <span>{runButtonLabel}</span>
+              {isRunBusy && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "#fa5d19",
+                    minWidth: 8,
+                    textAlign: "center",
+                  }}
+                  aria-hidden="true"
+                >
+                  {pulseGlyph}
+                </span>
+              )}
+            </span>
+            {isRunBusy && (
+              <span
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  left: `${8 + pulseFrame * 22}%`,
+                  bottom: 0,
+                  height: 2,
+                  width: "36%",
+                  background:
+                    "linear-gradient(90deg, rgba(250,93,25,0.08) 0%, rgba(250,93,25,0.3) 45%, #fa5d19 100%)",
+                  borderRadius: 999,
+                  transition: "left 140ms linear",
+                  zIndex: 1,
+                }}
+              />
+            )}
           </button>
+          {runHint && (
+            <span
+              style={{
+                fontSize: 10,
+                color: "rgba(0,0,0,0.5)",
+                marginLeft: -8,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {runHint}
+            </span>
+          )}
+          {runUiPhase === "cached" && (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: "#8a3d14",
+                background: "rgba(250, 93, 25, 0.12)",
+                border: "1px solid rgba(250, 93, 25, 0.25)",
+                borderRadius: 999,
+                padding: "4px 8px",
+                letterSpacing: 0.2,
+                whiteSpace: "nowrap",
+              }}
+            >
+              INSTANT (CACHED)
+            </span>
+          )}
 
           <button
             onClick={() => void finishGame()}
