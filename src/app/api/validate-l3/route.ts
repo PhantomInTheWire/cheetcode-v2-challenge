@@ -6,10 +6,7 @@ import {
 } from "../../../../server/level3/validation";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import { requireOwnedSession } from "../../../lib/session-auth";
-import {
-  acquireLevel3InflightLock,
-  releaseLevel3InflightLock,
-} from "../../../lib/abuse/guard";
+import { acquireLevel3InflightLock, releaseLevel3InflightLock } from "../../../lib/abuse/guard";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { recordBuiltTelemetry } from "../../../lib/attempt-telemetry";
 import { ENV } from "../../../lib/env-vars";

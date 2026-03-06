@@ -133,9 +133,7 @@ describe("validate l2/l3 routes", () => {
       | undefined;
     expect(telemetryCall?.eventType).toBe("validate_l3");
     expect(telemetryCall?.status).toBe("passed");
-    const extensionCall = hoisted.actionMock.mock.calls[1]?.[1] as
-      | { extendMs: number }
-      | undefined;
+    const extensionCall = hoisted.actionMock.mock.calls[1]?.[1] as { extendMs: number } | undefined;
     expect(extensionCall?.extendMs).toBeTypeOf("number");
   });
 
@@ -214,11 +212,13 @@ describe("validate l2/l3 routes", () => {
       },
       convex: { action: hoisted.actionMock },
     });
-    let resolveValidation: ((value: {
-      compiled: boolean;
-      error: string;
-      results: Array<{ problemId: string; correct: boolean; message: string }>;
-    }) => void) | null = null;
+    let resolveValidation:
+      | ((value: {
+          compiled: boolean;
+          error: string;
+          results: Array<{ problemId: string; correct: boolean; message: string }>;
+        }) => void)
+      | null = null;
     hoisted.validateL3Mock.mockImplementationOnce(
       () =>
         new Promise((resolve) => {

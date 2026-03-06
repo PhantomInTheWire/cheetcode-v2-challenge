@@ -15,7 +15,10 @@
     "id": "lo_3",
     "question": "When a page with stacked see through drawing layers is flattened into picture tiles during fixed layout export because direct blending for those recorded drawing steps cannot be trusted, which internal warning label is logged for that tile conversion path instead of the warnings that only discard blending?",
     "answer": "Warning_Transparency_Converted",
-    "acceptableAnswers": ["Warning_Transparency_Converted", "vcl::PDFWriter::Warning_Transparency_Converted"]
+    "acceptableAnswers": [
+      "Warning_Transparency_Converted",
+      "vcl::PDFWriter::Warning_Transparency_Converted"
+    ]
   },
   {
     "id": "lo_4",
@@ -45,7 +48,11 @@
     "id": "lo_8",
     "question": "During picture insertion in the long-document editor, the file type is recognized and pixel decoding has already succeeded, but the operation still fails when the system tries to keep a second compact copy of the original byte stream for later reuse. The same failure class is also surfaced by the slide editor through the shared picture-loading path. What exact internal status token marks this late-stage oversized-allocation edge case?",
     "answer": "ERRCODE_GRFILTER_TOOBIG",
-    "acceptableAnswers": ["ERRCODE_GRFILTER_TOOBIG", "ErrCode(ErrCodeArea::Vcl, ErrCodeClass::General, 7)", "Vcl/General/7"]
+    "acceptableAnswers": [
+      "ERRCODE_GRFILTER_TOOBIG",
+      "ErrCode(ErrCodeArea::Vcl, ErrCodeClass::General, 7)",
+      "Vcl/General/7"
+    ]
   },
   {
     "id": "lo_9",
@@ -75,7 +82,11 @@
     "id": "lo_13",
     "question": "During a table-copy assistant run, the source is a saved data request with unresolved fill-in blanks, so a value-entry prompt appears before transfer. If the operator dismisses that prompt without supplying any values, the run is treated as an intentional stop and returns a cancel-style outcome instead of showing an error dialog. What exact internal error-code token marks this edge-case path?",
     "answer": "ParameterInteractionCancelled",
-    "acceptableAnswers": ["ParameterInteractionCancelled", "::dbtools::ParameterInteractionCancelled", "1"]
+    "acceptableAnswers": [
+      "ParameterInteractionCancelled",
+      "::dbtools::ParameterInteractionCancelled",
+      "1"
+    ]
   },
   {
     "id": "lo_14",

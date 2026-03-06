@@ -18,7 +18,7 @@ import { clientFetch } from "@/lib/client-identity";
 type LeaderboardRow = { solved: number };
 
 type StoredResultsScreen = {
-  screen: "results";
+  screen: "results" | "level3-verification";
   github: string;
   currentLevel: number;
   sessionId: Id<"sessions"> | null;
@@ -351,7 +351,8 @@ export function useHomeGameState({
         if (resultsRaw) {
           const storedResults = JSON.parse(resultsRaw) as Partial<StoredResultsScreen>;
           if (
-            storedResults.screen === "results" &&
+            (storedResults.screen === "results" ||
+              storedResults.screen === "level3-verification") &&
             storedResults.results &&
             storedResults.github === github
           ) {
@@ -364,7 +365,7 @@ export function useHomeGameState({
             setXHandle("");
             setFlag("");
             setSubmittedLead(storedResults.submittedLead === true);
-            setScreen("results");
+            setScreen(storedResults.screen);
           } else {
             clearStoredResults();
           }
@@ -927,24 +928,21 @@ export function useHomeGameState({
   ]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || screen !== "results" || !results) return;
+    if (
+      typeof window === "undefined" ||
+      (screen !== "results" && screen !== "level3-verification") ||
+      !results
+    )
+      return;
     persistResultsScreen({
-      screen: "results",
+      screen,
       github,
       currentLevel,
       sessionId,
       results,
       submittedLead,
     });
-  }, [
-    currentLevel,
-    github,
-    persistResultsScreen,
-    results,
-    screen,
-    sessionId,
-    submittedLead,
-  ]);
+  }, [currentLevel, github, persistResultsScreen, results, screen, sessionId, submittedLead]);
 
   const copyToClipboard = useCallback(async (text: string) => {
     try {

@@ -21,7 +21,11 @@
     "id": "pg_4",
     "question": "When someone tries to attach a new uniqueness promise to a data sheet by reusing an old lock, but that lock is already tied to another promise, which all caps internal failure label is raised?",
     "answer": "ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE",
-    "acceptableAnswers": ["ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE", "55000", "object_not_in_prerequisite_state"]
+    "acceptableAnswers": [
+      "ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE",
+      "55000",
+      "object_not_in_prerequisite_state"
+    ]
   },
   {
     "id": "pg_5",
@@ -93,7 +97,10 @@
     "id": "pg_16",
     "question": "During the final shutdown lap of log streaming, the sender may still pause even after its own durable bytes are available, because nominated downstream partners have not yet proven they durably stored the handoff checkpoint needed for takeover continuity. Which internal wait event token names that pause?",
     "answer": "WAIT_EVENT_WAIT_FOR_STANDBY_CONFIRMATION",
-    "acceptableAnswers": ["WAIT_EVENT_WAIT_FOR_STANDBY_CONFIRMATION", "WAIT_FOR_STANDBY_CONFIRMATION"]
+    "acceptableAnswers": [
+      "WAIT_EVENT_WAIT_FOR_STANDBY_CONFIRMATION",
+      "WAIT_FOR_STANDBY_CONFIRMATION"
+    ]
   },
   {
     "id": "pg_17",

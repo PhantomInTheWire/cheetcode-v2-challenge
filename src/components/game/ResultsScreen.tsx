@@ -541,10 +541,12 @@ export function ResultsScreen({
                       background: field.readOnly ? "rgba(0,0,0,0.02)" : "#fafafa",
                     }}
                     onFocus={(e) => {
-                      if (!field.readOnly) e.target.style.borderColor = field.error ? "#dc2626" : "#fa5d19";
+                      if (!field.readOnly)
+                        e.target.style.borderColor = field.error ? "#dc2626" : "#fa5d19";
                     }}
                     onBlur={(e) => {
-                      if (!field.readOnly) e.target.style.borderColor = field.error ? "#dc2626" : "#e8e8e8";
+                      if (!field.readOnly)
+                        e.target.style.borderColor = field.error ? "#dc2626" : "#e8e8e8";
                     }}
                   />
                 </div>

@@ -18,7 +18,9 @@ const hasNativeToolchain = hasTool("clang") && hasTool("clang++") && hasTool("ru
 describe.skipIf(!hasNativeToolchain)("level3 autosolve native harness", () => {
   it("passes harness checks for the auth resolver across C/C++/Rust", () => {
     const languages = ["C", "C++", "Rust"] as const;
-    const authTask = LEVEL3_ENABLED_TASKS.find((task) => task.id === "identity-bundle-auth-resolver");
+    const authTask = LEVEL3_ENABLED_TASKS.find(
+      (task) => task.id === "identity-bundle-auth-resolver",
+    );
     expect(authTask).toBeTruthy();
     for (const task of [authTask!]) {
       for (const language of languages) {

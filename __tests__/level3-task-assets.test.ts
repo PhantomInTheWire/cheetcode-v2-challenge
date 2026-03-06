@@ -32,9 +32,9 @@ describe("level3 task assets", () => {
   });
 
   it("returns no auxiliary sources for the auth resolver task", () => {
-    expect(
-      resolveLevel3TaskAssets("identity-bundle-auth-resolver", "C").auxiliarySources,
-    ).toEqual([]);
+    expect(resolveLevel3TaskAssets("identity-bundle-auth-resolver", "C").auxiliarySources).toEqual(
+      [],
+    );
   });
 
   it("returns explicit error when task asset is missing", () => {

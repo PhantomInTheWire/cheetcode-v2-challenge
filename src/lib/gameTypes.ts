@@ -1,7 +1,13 @@
 import type { Id } from "../../convex/_generated/dataModel";
 import { TOTAL_SOLVE_TARGET } from "@/lib/constants";
 
-export type Screen = "landing" | "level2-prereq" | "level3-prereq" | "playing" | "results";
+export type Screen =
+  | "landing"
+  | "level2-prereq"
+  | "level3-prereq"
+  | "playing"
+  | "results"
+  | "level3-verification";
 export type ProblemTier = "easy" | "medium" | "hard" | "competitive";
 
 export type ProblemTestCase = {

@@ -385,10 +385,8 @@ export function Level3Game({
         }}
       />
     ),
-    [code, editorExtensions, handleCodeChange, isSubmitting, timeUp],
+    [code, editorExtensions, handleCodeChange, isChecking, isSubmitting, timeUp],
   );
-  const pulseGlyphs = prefersReducedMotion ? ["."] : [".", "o", "O", "@"];
-  const pulseGlyph = pulseGlyphs[pulseFrame % pulseGlyphs.length] ?? ".";
   const isRunBusy = runUiPhase === "compiling" || runUiPhase === "running";
   const runButtonLabel =
     runUiPhase === "compiling"

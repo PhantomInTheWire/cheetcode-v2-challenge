@@ -154,7 +154,10 @@ export async function POST(request: Request) {
 
     const { convex, session } = sessionResult;
     if (!session.problemIds.includes(problemId)) {
-      return NextResponse.json({ passed: false, error: "Problem not assigned to session" }, { status: 400 });
+      return NextResponse.json(
+        { passed: false, error: "Problem not assigned to session" },
+        { status: 400 },
+      );
     }
 
     const problem = PROBLEM_BANK.find((entry) => entry.id === problemId);
@@ -162,7 +165,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ passed: false, error: "Problem not found" }, { status: 404 });
     }
 
-    const testCases = normalizeTestCasesWithArgs(problem.signature, problem.testCases) as TestCase[];
+    const testCases = normalizeTestCasesWithArgs(
+      problem.signature,
+      problem.testCases,
+    ) as TestCase[];
     const qjs = await getQJS();
     const result = runValidation(qjs, code, testCases);
 

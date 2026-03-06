@@ -24,62 +24,62 @@ User action (menu, toolbar, keyboard shortcut)
 
 ### Synonym Table
 
-| Internal Term              | Use Instead                                   |
-| -------------------------- | --------------------------------------------- |
-| VCL                        | visual rendering toolkit                      |
-| UNO                        | universal component interface                 |
-| SAL                        | system abstraction foundation                 |
-| Writer (sw)                | long-document composition engine              |
-| Calc (sc)                  | tabular computation engine                    |
-| Impress (sd)               | slide presentation engine                     |
-| Draw                       | vector illustration canvas                    |
-| Math (starmath)            | equation typesetting editor                   |
-| SfxObjectShell             | document container shell                      |
-| SdrObject                  | geometric drawing primitive                   |
-| ScDocument                 | spreadsheet data model                        |
-| SwDoc                      | document text model                           |
-| SdDrawDocument             | presentation document model                   |
-| ODF                        | open document interchange format              |
-| OOXML                      | proprietary office interchange format         |
-| SDBC                       | structured database connectivity bridge       |
-| StarBasic                  | embedded macro scripting engine               |
-| AutoText                   | reusable text fragment library                |
-| pivot table                | cross-tabulation summary matrix               |
-| cell range                 | rectangular grid selection                    |
-| master page                | slide template blueprint                      |
-| style                      | formatting rule bundle                        |
-| filter                     | file format translator                        |
-| macro                      | user-defined automation script                |
-| sidebar                    | collapsible tool panel                        |
-| toolbar                    | action button strip                           |
-| SvxShape                   | universal shape wrapper                       |
-| editeng                    | rich text composition core                    |
-| drawinglayer               | vector rendering pipeline                     |
-| formula opcode             | spreadsheet function instruction code         |
-| formula error code         | computation failure signal                    |
-| SfxHint                    | document change notification                  |
-| SwNode                     | document content tree element                 |
-| SwTextNode                 | paragraph content container                   |
-| ScAddress                  | grid coordinate triplet                       |
-| SfxItemSet                 | attribute collection envelope                 |
-| SfxPoolItem                | typed formatting attribute                    |
-| hintid                     | attribute type discriminator tag              |
-| number format              | numeric display pattern                       |
-| SvNumberFormatter          | locale-aware value display engine             |
-| field (SwField)            | dynamic content placeholder                   |
-| undo                       | action reversal record                        |
-| xmloff                     | structured document serializer                |
-| oox                        | foreign format bridge layer                   |
-| configmgr                  | persistent settings registry                  |
-| UCB                        | universal content access broker               |
-| slideshow                  | automated slide sequencer                     |
-| SfxDispatcher              | command routing controller                    |
-| SfxViewShell               | document viewport manager                     |
-| cui                        | shared preference dialog collection           |
-| lotuswordpro               | legacy word processor format reader           |
-| writerperfect              | legacy document recovery layer                |
-| basctl                     | macro development environment                 |
-| dbaccess                   | database front-end shell                      |
+| Internal Term      | Use Instead                             |
+| ------------------ | --------------------------------------- |
+| VCL                | visual rendering toolkit                |
+| UNO                | universal component interface           |
+| SAL                | system abstraction foundation           |
+| Writer (sw)        | long-document composition engine        |
+| Calc (sc)          | tabular computation engine              |
+| Impress (sd)       | slide presentation engine               |
+| Draw               | vector illustration canvas              |
+| Math (starmath)    | equation typesetting editor             |
+| SfxObjectShell     | document container shell                |
+| SdrObject          | geometric drawing primitive             |
+| ScDocument         | spreadsheet data model                  |
+| SwDoc              | document text model                     |
+| SdDrawDocument     | presentation document model             |
+| ODF                | open document interchange format        |
+| OOXML              | proprietary office interchange format   |
+| SDBC               | structured database connectivity bridge |
+| StarBasic          | embedded macro scripting engine         |
+| AutoText           | reusable text fragment library          |
+| pivot table        | cross-tabulation summary matrix         |
+| cell range         | rectangular grid selection              |
+| master page        | slide template blueprint                |
+| style              | formatting rule bundle                  |
+| filter             | file format translator                  |
+| macro              | user-defined automation script          |
+| sidebar            | collapsible tool panel                  |
+| toolbar            | action button strip                     |
+| SvxShape           | universal shape wrapper                 |
+| editeng            | rich text composition core              |
+| drawinglayer       | vector rendering pipeline               |
+| formula opcode     | spreadsheet function instruction code   |
+| formula error code | computation failure signal              |
+| SfxHint            | document change notification            |
+| SwNode             | document content tree element           |
+| SwTextNode         | paragraph content container             |
+| ScAddress          | grid coordinate triplet                 |
+| SfxItemSet         | attribute collection envelope           |
+| SfxPoolItem        | typed formatting attribute              |
+| hintid             | attribute type discriminator tag        |
+| number format      | numeric display pattern                 |
+| SvNumberFormatter  | locale-aware value display engine       |
+| field (SwField)    | dynamic content placeholder             |
+| undo               | action reversal record                  |
+| xmloff             | structured document serializer          |
+| oox                | foreign format bridge layer             |
+| configmgr          | persistent settings registry            |
+| UCB                | universal content access broker         |
+| slideshow          | automated slide sequencer               |
+| SfxDispatcher      | command routing controller              |
+| SfxViewShell       | document viewport manager               |
+| cui                | shared preference dialog collection     |
+| lotuswordpro       | legacy word processor format reader     |
+| writerperfect      | legacy document recovery layer          |
+| basctl             | macro development environment           |
+| dbaccess           | database front-end shell                |
 
 ### Hotspot Areas
 

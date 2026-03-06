@@ -5,10 +5,7 @@ import {
   sanitizeLevel3ValidationForClient,
   validateLevel3Submission,
 } from "../../../../server/level3/validation";
-import {
-  acquireLevel3InflightLock,
-  releaseLevel3InflightLock,
-} from "../../../lib/abuse/guard";
+import { acquireLevel3InflightLock, releaseLevel3InflightLock } from "../../../lib/abuse/guard";
 import { SHADOW_BAN_HEADER } from "../../../lib/abuse";
 import { clampElapsed, shadowBanResponse } from "../../../lib/api-route";
 import { ENV } from "../../../lib/env-vars";
@@ -133,7 +130,9 @@ export async function POST(request: Request) {
             { status: 503 },
           );
         }
-        const solvedProblemIds = validation.results.filter((r) => r.correct).map((r) => r.problemId);
+        const solvedProblemIds = validation.results
+          .filter((r) => r.correct)
+          .map((r) => r.problemId);
 
         const result = await convex.action(api.submissions.recordResults, {
           secret: ENV.CONVEX_MUTATION_SECRET,

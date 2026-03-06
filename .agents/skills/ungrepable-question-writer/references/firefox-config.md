@@ -23,62 +23,62 @@ User action (browser chrome UI, web page behavior)
 
 ### Synonym Table
 
-| Internal Term                        | Use Instead                                    |
-| ------------------------------------ | ---------------------------------------------- |
-| XPCOM                                | cross-platform component binding framework     |
-| nsresult                             | status disposition code                        |
-| nsISupports                          | root component interface                       |
-| Necko (netwerk)                      | network transport stack                        |
-| SpiderMonkey                         | script execution engine                        |
-| WebRender                            | GPU-driven composition pipeline                |
-| Stylo                                | parallel style computation engine              |
-| Gecko                                | rendering engine core                          |
-| content process                      | isolated page execution sandbox                |
-| chrome process (parent)              | main orchestrator process                      |
-| IPDL                                 | inter-process protocol schema language         |
-| Fission                              | site-isolation architecture                    |
-| Electrolysis (e10s)                  | multi-process separation layer                 |
-| Marionette                           | remote automation driver                       |
-| GeckoView                            | embedded rendering surface                     |
-| about:config                         | internal preference editor                     |
-| Places                               | history and bookmark database                  |
-| Telemetry probe                      | usage measurement beacon                       |
-| Breakpad / Crashpad                  | fault analysis collector                       |
-| Normandy                             | remote experiment orchestrator                 |
-| Nimbus                               | feature experimentation framework              |
-| APZ (Async Pan/Zoom)                 | asynchronous scroll compositor                 |
-| TRR (Trusted Recursive Resolver)     | encrypted name resolution proxy                |
-| HSTS                                 | transport upgrade persistence policy           |
-| CSP (Content Security Policy)        | page resource restriction ruleset              |
-| SRI (Subresource Integrity)          | fetched resource fingerprint check             |
-| ETP (Enhanced Tracking Protection)   | cross-site surveillance shield                 |
-| service worker                       | background page helper agent                   |
-| IndexedDB                            | structured client-side object store            |
-| Quota Manager                        | local storage capacity enforcer                |
-| WebAuthn / FIDO                      | site identity proof ceremony                   |
-| Push API                             | server-initiated notification channel          |
-| WebTransport                         | multiplexed low-latency data conduit           |
-| WebCrypto                            | in-page cryptographic toolkit                  |
-| gamepad                              | physical game controller peripheral            |
-| geolocation                          | geographic position sensor                     |
-| certificate (X.509)                  | cryptographic identity credential              |
-| OCSP                                 | credential revocation live check               |
-| NSS                                  | cryptographic foundation library               |
-| Cookie                               | site-deposited tracking morsel                 |
-| iframe                               | embedded interactive sub-frame                 |
-| SharedArrayBuffer                    | concurrent memory region                       |
-| WebGPU                               | accelerated graphics computation interface     |
-| JIT (IonMonkey/Baseline)             | runtime code generation optimizer              |
-| GC (garbage collection)              | automatic memory reclamation cycle             |
-| Wasm                                 | portable bytecode execution format             |
-| CUPS                                 | operating system print dispatch service        |
-| XR / WebXR                           | immersive spatial rendering session            |
+| Internal Term                      | Use Instead                                |
+| ---------------------------------- | ------------------------------------------ |
+| XPCOM                              | cross-platform component binding framework |
+| nsresult                           | status disposition code                    |
+| nsISupports                        | root component interface                   |
+| Necko (netwerk)                    | network transport stack                    |
+| SpiderMonkey                       | script execution engine                    |
+| WebRender                          | GPU-driven composition pipeline            |
+| Stylo                              | parallel style computation engine          |
+| Gecko                              | rendering engine core                      |
+| content process                    | isolated page execution sandbox            |
+| chrome process (parent)            | main orchestrator process                  |
+| IPDL                               | inter-process protocol schema language     |
+| Fission                            | site-isolation architecture                |
+| Electrolysis (e10s)                | multi-process separation layer             |
+| Marionette                         | remote automation driver                   |
+| GeckoView                          | embedded rendering surface                 |
+| about:config                       | internal preference editor                 |
+| Places                             | history and bookmark database              |
+| Telemetry probe                    | usage measurement beacon                   |
+| Breakpad / Crashpad                | fault analysis collector                   |
+| Normandy                           | remote experiment orchestrator             |
+| Nimbus                             | feature experimentation framework          |
+| APZ (Async Pan/Zoom)               | asynchronous scroll compositor             |
+| TRR (Trusted Recursive Resolver)   | encrypted name resolution proxy            |
+| HSTS                               | transport upgrade persistence policy       |
+| CSP (Content Security Policy)      | page resource restriction ruleset          |
+| SRI (Subresource Integrity)        | fetched resource fingerprint check         |
+| ETP (Enhanced Tracking Protection) | cross-site surveillance shield             |
+| service worker                     | background page helper agent               |
+| IndexedDB                          | structured client-side object store        |
+| Quota Manager                      | local storage capacity enforcer            |
+| WebAuthn / FIDO                    | site identity proof ceremony               |
+| Push API                           | server-initiated notification channel      |
+| WebTransport                       | multiplexed low-latency data conduit       |
+| WebCrypto                          | in-page cryptographic toolkit              |
+| gamepad                            | physical game controller peripheral        |
+| geolocation                        | geographic position sensor                 |
+| certificate (X.509)                | cryptographic identity credential          |
+| OCSP                               | credential revocation live check           |
+| NSS                                | cryptographic foundation library           |
+| Cookie                             | site-deposited tracking morsel             |
+| iframe                             | embedded interactive sub-frame             |
+| SharedArrayBuffer                  | concurrent memory region                   |
+| WebGPU                             | accelerated graphics computation interface |
+| JIT (IonMonkey/Baseline)           | runtime code generation optimizer          |
+| GC (garbage collection)            | automatic memory reclamation cycle         |
+| Wasm                               | portable bytecode execution format         |
+| CUPS                               | operating system print dispatch service    |
+| XR / WebXR                         | immersive spatial rendering session        |
 
 ### Hotspot Areas
 
 #### XPCOM / Core Errors
 
-- `xpcom/base/ErrorList.py` -- master NS_ERROR_* code registry (nsresult values)
+- `xpcom/base/ErrorList.py` -- master NS*ERROR*\* code registry (nsresult values)
 - `xpcom/base/nsError.h` -- error generation macros, severity/module encoding
 - `xpcom/base/ErrorNames.cpp` -- error code to name mapping
 - `xpcom/ds/` -- data structure utilities, observer service
@@ -238,7 +238,7 @@ User action (browser chrome UI, web page behavior)
 
 #### Platform Widgets
 
-- `widget/cocoa/` -- macOS native widget integration (*.mm)
+- `widget/cocoa/` -- macOS native widget integration (\*.mm)
 - `widget/windows/` -- Windows native widget integration
 - `widget/gtk/` -- GTK/Linux widget integration
 - `widget/android/` -- Android widget layer (GeckoView)

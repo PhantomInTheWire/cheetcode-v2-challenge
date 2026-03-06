@@ -15,7 +15,11 @@
     "id": "ff_3",
     "question": "In the browser's credential revocation live-check response cache, two result statuses share the privilege of being shielded from displacement when the cache reaches capacity. One is the status indicating the credential has been withdrawn. What is the internal result enum value for the other protected status — the one that indicates the revocation responder does not recognize the credential at all — which also uniquely overrides lenient failure tolerance by blocking the connection even when the revocation service cannot be contacted and the system would otherwise permit the handshake to proceed?",
     "answer": "ERROR_OCSP_UNKNOWN_CERT",
-    "acceptableAnswers": ["ERROR_OCSP_UNKNOWN_CERT", "Result::ERROR_OCSP_UNKNOWN_CERT", "SEC_ERROR_OCSP_UNKNOWN_CERT"]
+    "acceptableAnswers": [
+      "ERROR_OCSP_UNKNOWN_CERT",
+      "Result::ERROR_OCSP_UNKNOWN_CERT",
+      "SEC_ERROR_OCSP_UNKNOWN_CERT"
+    ]
   },
   {
     "id": "ff_4",
@@ -27,7 +31,11 @@
     "id": "ff_5",
     "question": "In the browser's touch input gesture recognition subsystem, the two-contact scaling gesture (magnification) uses a multi-phase lifecycle type enumeration to signal its progression. One particular phase type represents a unique intermediate condition: when exactly one of the two screen contacts is withdrawn while the other persists — distinct from the final termination signal where all contacts are removed. Upon receiving this intermediate signal, the asynchronous scroll compositor transitions from its active scaling mode into a single-contact tracking mode, preserving the position of the surviving contact point as a positional anchor for potential follow-up dragging. What is the exact name of this enumeration value?",
     "answer": "PINCHGESTURE_FINGERLIFTED",
-    "acceptableAnswers": ["PINCHGESTURE_FINGERLIFTED", "PinchGestureType::PINCHGESTURE_FINGERLIFTED", "PinchGestureInput::PINCHGESTURE_FINGERLIFTED"]
+    "acceptableAnswers": [
+      "PINCHGESTURE_FINGERLIFTED",
+      "PinchGestureType::PINCHGESTURE_FINGERLIFTED",
+      "PinchGestureInput::PINCHGESTURE_FINGERLIFTED"
+    ]
   },
   {
     "id": "ff_6",
@@ -45,7 +53,11 @@
     "id": "ff_8",
     "question": "During server certificate checks, when a connection chains to a locally trusted root instead of a Mozilla built in root, and one subject alternative name entry is malformed but not fatal, which policy action name tells hostname matching to continue past that bad entry?",
     "answer": "HandleInvalidSubjectAlternativeNamesBy::Skipping",
-    "acceptableAnswers": ["HandleInvalidSubjectAlternativeNamesBy::Skipping", "pkix::HandleInvalidSubjectAlternativeNamesBy::Skipping", "Skipping"]
+    "acceptableAnswers": [
+      "HandleInvalidSubjectAlternativeNamesBy::Skipping",
+      "pkix::HandleInvalidSubjectAlternativeNamesBy::Skipping",
+      "Skipping"
+    ]
   },
   {
     "id": "ff_9",
@@ -63,7 +75,11 @@
     "id": "ff_11",
     "question": "When tracker cookies are not fully denied and are instead isolated per site, the code first marks them with a foreign partitioned cookie state and only later upgrades that state for tracker specific reporting. What is the first state token called?",
     "answer": "STATE_COOKIES_PARTITIONED_FOREIGN",
-    "acceptableAnswers": ["STATE_COOKIES_PARTITIONED_FOREIGN", "nsIWebProgressListener::STATE_COOKIES_PARTITIONED_FOREIGN", "Ci.nsIWebProgressListener.STATE_COOKIES_PARTITIONED_FOREIGN"]
+    "acceptableAnswers": [
+      "STATE_COOKIES_PARTITIONED_FOREIGN",
+      "nsIWebProgressListener::STATE_COOKIES_PARTITIONED_FOREIGN",
+      "Ci.nsIWebProgressListener.STATE_COOKIES_PARTITIONED_FOREIGN"
+    ]
   },
   {
     "id": "ff_12",
@@ -117,7 +133,11 @@
     "id": "ff_20",
     "question": "During touch or wheel routing, an inner scroll region is configured with strict boundary behavior in both directions so motion is not allowed to spill into parent regions. In the brief wait before the central thread returns a destination verdict, which hit-test flag marks this region so ancestor takeover is blocked if no verdict arrives?",
     "answer": "eRequiresTargetConfirmation",
-    "acceptableAnswers": ["eRequiresTargetConfirmation", "CompositorHitTestFlags::eRequiresTargetConfirmation", "gfx::CompositorHitTestFlags::eRequiresTargetConfirmation"]
+    "acceptableAnswers": [
+      "eRequiresTargetConfirmation",
+      "CompositorHitTestFlags::eRequiresTargetConfirmation",
+      "gfx::CompositorHitTestFlags::eRequiresTargetConfirmation"
+    ]
   },
   {
     "id": "ff_21",

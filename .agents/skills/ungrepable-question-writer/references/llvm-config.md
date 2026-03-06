@@ -25,67 +25,67 @@ Source code (C/C++/Rust/Fortran/etc.)
 
 ### Synonym Table
 
-| Internal Term                  | Use Instead                                          |
-| ------------------------------ | ---------------------------------------------------- |
-| LLVM IR                        | intermediate program blueprint                       |
-| SSA (Static Single Assignment) | single-assignment variable form                      |
-| basic block                    | sequential instruction region                        |
-| phi node                       | branch-convergence value selector                    |
-| dominator tree                 | control-flow ancestry graph                          |
-| register allocator             | physical storage assigner                            |
-| instruction selection (ISel)   | pattern-to-machine-operation mapper                  |
-| SelectionDAG                   | operation dependency graph                           |
-| GlobalISel                     | generic instruction lowering framework               |
-| pass (optimization pass)       | transformation stage                                 |
-| intrinsic                      | compiler-recognized built-in operation               |
-| ABI / calling convention       | inter-routine communication contract                 |
-| linkage                        | cross-module visibility rule                         |
-| metadata                       | auxiliary annotation                                 |
-| MachineInstr                   | target-specific operation record                     |
-| MCInst                         | final machine encoding record                        |
-| TableGen (.td)                 | declarative target descriptor language               |
-| ELF                            | binary container format (Unix)                       |
-| MachO                          | binary container format (Apple)                      |
-| COFF                           | binary container format (Windows)                    |
-| relocation                     | address fixup record                                 |
-| DWARF                          | debug annotation format                              |
-| CodeView                       | debug annotation format (Windows)                    |
-| sanitizer (ASan/TSan/MSan)     | runtime correctness monitor                          |
-| UBSan                          | undefined behavior runtime detector                  |
-| inlining                       | callee body absorption                               |
-| loop vectorization             | iteration-parallel widening                          |
-| SLP vectorization              | adjacent-value parallel packing                      |
-| GVN (Global Value Numbering)   | redundant computation eliminator                     |
-| SROA                           | aggregate-to-scalar decomposer                       |
-| SCCP                           | constant propagation solver                          |
-| LICM                           | invariant-code elevation from cycles                 |
-| dead store elimination         | unused write removal                                 |
-| alias analysis                 | memory reference overlap oracle                      |
-| ScalarEvolution (SCEV)         | induction variable progression modeler               |
-| MemorySSA                      | memory access ordering graph                         |
-| LTO (Link-Time Optimization)   | whole-program deferred optimization                  |
-| ThinLTO                        | summary-guided cross-module optimization             |
-| Clang Sema                     | source-language rule enforcer                        |
-| Clang AST                      | parsed program structure tree                        |
-| Clang Driver                   | compilation orchestration and tool invocation         |
-| Clang diagnostic               | compiler-emitted developer message                   |
-| lld                            | machine code linker                                  |
-| JIT (ORC/MCJIT)               | on-demand code materializer                          |
-| live range / live interval     | value temporal occupancy span                        |
-| spill                          | register-to-memory eviction                          |
-| stack frame                    | per-invocation local storage region                  |
-| constant folding               | compile-time expression resolution                   |
-| branch probability             | execution path likelihood estimate                   |
-| profile-guided optimization    | observed-execution-weighted transformation           |
-| poison value                   | deferred-undefined sentinel                          |
-| undef                          | indeterminate placeholder value                      |
-| GEP (GetElementPtr)            | structured memory offset calculator                  |
-| landing pad                    | exception arrival handler                            |
-| personality function           | unwinding strategy selector                          |
-| comdat                         | duplicate-elimination grouping token                 |
-| section                        | binary placement region                              |
-| symbol                         | named entity reference in output                     |
-| Target Triple                  | platform architecture descriptor string              |
+| Internal Term                  | Use Instead                                   |
+| ------------------------------ | --------------------------------------------- |
+| LLVM IR                        | intermediate program blueprint                |
+| SSA (Static Single Assignment) | single-assignment variable form               |
+| basic block                    | sequential instruction region                 |
+| phi node                       | branch-convergence value selector             |
+| dominator tree                 | control-flow ancestry graph                   |
+| register allocator             | physical storage assigner                     |
+| instruction selection (ISel)   | pattern-to-machine-operation mapper           |
+| SelectionDAG                   | operation dependency graph                    |
+| GlobalISel                     | generic instruction lowering framework        |
+| pass (optimization pass)       | transformation stage                          |
+| intrinsic                      | compiler-recognized built-in operation        |
+| ABI / calling convention       | inter-routine communication contract          |
+| linkage                        | cross-module visibility rule                  |
+| metadata                       | auxiliary annotation                          |
+| MachineInstr                   | target-specific operation record              |
+| MCInst                         | final machine encoding record                 |
+| TableGen (.td)                 | declarative target descriptor language        |
+| ELF                            | binary container format (Unix)                |
+| MachO                          | binary container format (Apple)               |
+| COFF                           | binary container format (Windows)             |
+| relocation                     | address fixup record                          |
+| DWARF                          | debug annotation format                       |
+| CodeView                       | debug annotation format (Windows)             |
+| sanitizer (ASan/TSan/MSan)     | runtime correctness monitor                   |
+| UBSan                          | undefined behavior runtime detector           |
+| inlining                       | callee body absorption                        |
+| loop vectorization             | iteration-parallel widening                   |
+| SLP vectorization              | adjacent-value parallel packing               |
+| GVN (Global Value Numbering)   | redundant computation eliminator              |
+| SROA                           | aggregate-to-scalar decomposer                |
+| SCCP                           | constant propagation solver                   |
+| LICM                           | invariant-code elevation from cycles          |
+| dead store elimination         | unused write removal                          |
+| alias analysis                 | memory reference overlap oracle               |
+| ScalarEvolution (SCEV)         | induction variable progression modeler        |
+| MemorySSA                      | memory access ordering graph                  |
+| LTO (Link-Time Optimization)   | whole-program deferred optimization           |
+| ThinLTO                        | summary-guided cross-module optimization      |
+| Clang Sema                     | source-language rule enforcer                 |
+| Clang AST                      | parsed program structure tree                 |
+| Clang Driver                   | compilation orchestration and tool invocation |
+| Clang diagnostic               | compiler-emitted developer message            |
+| lld                            | machine code linker                           |
+| JIT (ORC/MCJIT)                | on-demand code materializer                   |
+| live range / live interval     | value temporal occupancy span                 |
+| spill                          | register-to-memory eviction                   |
+| stack frame                    | per-invocation local storage region           |
+| constant folding               | compile-time expression resolution            |
+| branch probability             | execution path likelihood estimate            |
+| profile-guided optimization    | observed-execution-weighted transformation    |
+| poison value                   | deferred-undefined sentinel                   |
+| undef                          | indeterminate placeholder value               |
+| GEP (GetElementPtr)            | structured memory offset calculator           |
+| landing pad                    | exception arrival handler                     |
+| personality function           | unwinding strategy selector                   |
+| comdat                         | duplicate-elimination grouping token          |
+| section                        | binary placement region                       |
+| symbol                         | named entity reference in output              |
+| Target Triple                  | platform architecture descriptor string       |
 
 ### Hotspot Areas
 

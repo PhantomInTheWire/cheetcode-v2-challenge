@@ -21,14 +21,18 @@ describe("level3 task catalog validation", () => {
   });
 
   it("declares origin tags for the auth resolver task", () => {
-    const authTask = LEVEL3_TASK_CATALOG.find((task) => task.id === "identity-bundle-auth-resolver");
+    const authTask = LEVEL3_TASK_CATALOG.find(
+      (task) => task.id === "identity-bundle-auth-resolver",
+    );
     expect(authTask?.originTags).toEqual(
       expect.arrayContaining(["authentication_authorization_knowledge", "security_knowledge"]),
     );
   });
 
   it("uses generic visible check names for the auth resolver task", () => {
-    const authTask = LEVEL3_TASK_CATALOG.find((task) => task.id === "identity-bundle-auth-resolver");
+    const authTask = LEVEL3_TASK_CATALOG.find(
+      (task) => task.id === "identity-bundle-auth-resolver",
+    );
     expect(authTask?.checks.map((check) => check.name)).toEqual([
       "Behavior Bucket 1",
       "Behavior Bucket 2",

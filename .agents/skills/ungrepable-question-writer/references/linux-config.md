@@ -22,69 +22,69 @@ User-space program (syscall interface)
 
 ### Synonym Table
 
-| Internal Term               | Use Instead                                   |
-| --------------------------- | --------------------------------------------- |
-| syscall                     | service gate request                          |
-| inode                       | file identity record                          |
-| dentry                      | name-to-object resolution cache entry         |
-| superblock                  | volume descriptor record                      |
-| page fault                  | memory page miss                              |
-| OOM killer                  | memory starvation reaper                      |
-| cgroup                      | resource containment partition                |
-| namespace                   | process isolation envelope                    |
-| eBPF / BPF                  | runtime-verified execution filter             |
-| BPF verifier                | program safety proof engine                   |
-| netfilter                   | packet inspection gateway                     |
-| conntrack                   | connection state ledger                       |
-| SELinux                     | mandatory access arbiter                      |
-| AppArmor                    | pathname-based confinement enforcer           |
-| Landlock                    | self-imposed privilege boundary               |
-| LSM                         | pluggable security decision layer             |
-| kthread                     | kernel-resident perpetual worker              |
-| workqueue                   | deferred task dispatch pool                   |
-| tasklet                     | deferred interrupt completion unit            |
-| softirq                     | low-priority deferred processor               |
-| slab allocator              | fixed-geometry memory reservoir               |
-| spinlock                    | busy-wait mutual exclusion primitive          |
-| mutex                       | sleeping mutual exclusion primitive           |
-| RCU                         | epoch-guarded deferred reclamation            |
-| rwlock                      | shared-exclusive access guard                 |
-| VFS                         | filesystem abstraction dispatch layer         |
-| ext4                        | journaled extent-based volume format          |
-| btrfs                       | copy-on-write tree-structured volume format   |
-| XFS                         | high-throughput allocation-group volume format |
-| NVMe                        | register-mapped storage command interface     |
-| block layer                 | storage request staging pipeline              |
-| I/O scheduler               | storage request reordering arbiter            |
-| io_uring                    | asynchronous submission ring interface        |
-| DMA                         | peripheral-direct memory transfer             |
-| IRQ                         | hardware signal line                          |
-| page reclaim / vmscan       | dormant-page eviction sweep                   |
-| huge page / THP             | enlarged memory frame                         |
-| KSM                         | duplicate-page consolidation                  |
-| NUMA                        | topology-aware memory region                  |
-| cgroup memory controller    | per-partition memory accounting enforcer      |
-| TCP                         | reliable ordered byte stream channel          |
-| socket                      | communication endpoint descriptor             |
-| sk_buff / skb               | network message envelope                      |
-| routing table / FIB         | destination resolution ledger                 |
-| xfrm / IPsec               | cryptographic tunnel transformation           |
-| SCTP                        | message-oriented reliable transport           |
-| netlink                     | kernel-to-userspace notification conduit      |
-| device driver               | peripheral control adapter                    |
-| device tree                 | hardware topology manifest                    |
-| ftrace                      | dynamic function instrumentation framework    |
-| kprobe                      | runtime instruction intercept point           |
-| seccomp                     | service-gate restriction filter               |
-| capability                  | granular privilege token                      |
-| signal                      | asynchronous process notification             |
-| pipe                        | unidirectional byte conduit                   |
-| epoll                       | scalable readiness notification collector     |
-| futex                       | user-space fast mutual exclusion word         |
-| cgroup freezer              | process group hibernation control             |
-| PSI                         | resource contention pressure gauge            |
-| writeback                   | dirty-page flush orchestration                |
-| journaling / jbd2           | crash-recovery transaction log                |
+| Internal Term            | Use Instead                                    |
+| ------------------------ | ---------------------------------------------- |
+| syscall                  | service gate request                           |
+| inode                    | file identity record                           |
+| dentry                   | name-to-object resolution cache entry          |
+| superblock               | volume descriptor record                       |
+| page fault               | memory page miss                               |
+| OOM killer               | memory starvation reaper                       |
+| cgroup                   | resource containment partition                 |
+| namespace                | process isolation envelope                     |
+| eBPF / BPF               | runtime-verified execution filter              |
+| BPF verifier             | program safety proof engine                    |
+| netfilter                | packet inspection gateway                      |
+| conntrack                | connection state ledger                        |
+| SELinux                  | mandatory access arbiter                       |
+| AppArmor                 | pathname-based confinement enforcer            |
+| Landlock                 | self-imposed privilege boundary                |
+| LSM                      | pluggable security decision layer              |
+| kthread                  | kernel-resident perpetual worker               |
+| workqueue                | deferred task dispatch pool                    |
+| tasklet                  | deferred interrupt completion unit             |
+| softirq                  | low-priority deferred processor                |
+| slab allocator           | fixed-geometry memory reservoir                |
+| spinlock                 | busy-wait mutual exclusion primitive           |
+| mutex                    | sleeping mutual exclusion primitive            |
+| RCU                      | epoch-guarded deferred reclamation             |
+| rwlock                   | shared-exclusive access guard                  |
+| VFS                      | filesystem abstraction dispatch layer          |
+| ext4                     | journaled extent-based volume format           |
+| btrfs                    | copy-on-write tree-structured volume format    |
+| XFS                      | high-throughput allocation-group volume format |
+| NVMe                     | register-mapped storage command interface      |
+| block layer              | storage request staging pipeline               |
+| I/O scheduler            | storage request reordering arbiter             |
+| io_uring                 | asynchronous submission ring interface         |
+| DMA                      | peripheral-direct memory transfer              |
+| IRQ                      | hardware signal line                           |
+| page reclaim / vmscan    | dormant-page eviction sweep                    |
+| huge page / THP          | enlarged memory frame                          |
+| KSM                      | duplicate-page consolidation                   |
+| NUMA                     | topology-aware memory region                   |
+| cgroup memory controller | per-partition memory accounting enforcer       |
+| TCP                      | reliable ordered byte stream channel           |
+| socket                   | communication endpoint descriptor              |
+| sk_buff / skb            | network message envelope                       |
+| routing table / FIB      | destination resolution ledger                  |
+| xfrm / IPsec             | cryptographic tunnel transformation            |
+| SCTP                     | message-oriented reliable transport            |
+| netlink                  | kernel-to-userspace notification conduit       |
+| device driver            | peripheral control adapter                     |
+| device tree              | hardware topology manifest                     |
+| ftrace                   | dynamic function instrumentation framework     |
+| kprobe                   | runtime instruction intercept point            |
+| seccomp                  | service-gate restriction filter                |
+| capability               | granular privilege token                       |
+| signal                   | asynchronous process notification              |
+| pipe                     | unidirectional byte conduit                    |
+| epoll                    | scalable readiness notification collector      |
+| futex                    | user-space fast mutual exclusion word          |
+| cgroup freezer           | process group hibernation control              |
+| PSI                      | resource contention pressure gauge             |
+| writeback                | dirty-page flush orchestration                 |
+| journaling / jbd2        | crash-recovery transaction log                 |
 
 ### Hotspot Areas
 
@@ -92,7 +92,7 @@ User-space program (syscall interface)
 
 - `include/uapi/asm-generic/errno-base.h` -- base POSIX error numbers (EPERM through EPIPE)
 - `include/uapi/asm-generic/errno.h` -- extended error numbers (EDEADLK through EHWPOISON)
-- `include/net/dropreason-core.h` -- 260+ packet drop reason enums (SKB_DROP_REASON_*)
+- `include/net/dropreason-core.h` -- 260+ packet drop reason enums (SKB*DROP_REASON*\*)
 - `include/net/rstreason.h` -- TCP reset reason enums (sk_rst_reason)
 
 #### Memory Management

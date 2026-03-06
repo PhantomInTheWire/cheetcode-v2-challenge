@@ -24,102 +24,102 @@ SQL query / client command (libpq wire protocol)
 
 ### Synonym Table
 
-| Internal Term | Use Instead |
-| --- | --- |
-| WAL (write-ahead log) | durability journal |
-| XLOG | durability journal subsystem |
-| MVCC | multi-version snapshot isolation |
-| vacuum | dead-row reclamation sweep |
-| autovacuum | automatic dead-row reclamation daemon |
-| checkpoint | durability synchronization barrier |
-| bgwriter | background dirty-page flusher |
-| walwriter | journal flush daemon |
-| shared_buffers | communal page pool |
-| tuple | row record |
-| heap | unordered row-storage file |
-| index | sorted lookup accelerator |
-| B-tree | balanced sorted tree accelerator |
-| GiST | generalized search tree accelerator |
-| GIN | inverted posting-list accelerator |
-| SP-GiST | space-partitioned search tree accelerator |
-| BRIN | block-range summary accelerator |
-| hash index | bucket-chain lookup accelerator |
-| TOAST | oversized-value out-of-line storage |
-| tablespace | designated storage volume |
-| relation | database object handle (table/index/sequence) |
-| relfilenode / relfilenumber | physical file identifier |
-| OID | internal numeric object identifier |
-| catalog | system metadata tables |
-| pg_class | master object registry table |
-| pg_attribute | column definition registry |
-| pg_type | data type registry |
-| pg_proc | function registry |
-| planner / optimizer | query execution strategizer |
-| executor | query execution engine |
-| SeqScan | full-table sequential traversal |
-| IndexScan | accelerator-driven row lookup |
-| BitmapScan | two-phase accelerator-then-heap traversal |
-| HashJoin | bucket-partitioned row matching |
-| MergeJoin | sorted-stream row matching |
-| NestLoop | nested iteration row matching |
-| Gather / GatherMerge | parallel worker result collector |
-| Agg | grouping accumulator |
-| WindowAgg | sliding-frame accumulator |
-| Sort | row ordering step |
-| Limit | row count truncation step |
-| ModifyTable | data mutation dispatcher |
-| Append | union concatenation step |
-| logical replication | row-level change propagation stream |
-| physical replication | byte-level journal replay |
-| walsender | journal transmission process |
-| walreceiver | journal reception process |
-| replication slot | journal consumption bookmark |
-| pg_dump | database export serializer utility |
-| pg_basebackup | full-cluster cloning utility |
-| pg_upgrade | major-version migration utility |
-| pg_rewind | diverged-timeline resynchronization utility |
-| pg_ctl | server lifecycle control utility |
-| psql | interactive query terminal |
-| libpq | client wire-protocol library |
-| FDW (foreign data wrapper) | remote-table proxy adapter |
-| extension | loadable add-on module |
-| contrib module | bundled optional add-on |
-| PL/pgSQL | embedded procedural scripting language |
-| LISTEN / NOTIFY | asynchronous inter-session signaling |
-| advisory lock | application-defined cooperative lock |
-| predicate lock | serializable-isolation conflict detector |
-| lwlock (lightweight lock) | internal subsystem latch |
-| spinlock | hardware-level busy-wait lock |
-| buffer pin | page-reference hold |
-| CLOG (commit log) | transaction outcome ledger |
-| SLRU (simple least-recently-used) | segmented fixed-cache paging layer |
-| visibility map | all-visible page bitmap |
-| free space map | available-capacity page tracker |
-| postmaster | connection supervisor process |
-| backend process | per-session worker process |
-| background worker | auxiliary server task process |
-| SPI (server programming interface) | in-server query invocation interface |
-| trigger | row-event callback hook |
-| event trigger | schema-change callback hook |
-| rule | query-rewriting substitution rule |
-| CTE (common table expression) | named inline sub-query block |
-| partitioning | range/list/hash table subdivision |
-| pg_hba.conf | client authentication rulebook |
-| SCRAM | salted challenge-response credential exchange |
-| SSL / TLS | encrypted transport channel |
-| GEQO | genetic evolution query join optimizer |
-| JIT (just-in-time compilation) | runtime native-code generation |
-| HOT (heap-only tuple) | in-page row version chain |
-| XID wraparound | transaction counter overflow |
-| multixact | shared row-lock holder group |
-| two-phase commit | distributed prepare-then-finalize protocol |
-| savepoint | nested transaction restoration point |
-| recovery | crash-restart journal replay |
-| standby | read-only replica server |
-| timeline | recovery history branch |
-| injection point | developer-inserted test hook |
-| wait event | observable process stall classification |
-| resource owner | per-operation resource tracking scope |
+| Internal Term                      | Use Instead                                   |
+| ---------------------------------- | --------------------------------------------- |
+| WAL (write-ahead log)              | durability journal                            |
+| XLOG                               | durability journal subsystem                  |
+| MVCC                               | multi-version snapshot isolation              |
+| vacuum                             | dead-row reclamation sweep                    |
+| autovacuum                         | automatic dead-row reclamation daemon         |
+| checkpoint                         | durability synchronization barrier            |
+| bgwriter                           | background dirty-page flusher                 |
+| walwriter                          | journal flush daemon                          |
+| shared_buffers                     | communal page pool                            |
+| tuple                              | row record                                    |
+| heap                               | unordered row-storage file                    |
+| index                              | sorted lookup accelerator                     |
+| B-tree                             | balanced sorted tree accelerator              |
+| GiST                               | generalized search tree accelerator           |
+| GIN                                | inverted posting-list accelerator             |
+| SP-GiST                            | space-partitioned search tree accelerator     |
+| BRIN                               | block-range summary accelerator               |
+| hash index                         | bucket-chain lookup accelerator               |
+| TOAST                              | oversized-value out-of-line storage           |
+| tablespace                         | designated storage volume                     |
+| relation                           | database object handle (table/index/sequence) |
+| relfilenode / relfilenumber        | physical file identifier                      |
+| OID                                | internal numeric object identifier            |
+| catalog                            | system metadata tables                        |
+| pg_class                           | master object registry table                  |
+| pg_attribute                       | column definition registry                    |
+| pg_type                            | data type registry                            |
+| pg_proc                            | function registry                             |
+| planner / optimizer                | query execution strategizer                   |
+| executor                           | query execution engine                        |
+| SeqScan                            | full-table sequential traversal               |
+| IndexScan                          | accelerator-driven row lookup                 |
+| BitmapScan                         | two-phase accelerator-then-heap traversal     |
+| HashJoin                           | bucket-partitioned row matching               |
+| MergeJoin                          | sorted-stream row matching                    |
+| NestLoop                           | nested iteration row matching                 |
+| Gather / GatherMerge               | parallel worker result collector              |
+| Agg                                | grouping accumulator                          |
+| WindowAgg                          | sliding-frame accumulator                     |
+| Sort                               | row ordering step                             |
+| Limit                              | row count truncation step                     |
+| ModifyTable                        | data mutation dispatcher                      |
+| Append                             | union concatenation step                      |
+| logical replication                | row-level change propagation stream           |
+| physical replication               | byte-level journal replay                     |
+| walsender                          | journal transmission process                  |
+| walreceiver                        | journal reception process                     |
+| replication slot                   | journal consumption bookmark                  |
+| pg_dump                            | database export serializer utility            |
+| pg_basebackup                      | full-cluster cloning utility                  |
+| pg_upgrade                         | major-version migration utility               |
+| pg_rewind                          | diverged-timeline resynchronization utility   |
+| pg_ctl                             | server lifecycle control utility              |
+| psql                               | interactive query terminal                    |
+| libpq                              | client wire-protocol library                  |
+| FDW (foreign data wrapper)         | remote-table proxy adapter                    |
+| extension                          | loadable add-on module                        |
+| contrib module                     | bundled optional add-on                       |
+| PL/pgSQL                           | embedded procedural scripting language        |
+| LISTEN / NOTIFY                    | asynchronous inter-session signaling          |
+| advisory lock                      | application-defined cooperative lock          |
+| predicate lock                     | serializable-isolation conflict detector      |
+| lwlock (lightweight lock)          | internal subsystem latch                      |
+| spinlock                           | hardware-level busy-wait lock                 |
+| buffer pin                         | page-reference hold                           |
+| CLOG (commit log)                  | transaction outcome ledger                    |
+| SLRU (simple least-recently-used)  | segmented fixed-cache paging layer            |
+| visibility map                     | all-visible page bitmap                       |
+| free space map                     | available-capacity page tracker               |
+| postmaster                         | connection supervisor process                 |
+| backend process                    | per-session worker process                    |
+| background worker                  | auxiliary server task process                 |
+| SPI (server programming interface) | in-server query invocation interface          |
+| trigger                            | row-event callback hook                       |
+| event trigger                      | schema-change callback hook                   |
+| rule                               | query-rewriting substitution rule             |
+| CTE (common table expression)      | named inline sub-query block                  |
+| partitioning                       | range/list/hash table subdivision             |
+| pg_hba.conf                        | client authentication rulebook                |
+| SCRAM                              | salted challenge-response credential exchange |
+| SSL / TLS                          | encrypted transport channel                   |
+| GEQO                               | genetic evolution query join optimizer        |
+| JIT (just-in-time compilation)     | runtime native-code generation                |
+| HOT (heap-only tuple)              | in-page row version chain                     |
+| XID wraparound                     | transaction counter overflow                  |
+| multixact                          | shared row-lock holder group                  |
+| two-phase commit                   | distributed prepare-then-finalize protocol    |
+| savepoint                          | nested transaction restoration point          |
+| recovery                           | crash-restart journal replay                  |
+| standby                            | read-only replica server                      |
+| timeline                           | recovery history branch                       |
+| injection point                    | developer-inserted test hook                  |
+| wait event                         | observable process stall classification       |
+| resource owner                     | per-operation resource tracking scope         |
 
 ### Hotspot Areas
 
@@ -136,13 +136,13 @@ SQL query / client command (libpq wire protocol)
 
 #### Transaction / WAL / XLOG
 
-- `src/include/access/xact.h` -- isolation levels (XACT_*), SyncCommitLevel, transaction events
+- `src/include/access/xact.h` -- isolation levels (XACT\_\*), SyncCommitLevel, transaction events
 - `src/include/access/xlog.h` -- WAL-level enums, recovery states
 - `src/include/access/xlogrecord.h` -- WAL record header format
 - `src/include/access/xlogdefs.h` -- LSN, TimeLineID types
 - `src/include/access/xlogrecovery.h` -- recovery target types and actions
 - `src/include/access/rmgrlist.h` -- WAL resource manager IDs (RM_XLOG_ID, RM_HEAP_ID, etc.)
-- `src/include/access/heapam_xlog.h` -- heap WAL opcodes (XLOG_HEAP_INSERT, _DELETE, _UPDATE, HOT_UPDATE, etc.)
+- `src/include/access/heapam_xlog.h` -- heap WAL opcodes (XLOG_HEAP_INSERT, \_DELETE, \_UPDATE, HOT_UPDATE, etc.)
 - `src/include/access/nbtxlog.h` -- B-tree WAL opcodes
 - `src/include/access/clog.h` -- transaction status values
 - `src/include/access/transam.h` -- transaction ID constants, frozen XID
@@ -164,7 +164,7 @@ SQL query / client command (libpq wire protocol)
 #### Catalog / Dependency / Object Types
 
 - `src/include/catalog/dependency.h` -- DependencyType, SharedDependencyType, ObjectClass enums
-- `src/include/catalog/pg_class.h` -- relation kinds (RELKIND_*), persistence types
+- `src/include/catalog/pg_class.h` -- relation kinds (RELKIND\_\*), persistence types
 - `src/include/catalog/pg_type.h` -- type categories, type alignment
 - `src/include/catalog/pg_constraint.h` -- constraint types
 - `src/include/catalog/pg_trigger.h` -- trigger type flags
@@ -175,7 +175,7 @@ SQL query / client command (libpq wire protocol)
 #### Error Codes (SQLSTATE)
 
 - `src/backend/utils/errcodes.txt` -- SQLSTATE error code definitions (generates errcodes.h)
-- `src/include/utils/errcodes.h` -- generated ERRCODE_* macros
+- `src/include/utils/errcodes.h` -- generated ERRCODE\_\* macros
 - `src/include/utils/elog.h` -- error levels (DEBUG through PANIC)
 
 #### Executor / Plan Execution
@@ -237,7 +237,7 @@ SQL query / client command (libpq wire protocol)
 - `src/include/access/brin.h` -- BRIN opclass support
 - `src/include/access/hash.h` -- hash index bucket/overflow page types
 - `src/include/access/heapam.h` -- heap access method operations
-- `src/include/access/tableam.h` -- table access method API (TU_* result codes)
+- `src/include/access/tableam.h` -- table access method API (TU\_\* result codes)
 - `src/include/access/htup_details.h` -- heap tuple infomask bits
 
 #### Postmaster / Background Processes
