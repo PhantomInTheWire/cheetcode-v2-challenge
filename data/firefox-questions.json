@@ -1,0 +1,32 @@
+[
+  {
+    "id": "ff_1",
+    "question": "In the network transport stack, when the multiplexed transport protocol's session validates the encrypted channel's negotiated cryptographic profile — confirming that message authentication employs exclusively an authenticated-encryption-with-associated-data construction and that key-agreement bit lengths meet the specification's mandatory floor — and this validation fails on a channel carrying an encrypted name resolution proxy lookup, the resulting failure is cataloged under an abandonment-reason inventory. The entry at ordinal twenty-three in that inventory carries a single-letter misspelling in its last word compared to the correctly-spelled status disposition code from which it derives. What is the full identifier of that misspelled inventory entry?",
+    "answer": "TRR_NET_INADEQ_SEQURITY",
+    "acceptableAnswers": ["TRR_NET_INADEQ_SEQURITY"]
+  },
+  {
+    "id": "ff_2",
+    "question": "In the script execution engine's runtime code generation optimizer, a late-stage transformation pass can merge a property-slot memory fetch with an immediately subsequent value-type narrowing check into a single compound intermediate representation node. When this amalgamated operation's type assumption proves wrong at execution time and triggers an optimized-code abandonment, the recovery handler sets a persistent bit flag (at position 27 in the mutable script flags word) that permanently suppresses this particular merging transformation in all future recompilations of the same script. What is the name of the optimized-code abandonment category (the enum variant in the abandonment-kind enumeration) that is assigned to instructions produced by this specific fusion pass?",
+    "answer": "UnboxFolding",
+    "acceptableAnswers": ["UnboxFolding", "BailoutKind::UnboxFolding"]
+  },
+  {
+    "id": "ff_3",
+    "question": "In the browser's credential revocation live-check response cache, two result statuses share the privilege of being shielded from displacement when the cache reaches capacity. One is the status indicating the credential has been withdrawn. What is the internal result enum value for the other protected status — the one that indicates the revocation responder does not recognize the credential at all — which also uniquely overrides lenient failure tolerance by blocking the connection even when the revocation service cannot be contacted and the system would otherwise permit the handshake to proceed?",
+    "answer": "ERROR_OCSP_UNKNOWN_CERT",
+    "acceptableAnswers": ["ERROR_OCSP_UNKNOWN_CERT", "Result::ERROR_OCSP_UNKNOWN_CERT", "SEC_ERROR_OCSP_UNKNOWN_CERT"]
+  },
+  {
+    "id": "ff_4",
+    "question": "In Firefox's structured client-side object store, when a data-modification session aborts because the local storage capacity enforcer rejected a write through the embedded relational data engine's filesystem interposition layer — which returns the engine's numeric 'database is full' signal — the owning store container latches a boolean flag recording this capacity breach. When the application next requests a standard read-write data-modification session on that same container, the session is silently promoted to a special internal operating mode whose sole distinguishing behavior on the supervising process side is to suspend all capacity-limit verification on the tracked file objects for the session's duration. What is the single-word name of this internal transaction operating mode (the enum member in the mode enumeration)?",
+    "answer": "Cleanup",
+    "acceptableAnswers": ["Cleanup", "Mode::Cleanup", "IDBTransaction::Mode::Cleanup"]
+  },
+  {
+    "id": "ff_5",
+    "question": "In the browser's touch input gesture recognition subsystem, the two-contact scaling gesture (magnification) uses a multi-phase lifecycle type enumeration to signal its progression. One particular phase type represents a unique intermediate condition: when exactly one of the two screen contacts is withdrawn while the other persists — distinct from the final termination signal where all contacts are removed. Upon receiving this intermediate signal, the asynchronous scroll compositor transitions from its active scaling mode into a single-contact tracking mode, preserving the position of the surviving contact point as a positional anchor for potential follow-up dragging. What is the exact name of this enumeration value?",
+    "answer": "PINCHGESTURE_FINGERLIFTED",
+    "acceptableAnswers": ["PINCHGESTURE_FINGERLIFTED", "PinchGestureType::PINCHGESTURE_FINGERLIFTED", "PinchGestureInput::PINCHGESTURE_FINGERLIFTED"]
+  }
+]

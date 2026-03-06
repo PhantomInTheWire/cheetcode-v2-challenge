@@ -327,6 +327,7 @@ function renderHomeScreen(params: {
   l3Challenge: HomeGameState["l3Challenge"];
   l3CodeDraft: HomeGameState["l3CodeDraft"];
   setL3CodeDraft: HomeGameState["setL3CodeDraft"];
+  updateActiveSessionExpiry: HomeGameState["updateActiveSessionExpiry"];
   clearStoredSession: HomeGameState["clearStoredSession"];
   setResults: HomeGameState["setResults"];
   autoSolve: HomeGameState["autoSolve"];
@@ -390,6 +391,7 @@ function renderHomeScreen(params: {
       l3Challenge: params.l3Challenge,
       l3CodeDraft: params.l3CodeDraft,
       setL3CodeDraft: params.setL3CodeDraft,
+      updateActiveSessionExpiry: params.updateActiveSessionExpiry,
       clearStoredSession: params.clearStoredSession,
       setResults: params.setResults,
       setScreen: params.setScreen,
