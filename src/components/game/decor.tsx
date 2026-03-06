@@ -235,3 +235,76 @@ export function AnimatedLandingDecor() {
     </>
   );
 }
+
+export function VictoryDecor() {
+  const [frame, setFrame] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setFrame((p) => (p + 1) % 4), 120);
+    return () => clearInterval(t);
+  }, []);
+
+  const glyphs = ["+", "x", "*", "#"];
+  const glyph = glyphs[frame];
+
+  return (
+    <>
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          background:
+            "radial-gradient(circle at 50% 50%, rgba(250,93,25,0.08) 0%, transparent 60%)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+      <div
+        style={{
+          position: "fixed",
+          top: 20,
+          left: 20,
+          right: 20,
+          bottom: 20,
+          border: "1px solid rgba(250,93,25,0.15)",
+          borderRadius: 32,
+          pointerEvents: "none",
+          zIndex: 1,
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: -1,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#f9f9f9",
+            padding: "0 12px",
+            color: "#fa5d19",
+            fontSize: 10,
+            fontFamily: "var(--font-geist-mono), monospace",
+            letterSpacing: "0.1em",
+          }}
+        >
+          MISSION_COMPLETE
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            bottom: -1,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#f9f9f9",
+            padding: "0 12px",
+            color: "#fa5d19",
+            fontSize: 10,
+            fontFamily: "var(--font-geist-mono), monospace",
+            letterSpacing: "0.1em",
+          }}
+        >
+          {glyph} END_OF_LINE {glyph}
+        </div>
+      </div>
+    </>
+  );
+}

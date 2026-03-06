@@ -11,6 +11,7 @@ export type Level3ValidationResult = {
   error: string;
   results: Array<{
     problemId: string;
+    name?: string;
     correct: boolean;
     message: string;
   }>;
@@ -36,6 +37,7 @@ export function sanitizeLevel3ValidationForClient(
     error: result.compiled ? "" : infraFailure ? CLIENT_INFRA_ERROR : CLIENT_COMPILE_ERROR,
     results: result.results.map((row) => ({
       problemId: row.problemId,
+      name: row.name,
       correct: row.correct,
       message: row.correct ? "pass" : "fail",
     })),
@@ -460,6 +462,7 @@ export async function validateLevel3Submission(
         error: `sandbox runner failed: ${runtimeResult.value.stderr}`,
         results: challenge.checks.map((check) => ({
           problemId: check.id,
+          name: check.name,
           correct: false,
           message: "sandbox runner failed",
         })),
@@ -473,6 +476,7 @@ export async function validateLevel3Submission(
         error: "sandbox runner did not produce result.json",
         results: challenge.checks.map((check) => ({
           problemId: check.id,
+          name: check.name,
           correct: false,
           message: "no result artifact",
         })),
@@ -488,6 +492,7 @@ export async function validateLevel3Submission(
       const outcome = parsed.harness?.[key];
       return {
         problemId: check.id,
+        name: check.name,
         correct: Boolean(outcome?.ok),
         message:
           outcome?.message ?? (parsed.compiled ? "missing harness output" : "compile failed"),
@@ -515,6 +520,7 @@ export async function validateLevel3Submission(
         message,
       results: challenge.checks.map((check) => ({
         problemId: check.id,
+        name: check.name,
         correct: false,
         message: "sandbox unavailable",
       })),

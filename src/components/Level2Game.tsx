@@ -18,22 +18,29 @@ type Level2Problem = {
 
 type Level2ProjectKey = "chromium" | "firefox" | "libreoffice" | "postgres";
 
-const LEVEL2_PROJECT_HASHES: Record<Level2ProjectKey, { label: string; commit: string }> = {
+const LEVEL2_PROJECT_META: Record<
+  Level2ProjectKey,
+  { label: string; commit: string; color: string }
+> = {
   chromium: {
     label: "Chromium",
     commit: "69c7c0a024",
+    color: "#4285f4",
   },
   firefox: {
     label: "Firefox",
     commit: "22d04b52b0",
+    color: "#ff7139",
   },
   libreoffice: {
     label: "LibreOffice",
     commit: "05aabfc2db",
+    color: "#18a303",
   },
   postgres: {
     label: "PostgreSQL",
     commit: "f1baed18b",
+    color: "#336791",
   },
 };
 
@@ -132,6 +139,7 @@ export function Level2Game({
     () => Object.values(localCorrect).filter((v) => v === true).length,
     [localCorrect],
   );
+
   const sessionProjects = useMemo(() => {
     const discovered = new Set<Level2ProjectKey>();
     for (const problem of problems) {
@@ -140,6 +148,7 @@ export function Level2Game({
     }
     return [...discovered];
   }, [problems]);
+
   const timeUp = timeLeftMs === 0;
 
   const finishGame = useCallback(async () => {
@@ -151,7 +160,6 @@ export function Level2Game({
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      // Submit results
       const finishRes = await clientFetch("/api/finish-l2", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -177,7 +185,6 @@ export function Level2Game({
     }
   }, [sessionId, github, answers, timeLeftMs, isSubmitting, onFinishAction]);
 
-  // Auto-submit when timer expires
   useEffect(() => {
     if (timeUp && !autoSubmittedRef.current) {
       autoSubmittedRef.current = true;
@@ -258,7 +265,7 @@ export function Level2Game({
         position: "relative",
       }}
     >
-      {/* ── Grid background (firecrawl dashboard pattern) ── */}
+      {/* ── Grid background ── */}
       <div
         style={{
           position: "fixed",
@@ -274,7 +281,7 @@ export function Level2Game({
         }}
       />
 
-      {/* Header bar */}
+      {/* ── Fixed Header ── */}
       <div
         style={{
           height: 44,
@@ -301,27 +308,11 @@ export function Level2Game({
             style={{ display: "inline-block", verticalAlign: "middle", flexShrink: 0 }}
             dangerouslySetInnerHTML={{ __html: FIRECRAWL_FLAME_SVG }}
           />
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 450,
-              color: "#262626",
-              letterSpacing: 0.3,
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            }}
-          >
+          <span style={{ fontSize: 13, fontWeight: 450, color: "#262626", letterSpacing: 0.3 }}>
             Firecrawl CTF
           </span>
           <span style={{ fontSize: 12, color: "rgba(0,0,0,0.12)" }}>·</span>
-          <span
-            style={{
-              fontSize: 12,
-              color: "rgba(0,0,0,0.3)",
-              fontFamily: "var(--font-geist-mono), monospace",
-            }}
-          >
-            @{github}
-          </span>
+          <span style={{ fontSize: 12, color: "rgba(0,0,0,0.3)" }}>@{github}</span>
           {canAutoSolve && (
             <button
               onClick={() => void autoSolve()}
@@ -336,7 +327,6 @@ export function Level2Game({
                 borderRadius: 8,
                 cursor: "pointer",
                 fontFamily: "var(--font-geist-mono), monospace",
-                transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
               }}
             >
               Auto Solve
@@ -351,7 +341,6 @@ export function Level2Game({
               borderRadius: 4,
               fontWeight: 500,
               marginLeft: 8,
-              fontFamily: "var(--font-geist-mono), monospace",
               textTransform: "uppercase",
               letterSpacing: 0.5,
             }}
@@ -361,7 +350,6 @@ export function Level2Game({
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          {/* Solved */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={labelStyle}>[ SOLVED ]</span>
             <span
@@ -369,7 +357,6 @@ export function Level2Game({
                 fontSize: 16,
                 fontWeight: 500,
                 color: solvedLocal === 10 ? "#1a9338" : "#262626",
-                fontFamily: "var(--font-geist-mono), monospace",
                 fontVariantNumeric: "tabular-nums",
               }}
             >
@@ -377,7 +364,6 @@ export function Level2Game({
               <span style={{ color: "rgba(0,0,0,0.2)" }}> / 10</span>
             </span>
           </div>
-          {/* Timer */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={labelStyle}>[ TIME ]</span>
             <div
@@ -394,8 +380,7 @@ export function Level2Game({
                   width: `${progress}%`,
                   height: "100%",
                   background: timerBg,
-                  borderRadius: 4,
-                  transition: "width 100ms linear, background 500ms",
+                  transition: "width 100ms linear",
                 }}
               />
             </div>
@@ -406,18 +391,12 @@ export function Level2Game({
                 color: timerFg,
                 minWidth: 48,
                 textAlign: "right",
-                transition: "color 500ms",
-                fontFamily: "var(--font-geist-mono), monospace",
                 fontVariantNumeric: "tabular-nums",
-                ...(secondsLeft <= 10
-                  ? { animation: "timer-pulse 0.6s ease-in-out infinite" }
-                  : {}),
               }}
             >
               {timeUp ? "TIME" : `0:${String(secondsLeft).padStart(2, "0")}`}
             </span>
           </div>
-          {/* Submit button */}
           <button
             onClick={() => void finishGame()}
             disabled={isSubmitting}
@@ -428,11 +407,6 @@ export function Level2Game({
               borderRadius: 10,
               fontSize: 13,
               fontWeight: 450,
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              letterSpacing: 0.3,
-              cursor: isSubmitting ? "not-allowed" : "pointer",
-              opacity: isSubmitting ? 0.7 : 1,
-              whiteSpace: "nowrap",
             }}
           >
             {isSubmitting ? "Submitting..." : "Finish & Submit"}
@@ -440,59 +414,86 @@ export function Level2Game({
         </div>
       </div>
 
-      {/* Problem list */}
+      {/* ── Cocktail Sub-header ── */}
+      <div
+        style={{
+          flexShrink: 0,
+          background: "#ffffff",
+          borderBottom: "1px solid #e8e8e8",
+          padding: "10px 16px",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          position: "relative",
+          zIndex: 15,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 500,
+            color: "rgba(0,0,0,0.3)",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+          }}
+        >
+          [ ACTIVE_COCKTAIL ]
+        </span>
+        <div style={{ display: "flex", gap: 8 }}>
+          {sessionProjects.map((pKey) => {
+            const meta = LEVEL2_PROJECT_META[pKey];
+            return (
+              <div
+                key={pKey}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "4px 12px",
+                  background: "rgba(0,0,0,0.02)",
+                  border: "1px solid #e8e8e8",
+                  borderRadius: 10,
+                }}
+              >
+                <span
+                  style={{ width: 6, height: 6, borderRadius: "50%", background: meta.color }}
+                />
+                <span style={{ fontSize: 12, fontWeight: 500, color: "#262626" }}>
+                  {meta.label}
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "rgba(0,0,0,0.3)",
+                    fontFamily: "var(--font-geist-mono), monospace",
+                  }}
+                >
+                  {meta.commit}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Problem list ── */}
       <div
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: 16,
+          padding: "24px 16px 60px",
           position: "relative",
           zIndex: 1,
         }}
       >
-        <div style={{ maxWidth: 800, margin: "0 auto" }}>
-          <div
-            style={{
-              background: "#fff",
-              border: "1px solid #e8e8e8",
-              borderRadius: 12,
-              padding: "16px 20px",
-              marginBottom: 16,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.02)",
-            }}
-          >
-            <p
-              style={{
-                fontSize: 12,
-                color: "rgba(0,0,0,0.5)",
-                margin: 0,
-                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              }}
-            >
-              <strong style={{ fontWeight: 500 }}>Level 2:</strong> Multi-Project Source Challenge
-            </p>
-            {sessionProjects.map((project) => (
-              <p
-                key={project}
-                style={{
-                  fontSize: 11,
-                  color: "rgba(0,0,0,0.35)",
-                  margin: "4px 0 0",
-                  fontFamily: "var(--font-geist-mono), monospace",
-                }}
-              >
-                {LEVEL2_PROJECT_HASHES[project].label}: {LEVEL2_PROJECT_HASHES[project].commit}
-              </p>
-            ))}
-          </div>
-
+        <div style={{ maxWidth: 840, margin: "0 auto" }}>
           {problems.map((problem, idx) => {
             const status = localCorrect[problem.id];
             const borderColor =
               status === true ? "#22c55e" : status === false ? "#ef4444" : "#e8e8e8";
             const bgColor = status === true ? "#f0fdf4" : status === false ? "#fef2f2" : "#ffffff";
             const projectKey = problem.project ?? inferProjectFromProblemId(problem.id);
-            const projectLabel = projectKey ? LEVEL2_PROJECT_HASHES[projectKey].label : null;
+            const meta = projectKey ? LEVEL2_PROJECT_META[projectKey] : null;
 
             return (
               <div
@@ -500,59 +501,86 @@ export function Level2Game({
                 style={{
                   background: bgColor,
                   border: `1px solid ${borderColor}`,
-                  borderRadius: 12,
-                  padding: 16,
-                  marginBottom: 12,
-                  transition: "all 300ms",
+                  borderRadius: 16,
+                  padding: 20,
+                  marginBottom: 16,
+                  transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
                   boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.02)",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 500,
-                      color: "#fa5d19",
-                      minWidth: 28,
-                      fontFamily: "var(--font-geist-mono), monospace",
-                    }}
-                  >
-                    [{String(idx + 1).padStart(2, "0")}]
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    {projectLabel && (
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+                  <div style={{ flexShrink: 0, textAlign: "center" }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: meta?.color || "#fa5d19",
+                        fontFamily: "var(--font-geist-mono), monospace",
+                        marginBottom: 4,
+                      }}
+                    >
+                      {String(idx + 1).padStart(2, "0")}
+                    </div>
+                    {meta && (
                       <div
+                        title={meta.label}
                         style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 6,
-                          marginBottom: 8,
-                          padding: "2px 8px",
-                          borderRadius: 999,
-                          background: "rgba(0,0,0,0.04)",
-                          border: "1px solid #e8e8e8",
-                          fontSize: 10,
-                          color: "rgba(0,0,0,0.55)",
-                          fontFamily: "var(--font-geist-mono), monospace",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.04em",
+                          width: 4,
+                          height: 24,
+                          borderRadius: 2,
+                          background: meta.color,
+                          margin: "0 auto",
                         }}
-                      >
-                        Repo: {projectLabel}
-                      </div>
+                      />
                     )}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 12,
+                      }}
+                    >
+                      {meta && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            color: meta.color,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                          }}
+                        >
+                          [ {meta.label}_SYSTEM ]
+                        </span>
+                      )}
+                      {status === true && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            color: "#1a9338",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          [ VERIFIED ]
+                        </span>
+                      )}
+                    </div>
                     <p
                       style={{
-                        fontSize: 13,
+                        fontSize: 14,
                         color: "#262626",
-                        margin: "0 0 12px",
-                        lineHeight: 1.5,
+                        margin: "0 0 16px",
+                        lineHeight: 1.6,
                         fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                       }}
                     >
                       {problem.question}
                     </p>
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div style={{ display: "flex", gap: 10 }}>
                       <input
                         type="text"
                         value={answers[problem.id] || ""}
@@ -560,19 +588,19 @@ export function Level2Game({
                           setAnswers((cur) => ({ ...cur, [problem.id]: e.target.value }))
                         }
                         disabled={timeUp || status === true}
-                        placeholder="Enter your answer..."
+                        placeholder="Type solution..."
                         style={{
                           flex: 1,
-                          height: 36,
-                          padding: "0 12px",
+                          height: 40,
+                          padding: "0 14px",
                           fontSize: 13,
                           fontFamily: "var(--font-geist-mono), monospace",
                           border: "1px solid #e8e8e8",
-                          borderRadius: 8,
+                          borderRadius: 10,
                           background: status === true ? "#f0fdf4" : "#fafafa",
                           color: status === true ? "#1a9338" : "#262626",
                           outline: "none",
-                          transition: "border-color 0.2s",
+                          transition: "all 0.2s",
                         }}
                         onFocus={(e) => {
                           if (status !== true) e.target.style.borderColor = "#fa5d19";
@@ -586,13 +614,12 @@ export function Level2Game({
                         disabled={timeUp || status === true || !(answers[problem.id] || "").trim()}
                         className={status === true ? "" : "btn-heat"}
                         style={{
-                          height: 36,
-                          padding: "0 16px",
-                          borderRadius: 8,
+                          height: 40,
+                          padding: "0 20px",
+                          borderRadius: 10,
                           border: status === true ? "none" : undefined,
-                          fontSize: 12,
-                          fontWeight: 450,
-                          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                          fontSize: 13,
+                          fontWeight: 500,
                           cursor:
                             timeUp || status === true || !(answers[problem.id] || "").trim()
                               ? "not-allowed"
@@ -601,7 +628,13 @@ export function Level2Game({
                           color: status === true ? "#1a9338" : undefined,
                         }}
                       >
-                        {status === true ? "Passed" : status === false ? "Retry" : "Check"}
+                        {status === true
+                          ? "Pass"
+                          : status === false
+                            ? "Retry"
+                            : status === null
+                              ? "..."
+                              : "Check"}
                       </button>
                     </div>
                   </div>
@@ -612,7 +645,7 @@ export function Level2Game({
         </div>
       </div>
 
-      {/* Time's up / submitting overlay */}
+      {/* ── Overlays ── */}
       {(timeUp || isSubmitting) && (
         <div
           style={{
@@ -631,14 +664,13 @@ export function Level2Game({
             style={{
               textAlign: "center",
               background: "#ffffff",
-              borderRadius: 20,
+              borderRadius: 24,
               padding: "48px 56px",
               border: "1px solid #e8e8e8",
-              boxShadow: "0 24px 48px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.08)",
+              boxShadow: "0 24px 48px rgba(0,0,0,0.12)",
               maxWidth: 480,
             }}
           >
-            {/* Flame logo */}
             <div style={{ marginBottom: 20 }}>
               <svg
                 width="40"
@@ -668,7 +700,6 @@ export function Level2Game({
                 color: "rgba(0,0,0,0.4)",
                 margin: "12px 0 0",
                 fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                fontWeight: 400,
               }}
             >
               <span style={labelStyle}>[ STATUS ]</span> {solvedLocal}/10 solved
@@ -680,10 +711,9 @@ export function Level2Game({
                 style={{
                   marginTop: 28,
                   padding: "12px 44px",
-                  borderRadius: 10,
+                  borderRadius: 12,
                   fontSize: 14,
-                  fontWeight: 450,
-                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  fontWeight: 500,
                 }}
               >
                 See Results
@@ -695,7 +725,6 @@ export function Level2Game({
                   fontSize: 13,
                   color: "rgba(0,0,0,0.3)",
                   marginTop: 20,
-                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -703,36 +732,25 @@ export function Level2Game({
                 }}
               >
                 <BrailleSpinner />
-                <span>Validating your answers...</span>
+                <span>Synchronizing Cocktail results...</span>
               </div>
             )}
             {submitError && (
-              <div style={{ marginTop: 20 }}>
-                <p
-                  style={{
-                    fontSize: 13,
-                    color: "#dc2626",
-                    margin: "0 0 12px",
-                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                  }}
-                >
-                  {submitError}
-                </p>
+              <div style={{ marginTop: 24 }}>
+                <p style={{ fontSize: 13, color: "#dc2626", margin: "0 0 16px" }}>{submitError}</p>
                 <button
                   onClick={() => setSubmitError(null)}
                   style={{
-                    padding: "8px 16px",
-                    borderRadius: 8,
+                    padding: "10px 20px",
+                    borderRadius: 10,
                     border: "1px solid #e8e8e8",
                     background: "rgba(0,0,0,0.04)",
-                    fontSize: 12,
-                    fontWeight: 450,
+                    fontSize: 13,
+                    fontWeight: 500,
                     cursor: "pointer",
-                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                    transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
                   }}
                 >
-                  Try Again
+                  Retry Connection
                 </button>
               </div>
             )}

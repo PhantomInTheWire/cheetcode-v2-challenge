@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { TOTAL_SOLVE_TARGET } from "@/lib/constants";
 import { FIRECRAWL_FLAME_SVG } from "@/components/game/firecrawl-flame";
 import { BrailleSpinner, AnimatedLandingDecor } from "@/components/game/decor";
+import { VictoryScreen } from "@/components/game/VictoryScreen";
 
 type ResultsData = {
   elo: number;
@@ -102,6 +103,33 @@ export function ResultsScreen({
     zIndex: 2,
     textAlign: "center",
   };
+
+  const isFinalVictory = results.solved >= TOTAL_SOLVE_TARGET;
+
+  if (isFinalVictory) {
+    return (
+      <VictoryScreen
+        results={results}
+        displayedSolveTarget={displayedSolveTarget}
+        github={github}
+        email={email}
+        setEmail={setEmail}
+        xHandle={xHandle}
+        setXHandle={setXHandle}
+        flag={flag}
+        setFlag={setFlag}
+        emailError={emailError}
+        setEmailError={setEmailError}
+        xHandleError={xHandleError}
+        setXHandleError={setXHandleError}
+        submitError={submitError}
+        submittedLead={submittedLead}
+        submitLeadForm={submitLeadForm}
+        shareScore={shareScore}
+        resetAll={resetAll}
+      />
+    );
+  }
 
   return (
     <div

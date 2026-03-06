@@ -48,7 +48,7 @@ export type ResultsData = {
   validation?: {
     compiled: boolean;
     error: string;
-    results: Array<{ problemId: string; correct: boolean; message: string }>;
+    results: Array<{ problemId: string; name?: string; correct: boolean; message: string }>;
   };
 };
 

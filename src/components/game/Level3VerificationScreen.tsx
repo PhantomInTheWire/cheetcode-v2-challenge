@@ -193,13 +193,26 @@ export function Level3VerificationScreen({ results, onContinue }: Level3Verifica
             </span>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+              maxHeight: 280,
+              overflowY: "auto",
+              paddingRight: 8,
+              marginRight: -8,
+            }}
+          >
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 fontSize: 13,
                 fontFamily: "var(--font-geist-mono), monospace",
+                paddingBottom: 12,
+                borderBottom: "1px solid #f0f0f0",
+                marginBottom: 4,
               }}
             >
               <span style={{ color: "rgba(0,0,0,0.45)" }}>[ COMPILATION_STATUS ]</span>
@@ -213,52 +226,69 @@ export function Level3VerificationScreen({ results, onContinue }: Level3Verifica
               </span>
             </div>
 
-            {validation?.results.map((r, i) => (
-              <div
-                key={r.problemId + i}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: 13,
-                  fontFamily: "var(--font-geist-mono), monospace",
-                  padding: "8px 0",
-                  borderTop: "1px solid #f9f9f9",
-                }}
-              >
-                <span style={{ color: r.correct ? "#1a9338" : "#dc2626", flex: 1 }}>
-                  {r.correct ? "✓" : "✗"} {r.message}
-                </span>
-                <span
+            {validation?.results.map((r, i) => {
+              const testName = r.name || r.problemId.split(":").pop() || r.problemId;
+              return (
+                <div
+                  key={r.problemId + i}
                   style={{
-                    fontWeight: 600,
-                    color: r.correct ? "#1a9338" : "#dc2626",
-                    marginLeft: 16,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    fontSize: 12,
+                    fontFamily: "var(--font-geist-mono), monospace",
+                    padding: "6px 0",
                   }}
                 >
-                  {r.correct ? "PASS" : "FAIL"}
-                </span>
-              </div>
-            ))}
-
-            {!validation?.compiled && validation?.error && (
-              <div
-                style={{
-                  marginTop: 12,
-                  padding: "16px",
-                  background: "rgba(220,38,38,0.05)",
-                  borderRadius: 8,
-                  border: "1px solid rgba(220,38,38,0.1)",
-                  fontSize: 12,
-                  color: "#dc2626",
-                  fontFamily: "var(--font-geist-mono), monospace",
-                  whiteSpace: "pre-wrap",
-                  overflowX: "auto",
-                }}
-              >
-                {validation.error}
-              </div>
-            )}
+                  <span
+                    style={{
+                      color: "#262626",
+                      flex: 1,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      fontWeight: 450,
+                    }}
+                  >
+                    {testName}
+                  </span>
+                  <span
+                    style={{
+                      fontWeight: 600,
+                      fontSize: 10,
+                      letterSpacing: "0.05em",
+                      color: r.correct ? "#1a9338" : "#dc2626",
+                      background: r.correct ? "rgba(26,147,56,0.08)" : "rgba(220,38,38,0.08)",
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                      marginLeft: 16,
+                    }}
+                  >
+                    {r.correct ? "PASS" : "FAIL"}
+                  </span>
+                </div>
+              );
+            })}
           </div>
+
+          {!validation?.compiled && validation?.error && (
+            <div
+              style={{
+                marginTop: 12,
+                padding: "16px",
+                background: "rgba(220,38,38,0.05)",
+                borderRadius: 8,
+                border: "1px solid rgba(220,38,38,0.1)",
+                fontSize: 12,
+                color: "#dc2626",
+                fontFamily: "var(--font-geist-mono), monospace",
+                whiteSpace: "pre-wrap",
+                overflowX: "auto",
+              }}
+            >
+              {validation.error}
+            </div>
+          )}
         </div>
 
         <button
