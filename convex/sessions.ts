@@ -104,6 +104,7 @@ export const createInternal = internalMutation({
       problemIds = picked.map((problem) => problem.id);
       problemsToReturn = picked.map((p) => ({
         id: p.id,
+        project: p.project,
         question: p.question,
       }));
     } else if (level === 3) {

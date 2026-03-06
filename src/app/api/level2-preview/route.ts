@@ -5,15 +5,15 @@ import { pickLevel2ProjectPair, type Level2Project } from "../../../../server/le
 const LEVEL2_PROJECT_HASHES: Record<Level2Project, { label: string; commit: string }> = {
   chromium: {
     label: "Chromium",
-    commit: "69c7c0a024efdc5bec0a9075e306e180b51e4278",
+    commit: "69c7c0a024",
   },
   firefox: {
     label: "Firefox",
-    commit: "22d04b52b0eb8d9fa11bf8ede5ccc0243a07c5ba",
+    commit: "22d04b52b0",
   },
   libreoffice: {
     label: "LibreOffice",
-    commit: "05aabfc2dbe",
+    commit: "05aabfc2db",
   },
   postgres: {
     label: "PostgreSQL",

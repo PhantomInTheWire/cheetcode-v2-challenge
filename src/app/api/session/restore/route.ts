@@ -96,6 +96,7 @@ export async function POST(request: Request) {
         .filter(Boolean)
         .map((problem) => ({
           id: problem!.id,
+          project: problem!.project,
           question: problem!.question,
         }));
 

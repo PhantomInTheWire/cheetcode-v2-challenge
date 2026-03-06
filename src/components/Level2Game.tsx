@@ -13,6 +13,7 @@ const LEVEL2_STATUS_STORAGE_KEY = "cheetcode.level2Status";
 type Level2Problem = {
   id: string;
   question: string;
+  project?: Level2ProjectKey;
 };
 
 type Level2ProjectKey = "chromium" | "firefox" | "libreoffice" | "postgres";
@@ -20,15 +21,15 @@ type Level2ProjectKey = "chromium" | "firefox" | "libreoffice" | "postgres";
 const LEVEL2_PROJECT_HASHES: Record<Level2ProjectKey, { label: string; commit: string }> = {
   chromium: {
     label: "Chromium",
-    commit: "69c7c0a024efdc5bec0a9075e306e180b51e4278",
+    commit: "69c7c0a024",
   },
   firefox: {
     label: "Firefox",
-    commit: "22d04b52b0eb8d9fa11bf8ede5ccc0243a07c5ba",
+    commit: "22d04b52b0",
   },
   libreoffice: {
     label: "LibreOffice",
-    commit: "05aabfc2dbe",
+    commit: "05aabfc2db",
   },
   postgres: {
     label: "PostgreSQL",
@@ -134,7 +135,7 @@ export function Level2Game({
   const sessionProjects = useMemo(() => {
     const discovered = new Set<Level2ProjectKey>();
     for (const problem of problems) {
-      const key = inferProjectFromProblemId(problem.id);
+      const key = problem.project ?? inferProjectFromProblemId(problem.id);
       if (key) discovered.add(key);
     }
     return [...discovered];
@@ -470,16 +471,6 @@ export function Level2Game({
             >
               <strong style={{ fontWeight: 500 }}>Level 2:</strong> Multi-Project Source Challenge
             </p>
-            <p
-              style={{
-                fontSize: 11,
-                color: "rgba(0,0,0,0.35)",
-                margin: "4px 0 0",
-                fontFamily: "var(--font-geist-mono), monospace",
-              }}
-            >
-              Random 2-project cocktail per round: 5 questions + 5 questions.
-            </p>
             {sessionProjects.map((project) => (
               <p
                 key={project}
@@ -500,6 +491,8 @@ export function Level2Game({
             const borderColor =
               status === true ? "#22c55e" : status === false ? "#ef4444" : "#e8e8e8";
             const bgColor = status === true ? "#f0fdf4" : status === false ? "#fef2f2" : "#ffffff";
+            const projectKey = problem.project ?? inferProjectFromProblemId(problem.id);
+            const projectLabel = projectKey ? LEVEL2_PROJECT_HASHES[projectKey].label : null;
 
             return (
               <div
@@ -527,6 +520,27 @@ export function Level2Game({
                     [{String(idx + 1).padStart(2, "0")}]
                   </span>
                   <div style={{ flex: 1 }}>
+                    {projectLabel && (
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          marginBottom: 8,
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          background: "rgba(0,0,0,0.04)",
+                          border: "1px solid #e8e8e8",
+                          fontSize: 10,
+                          color: "rgba(0,0,0,0.55)",
+                          fontFamily: "var(--font-geist-mono), monospace",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.04em",
+                        }}
+                      >
+                        Repo: {projectLabel}
+                      </div>
+                    )}
                     <p
                       style={{
                         fontSize: 13,

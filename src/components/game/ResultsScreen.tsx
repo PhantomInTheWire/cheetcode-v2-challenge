@@ -221,7 +221,7 @@ export function ResultsScreen({
                   ? "NOT BAD"
                   : "ALL CLEAR"}
           </h1>
-          {results.solved >= TOTAL_SOLVE_TARGET && (
+          {!isProgressionOnly && results.solved >= TOTAL_SOLVE_TARGET && (
             <p
               style={{
                 marginTop: 12,
@@ -594,24 +594,47 @@ export function ResultsScreen({
             justifyContent: "center",
           }}
         >
-          {isProgressionOnly && canAdvance ? (
-            <button
-              onClick={() => startGame(nextLevel)}
-              className="btn-heat"
-              style={{
-                width: "100%",
-                maxWidth: 400,
-                height: 52,
-                borderRadius: 16,
-                fontSize: 16,
-                fontWeight: 500,
-                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
-              CONTINUE TO LEVEL {nextLevel}
-            </button>
+          {isProgressionOnly ? (
+            <>
+              {canAdvance && (
+                <button
+                  onClick={() => startGame(nextLevel)}
+                  className="btn-heat"
+                  style={{
+                    flex: 1,
+                    maxWidth: 320,
+                    height: 52,
+                    borderRadius: 16,
+                    fontSize: 16,
+                    fontWeight: 500,
+                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  CONTINUE TO LEVEL {nextLevel}
+                </button>
+              )}
+              <button
+                onClick={() => startGame(currentLevel)}
+                style={{
+                  flex: 1,
+                  maxWidth: 320,
+                  height: 52,
+                  borderRadius: 16,
+                  fontSize: 16,
+                  fontWeight: 500,
+                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  background: "rgba(0,0,0,0.04)",
+                  color: "#262626",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
+                }}
+              >
+                RETRY LEVEL {currentLevel}
+              </button>
+            </>
           ) : (
             <>
               {!isProgressionOnly && (

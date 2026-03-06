@@ -33,7 +33,7 @@ describe("/api/level2-preview", () => {
       {
         key: "firefox",
         label: "Firefox",
-        commit: "22d04b52b0eb8d9fa11bf8ede5ccc0243a07c5ba",
+        commit: "22d04b52b0",
       },
       {
         key: "postgres",

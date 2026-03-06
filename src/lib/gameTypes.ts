@@ -52,7 +52,8 @@ export type ResultsData = {
   };
 };
 
-export type Level2Problem = { id: string; question: string };
+export type Level2Project = "chromium" | "firefox" | "libreoffice" | "postgres";
+export type Level2Problem = { id: string; question: string; project?: Level2Project };
 
 export type Level3ChallengeState = {
   id: string;
