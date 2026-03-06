@@ -286,7 +286,7 @@ export function VictoryDecor() {
             letterSpacing: "0.1em",
           }}
         >
-          MISSION_COMPLETE
+          RESULTS
         </div>
         <div
           style={{

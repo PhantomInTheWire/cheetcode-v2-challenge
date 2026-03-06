@@ -132,7 +132,7 @@ export function LandingScreen({
           { text: "[ CTF ]", top: 32, left: 24 },
           { text: "[ ALGO ]", bottom: 32, left: 24 },
           { text: "[ 240s ]", top: 32, right: 24 },
-          { text: "[ SHIP ]", bottom: 32, right: 24 },
+          { text: "[ START ]", bottom: 32, right: 24 },
         ].map((label, i) => (
           <div
             key={i}

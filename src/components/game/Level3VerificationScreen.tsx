@@ -215,7 +215,7 @@ export function Level3VerificationScreen({ results, onContinue }: Level3Verifica
                 marginBottom: 4,
               }}
             >
-              <span style={{ color: "rgba(0,0,0,0.45)" }}>[ COMPILATION_STATUS ]</span>
+              <span style={{ color: "rgba(0,0,0,0.45)" }}>[ BUILD STATUS ]</span>
               <span
                 style={{
                   fontWeight: 600,
@@ -304,7 +304,7 @@ export function Level3VerificationScreen({ results, onContinue }: Level3Verifica
             fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
           }}
         >
-          CONTINUE TO SCOREBOARD
+          CONTINUE
         </button>
       </div>
 
@@ -322,10 +322,6 @@ export function Level3VerificationScreen({ results, onContinue }: Level3Verifica
           zIndex: 10,
         }}
       >
-        <span>[ FIRE_CTF_PROD ]</span>
-        <span>·</span>
-        <span>[ AUTH_SYNCED ]</span>
-        <span>·</span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
           <BrailleSpinner /> v2.0
         </span>

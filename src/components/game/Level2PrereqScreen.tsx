@@ -54,7 +54,7 @@ export function Level2PrereqScreen({
               fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             }}
           >
-            {level2PreviewLoading ? "Preparing Targets..." : "Launch Mission"}
+            {level2PreviewLoading ? "Loading targets..." : "Start"}
           </button>
           <button
             className="btn-ghost"
@@ -84,7 +84,7 @@ export function Level2PrereqScreen({
           marginTop: 12,
         }}
       >
-        [ MISSION_BRIEF ]
+        [ OVERVIEW ]
       </div>
       <p
         style={{

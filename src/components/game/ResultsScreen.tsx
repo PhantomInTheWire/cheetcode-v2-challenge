@@ -78,7 +78,7 @@ export function ResultsScreen({
   const isProgressionOnly = currentLevel === 1 || currentLevel === 2;
   const nextLevel = currentLevel === 1 ? 2 : 3;
   const canAdvance = isLocalDev || unlockedLevel > currentLevel;
-  const levelTitle = currentLevel === 1 ? "Level 1 Complete" : "Level 2 Complete";
+  const levelTitle = currentLevel === 1 ? "Level 1 done" : "Level 2 done";
 
   const inputStyle: React.CSSProperties = {
     height: 44,
@@ -176,10 +176,10 @@ export function ResultsScreen({
 
       {/* Decorative labels */}
       {[
-        { text: "[ STATUS ]", top: 32, left: 24 },
-        { text: "[ TELEMETRY ]", bottom: 32, left: 24 },
-        { text: "[ SHIP ]", top: 32, right: 24 },
-        { text: "[ COMPLETE ]", bottom: 32, right: 24 },
+        { text: "[ RESULTS ]", top: 32, left: 24 },
+        { text: "[ DETAILS ]", bottom: 32, left: 24 },
+        { text: "[ SCORE ]", top: 32, right: 24 },
+        { text: "[ SUMMARY ]", bottom: 32, right: 24 },
       ].map((label, i) => (
         <div key={i} style={{ ...labelStyle, position: "absolute", ...label }}>
           {label.text}
@@ -227,7 +227,7 @@ export function ResultsScreen({
                 fontFamily: "var(--font-geist-mono), monospace",
               }}
             >
-              MISSION STATUS
+              SUMMARY
             </span>
           </div>
           <h1
@@ -246,8 +246,8 @@ export function ResultsScreen({
               : results.solved <= 2
                 ? "TIME\u2019S UP"
                 : results.solved < 10
-                  ? "NOT BAD"
-                  : "ALL CLEAR"}
+                  ? "Keep going"
+                  : "All Clear"}
           </h1>
           {!isProgressionOnly && results.solved >= TOTAL_SOLVE_TARGET && (
             <p
@@ -260,7 +260,7 @@ export function ResultsScreen({
                 opacity: 0.8,
               }}
             >
-              We want to talk to you.
+              Submit your details below.
             </p>
           )}
         </div>
@@ -357,7 +357,7 @@ export function ResultsScreen({
                   fontFamily: "var(--font-geist-mono), monospace",
                 }}
               >
-                [ SCORE_LOG ]
+                [ BREAKDOWN ]
               </span>
               <span
                 style={{
@@ -381,7 +381,7 @@ export function ResultsScreen({
                 }}
               >
                 <span style={{ color: "rgba(0,0,0,0.45)" }}>
-                  INIT_BASE_SCORE ({results.solved} solved, {results.timeRemaining}s rem)
+                  BASE SCORE ({results.solved} solved, {results.timeRemaining}s left)
                 </span>
                 <span style={{ fontWeight: 500, color: "#262626" }}>
                   {(
@@ -403,7 +403,7 @@ export function ResultsScreen({
                     fontFamily: "var(--font-geist-mono), monospace",
                   }}
                 >
-                  <span style={{ color: "#1a9338" }}>+ EXPLOIT_BONUS: {e.message}</span>
+                  <span style={{ color: "#1a9338" }}>+ BONUS: {e.message}</span>
                   <span style={{ fontWeight: 500, color: "#1a9338" }}>+{e.bonus}</span>
                 </div>
               ))}
@@ -419,7 +419,7 @@ export function ResultsScreen({
                     fontFamily: "var(--font-geist-mono), monospace",
                   }}
                 >
-                  <span style={{ color: "#dc2626" }}>- SAFETY_PENALTY: {l.message}</span>
+                  <span style={{ color: "#dc2626" }}>- PENALTY: {l.message}</span>
                   <span style={{ fontWeight: 500, color: "#dc2626" }}>{l.penalty}</span>
                 </div>
               ))}
@@ -443,7 +443,7 @@ export function ResultsScreen({
                     fontFamily: "var(--font-geist-mono), monospace",
                   }}
                 >
-                  TOTAL_ELO_CALCULATED
+                  TOTAL SCORE
                 </span>
                 <span
                   style={{
@@ -485,7 +485,7 @@ export function ResultsScreen({
                   fontFamily: "var(--font-geist-mono), monospace",
                 }}
               >
-                [ SHIP_IDENTITY ]
+                [ DETAILS ]
               </span>
             </div>
 
@@ -594,7 +594,7 @@ export function ResultsScreen({
                   opacity: !email.trim() ? 0.4 : 1,
                 }}
               >
-                VERIFY & SHIP
+                SUBMIT DETAILS
               </button>
             </div>
           </div>
@@ -615,7 +615,7 @@ export function ResultsScreen({
               fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             }}
           >
-            Mission success. Data transmitted.
+            Details submitted.
           </div>
         )}
 
@@ -645,7 +645,7 @@ export function ResultsScreen({
                     cursor: "pointer",
                   }}
                 >
-                  CONTINUE TO LEVEL {nextLevel}
+                  GO TO LEVEL {nextLevel}
                 </button>
               )}
               <button
@@ -665,7 +665,7 @@ export function ResultsScreen({
                   transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
                 }}
               >
-                RETRY LEVEL {currentLevel}
+                TRY LEVEL {currentLevel} AGAIN
               </button>
             </>
           ) : (
@@ -686,7 +686,7 @@ export function ResultsScreen({
                       cursor: "pointer",
                     }}
                   >
-                    SHARE ON X
+                    SHARE
                   </button>
                   <button
                     onClick={resetAllAction}
@@ -704,7 +704,7 @@ export function ResultsScreen({
                       transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
                     }}
                   >
-                    RETRY MISSION
+                    TRY AGAIN
                   </button>
                 </>
               )}
@@ -723,7 +723,7 @@ export function ResultsScreen({
           >
             {currentLevel === 1
               ? `Level 2 unlocks after clearing all Level 1 problems.`
-              : `Level 3 unlocks after clearing all Level 2 questions.`}
+              : `Level 3 unlocks after clearing all Level 2 problems.`}
           </p>
         )}
       </div>
@@ -743,10 +743,6 @@ export function ResultsScreen({
           zIndex: 10,
         }}
       >
-        <span>[ FIRE_CTF_PROD ]</span>
-        <span>·</span>
-        <span>[ AUTH_SYNCED ]</span>
-        <span>·</span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
           <BrailleSpinner /> v2.0
         </span>
