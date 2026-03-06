@@ -28,21 +28,21 @@ type ResultsScreenProps = {
   isLocalDev: boolean;
   github: string;
   email: string;
-  setEmail: (v: string) => void;
+  setEmailAction: (v: string) => void;
   xHandle: string;
-  setXHandle: (v: string) => void;
+  setXHandleAction: (v: string) => void;
   flag: string;
-  setFlag: (v: string) => void;
+  setFlagAction: (v: string) => void;
   emailError: string;
-  setEmailError: (v: string) => void;
+  setEmailErrorAction: (v: string) => void;
   xHandleError: string;
-  setXHandleError: (v: string) => void;
+  setXHandleErrorAction: (v: string) => void;
   submitError: string | null;
   submittedLead: boolean;
-  submitLeadForm: () => void;
-  shareScore: () => void;
-  resetAll: () => void;
-  startGame: (level: number) => void;
+  submitLeadFormAction: () => void;
+  shareScoreAction: () => void;
+  resetAllAction: () => void;
+  startGameAction: (level: number) => void;
 };
 
 export function ResultsScreen({
@@ -53,21 +53,21 @@ export function ResultsScreen({
   isLocalDev,
   github,
   email,
-  setEmail,
+  setEmailAction,
   xHandle,
-  setXHandle,
+  setXHandleAction,
   flag,
-  setFlag,
+  setFlagAction,
   emailError,
-  setEmailError,
+  setEmailErrorAction,
   xHandleError,
-  setXHandleError,
+  setXHandleErrorAction,
   submitError,
   submittedLead,
-  submitLeadForm,
-  shareScore,
-  resetAll,
-  startGame,
+  submitLeadFormAction,
+  shareScoreAction,
+  resetAllAction,
+  startGameAction,
 }: ResultsScreenProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   useEffect(() => {
@@ -113,20 +113,20 @@ export function ResultsScreen({
         displayedSolveTarget={displayedSolveTarget}
         github={github}
         email={email}
-        setEmail={setEmail}
+        setEmailAction={setEmailAction}
         xHandle={xHandle}
-        setXHandle={setXHandle}
+        setXHandleAction={setXHandleAction}
         flag={flag}
-        setFlag={setFlag}
+        setFlagAction={setFlagAction}
         emailError={emailError}
-        setEmailError={setEmailError}
+        setEmailErrorAction={setEmailErrorAction}
         xHandleError={xHandleError}
-        setXHandleError={setXHandleError}
+        setXHandleErrorAction={setXHandleErrorAction}
         submitError={submitError}
         submittedLead={submittedLead}
-        submitLeadForm={submitLeadForm}
-        shareScore={shareScore}
-        resetAll={resetAll}
+        submitLeadFormAction={submitLeadFormAction}
+        shareScoreAction={shareScoreAction}
+        resetAllAction={resetAllAction}
       />
     );
   }
@@ -518,8 +518,8 @@ export function ResultsScreen({
                   label: "EMAIL",
                   value: email,
                   setter: (v: string) => {
-                    setEmail(v);
-                    setEmailError("");
+                    setEmailAction(v);
+                    setEmailErrorAction("");
                   },
                   error: emailError,
                   placeholder: "you@company.com",
@@ -529,13 +529,18 @@ export function ResultsScreen({
                   label: "X_HANDLE",
                   value: xHandle,
                   setter: (v: string) => {
-                    setXHandle(v);
-                    setXHandleError("");
+                    setXHandleAction(v);
+                    setXHandleErrorAction("");
                   },
                   error: xHandleError,
                   placeholder: "@handle",
                 },
-                { label: "FLAG_OPTIONAL", value: flag, setter: setFlag, placeholder: "flag{...}" },
+                {
+                  label: "FLAG_OPTIONAL",
+                  value: flag,
+                  setter: setFlagAction,
+                  placeholder: "flag{...}",
+                },
               ].map((field) => (
                 <div key={field.label} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <span
@@ -576,7 +581,7 @@ export function ResultsScreen({
               <button
                 className="btn-heat"
                 disabled={!email.trim()}
-                onClick={submitLeadForm}
+                onClick={submitLeadFormAction}
                 style={{
                   width: "100%",
                   height: 44,
@@ -626,7 +631,7 @@ export function ResultsScreen({
             <>
               {canAdvance && (
                 <button
-                  onClick={() => startGame(nextLevel)}
+                  onClick={() => startGameAction(nextLevel)}
                   className="btn-heat"
                   style={{
                     flex: 1,
@@ -644,7 +649,7 @@ export function ResultsScreen({
                 </button>
               )}
               <button
-                onClick={() => startGame(currentLevel)}
+                onClick={() => startGameAction(currentLevel)}
                 style={{
                   flex: 1,
                   maxWidth: 320,
@@ -668,7 +673,7 @@ export function ResultsScreen({
               {!isProgressionOnly && (
                 <>
                   <button
-                    onClick={shareScore}
+                    onClick={shareScoreAction}
                     className="btn-heat"
                     style={{
                       flex: 1,
@@ -684,7 +689,7 @@ export function ResultsScreen({
                     SHARE ON X
                   </button>
                   <button
-                    onClick={resetAll}
+                    onClick={resetAllAction}
                     style={{
                       flex: 1,
                       height: 48,

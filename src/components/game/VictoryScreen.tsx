@@ -18,39 +18,39 @@ type VictoryScreenProps = {
   displayedSolveTarget: number;
   github: string;
   email: string;
-  setEmail: (v: string) => void;
+  setEmailAction: (v: string) => void;
   xHandle: string;
-  setXHandle: (v: string) => void;
+  setXHandleAction: (v: string) => void;
   flag: string;
-  setFlag: (v: string) => void;
+  setFlagAction: (v: string) => void;
   emailError: string;
-  setEmailError: (v: string) => void;
+  setEmailErrorAction: (v: string) => void;
   xHandleError: string;
-  setXHandleError: (v: string) => void;
+  setXHandleErrorAction: (v: string) => void;
   submitError: string | null;
   submittedLead: boolean;
-  submitLeadForm: () => void;
-  shareScore: () => void;
-  resetAll: () => void;
+  submitLeadFormAction: () => void;
+  shareScoreAction: () => void;
+  resetAllAction: () => void;
 };
 
 export function VictoryScreen({
   results,
   email,
-  setEmail,
+  setEmailAction,
   xHandle,
-  setXHandle,
+  setXHandleAction,
   flag,
-  setFlag,
+  setFlagAction,
   emailError,
-  setEmailError,
+  setEmailErrorAction,
   xHandleError,
-  setXHandleError,
+  setXHandleErrorAction,
   submitError,
   submittedLead,
-  submitLeadForm,
-  shareScore,
-  resetAll,
+  submitLeadFormAction,
+  shareScoreAction,
+  resetAllAction,
 }: VictoryScreenProps) {
   const [phase, setPhase] = useState<"enter" | "reveal">("enter");
 
@@ -141,10 +141,8 @@ export function VictoryScreen({
           <div
             style={{
               background: "#ffffff",
-              border: "1px solid rgba(250,93,25,0.2)",
               borderRadius: 24,
               padding: "40px",
-              boxShadow: "0 20px 40px -10px rgba(250,93,25,0.15)",
               textAlign: "center",
             }}
           >
@@ -309,8 +307,8 @@ export function VictoryScreen({
                       <input
                         value={email}
                         onChange={(e) => {
-                          setEmail(e.target.value);
-                          setEmailError("");
+                          setEmailAction(e.target.value);
+                          setEmailErrorAction("");
                         }}
                         placeholder="agent@company.com"
                         style={{
@@ -337,8 +335,8 @@ export function VictoryScreen({
                       <input
                         value={xHandle}
                         onChange={(e) => {
-                          setXHandle(e.target.value);
-                          setXHandleError("");
+                          setXHandleAction(e.target.value);
+                          setXHandleErrorAction("");
                         }}
                         placeholder="@handle"
                         style={{
@@ -365,14 +363,14 @@ export function VictoryScreen({
                     </label>
                     <input
                       value={flag}
-                      onChange={(e) => setFlag(e.target.value)}
+                      onChange={(e) => setFlagAction(e.target.value)}
                       placeholder="flag{...}"
                       style={{ ...inputStyle, width: "100%" }}
                     />
                   </div>
                   <button
                     className="btn-heat"
-                    onClick={submitLeadForm}
+                    onClick={submitLeadFormAction}
                     disabled={!email.trim()}
                     style={{
                       width: "100%",
@@ -388,7 +386,7 @@ export function VictoryScreen({
                     Issue Credentials
                   </button>
                   <button
-                    onClick={resetAll}
+                    onClick={resetAllAction}
                     style={{
                       width: "100%",
                       height: 40,
@@ -456,13 +454,13 @@ export function VictoryScreen({
                 <div style={{ display: "flex", gap: 12, width: "100%", marginTop: 16 }}>
                   <button
                     className="btn-heat"
-                    onClick={shareScore}
+                    onClick={shareScoreAction}
                     style={{ flex: 1, height: 44, borderRadius: 12, fontSize: 14 }}
                   >
                     Share Status
                   </button>
                   <button
-                    onClick={resetAll}
+                    onClick={resetAllAction}
                     style={{
                       flex: 1,
                       height: 44,

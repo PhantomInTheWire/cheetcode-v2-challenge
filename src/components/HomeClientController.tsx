@@ -490,21 +490,21 @@ function renderHomeScreen(params: {
         isLocalDev={params.isLocalDev}
         github={params.github}
         email={params.email}
-        setEmail={params.setEmail}
+        setEmailAction={params.setEmail}
         xHandle={params.xHandle}
-        setXHandle={params.setXHandle}
+        setXHandleAction={params.setXHandle}
         flag={params.flag}
-        setFlag={params.setFlag}
+        setFlagAction={params.setFlag}
         emailError={params.emailError}
-        setEmailError={params.setEmailError}
+        setEmailErrorAction={params.setEmailError}
         xHandleError={params.xHandleError}
-        setXHandleError={params.setXHandleError}
+        setXHandleErrorAction={params.setXHandleError}
         submitError={params.submitError}
         submittedLead={params.submittedLead}
-        submitLeadForm={params.submitLeadForm}
-        shareScore={params.shareScore}
-        resetAll={params.resetAll}
-        startGame={params.startGame}
+        submitLeadFormAction={params.submitLeadForm}
+        shareScoreAction={params.shareScore}
+        resetAllAction={params.resetAll}
+        startGameAction={params.startGame}
       />
     );
   }

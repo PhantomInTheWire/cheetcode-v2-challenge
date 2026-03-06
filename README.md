@@ -47,8 +47,8 @@ Level 3:
 - `VERCEL_TOKEN`
 - `VERCEL_TEAM_ID`
 - `VERCEL_PROJECT_ID`
-- optionally `VERCEL_SANDBOX_SNAPSHOT_CLANG`
-- optionally `VERCEL_SANDBOX_SNAPSHOT_RUST`
+
+On Vercel production, Sandbox OIDC auth is preferred and access-token env vars are only needed outside Vercel.
 
 ## Local Development
 
@@ -73,7 +73,7 @@ If Convex type generation or typecheck fails, fix the reported TypeScript errors
 
 ### 3. Fill the rest of `.env.local`
 
-Set the required app/auth values plus `MY_ENV=development`. If you want shared abuse-rate-limit and shadow-ban state, also set `KV_REST_API_URL` and `KV_REST_API_TOKEN`. For Level 3, also set Vercel Sandbox credentials and preferably snapshot ids.
+Set the required app/auth values plus `MY_ENV=development`. If you want shared abuse-rate-limit, shadow-ban state, and shared generated sandbox snapshot ids across instances, also set `KV_REST_API_URL` and `KV_REST_API_TOKEN`. For Level 3, also set Vercel Sandbox credentials when not using Vercel OIDC.
 
 ### 4. Start the app
 
@@ -145,6 +145,5 @@ Import the repo into Vercel and set:
 - `MY_ENV`
 - `KV_REST_API_URL`, `KV_REST_API_TOKEN`
 - `VERCEL_TOKEN`, `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID`
-- optionally `VERCEL_SANDBOX_SNAPSHOT_CLANG`, `VERCEL_SANDBOX_SNAPSHOT_RUST`
 
-Level 3 depends on `@vercel/sandbox`, so production needs valid sandbox credentials and preferably prebuilt clang/rust snapshot ids. Abuse persistence depends on Upstash KV; without `KV_REST_API_URL` and `KV_REST_API_TOKEN`, rate limits and shadow bans fall back to per-instance in-memory tracking instead of shared persistent counters.
+Level 3 depends on `@vercel/sandbox`, and each validation now runs in a fresh sandbox created from a reusable snapshot. Production should use Vercel OIDC auth when available, otherwise provide `VERCEL_TOKEN`, `VERCEL_TEAM_ID`, and `VERCEL_PROJECT_ID`. Snapshot ids are stored in Upstash KV, so without `KV_REST_API_URL` and `KV_REST_API_TOKEN`, abuse controls and generated snapshot-id reuse fall back to per-instance memory.
