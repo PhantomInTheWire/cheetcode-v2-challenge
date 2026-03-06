@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { TOTAL_SOLVE_TARGET } from "@/lib/constants";
 import { FIRECRAWL_FLAME_SVG } from "@/components/game/firecrawl-flame";
+import { BrailleSpinner, AnimatedLandingDecor } from "@/components/game/decor";
 
 type ResultsData = {
   elo: number;
@@ -76,6 +77,12 @@ export function ResultsScreen({
   resetAll,
   startGame,
 }: ResultsScreenProps) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoaded(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   const isProgressionOnly = currentLevel === 1 || currentLevel === 2;
   const nextLevel = currentLevel === 1 ? 2 : 3;
   const canAdvance = isLocalDev || unlockedLevel > currentLevel;
@@ -92,22 +99,17 @@ export function ResultsScreen({
     outline: "none",
     background: "#fafafa",
     color: "#262626",
-    transition: "border-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
+    transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
   };
-  const inputWrapperStyle: React.CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-    minWidth: 0,
-  };
-  const inputLabelStyle: React.CSSProperties = {
-    fontSize: 11,
-    fontWeight: 500,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-    color: "rgba(0,0,0,0.35)",
-    textAlign: "left",
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: 12,
     fontFamily: "var(--font-geist-mono), monospace",
+    color: "rgba(0,0,0,0.12)",
+    pointerEvents: "none",
+    userSelect: "none",
+    zIndex: 2,
+    textAlign: "center",
   };
 
   return (
@@ -124,14 +126,14 @@ export function ResultsScreen({
         overflow: "hidden",
       }}
     >
-      {/* ── Grid background ── */}
+      {/* ── Background Elements ── */}
       <div
         style={{
           position: "fixed",
           inset: 0,
           zIndex: 0,
           pointerEvents: "none",
-          opacity: 0.4,
+          opacity: 0.5,
           backgroundImage: `
             linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
             linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)
@@ -146,50 +148,76 @@ export function ResultsScreen({
           zIndex: 0,
           pointerEvents: "none",
           background: `
-            radial-gradient(ellipse at top left, rgba(250,93,25,0.04) 0%, transparent 50%),
-            radial-gradient(ellipse at bottom right, rgba(250,93,25,0.02) 0%, transparent 50%)
+            radial-gradient(ellipse at top left, rgba(250,93,25,0.05) 0%, transparent 50%),
+            radial-gradient(ellipse at bottom right, rgba(250,93,25,0.03) 0%, transparent 50%)
           `,
         }}
       />
+      <AnimatedLandingDecor />
+
+      {/* Decorative labels */}
+      {[
+        { text: "[ STATUS ]", top: 32, left: 24 },
+        { text: "[ TELEMETRY ]", bottom: 32, left: 24 },
+        { text: "[ SHIP ]", top: 32, right: 24 },
+        { text: "[ COMPLETE ]", bottom: 32, right: 24 },
+      ].map((label, i) => (
+        <div key={i} style={{ ...labelStyle, position: "absolute", ...label }}>
+          {label.text}
+        </div>
+      ))}
 
       <div
         style={{
           width: "100%",
           maxWidth: 720,
-          background: "#ffffff",
-          border: "1px solid #e8e8e8",
-          borderRadius: 20,
-          padding: "48px 44px",
           textAlign: "center",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.02)",
           position: "relative",
-          zIndex: 1,
+          zIndex: 10,
+          opacity: isLoaded ? 1 : 0,
+          transform: isLoaded ? "translateY(0)" : "translateY(12px)",
+          transition: "all 0.6s cubic-bezier(0.25, 0.1, 0.25, 1)",
         }}
       >
         {/* Headline with inline flame */}
         <div
           style={{
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
+            gap: 16,
+            marginBottom: 40,
           }}
         >
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 600 600"
-            preserveAspectRatio="xMidYMid meet"
-            style={{ display: "inline-block", flexShrink: 0 }}
-            dangerouslySetInnerHTML={{ __html: FIRECRAWL_FLAME_SVG }}
-          />
-          <h2
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 600 600"
+              preserveAspectRatio="xMidYMid meet"
+              style={{ display: "inline-block", flexShrink: 0 }}
+              dangerouslySetInnerHTML={{ __html: FIRECRAWL_FLAME_SVG }}
+            />
+            <span
+              style={{
+                fontSize: 14,
+                fontWeight: 450,
+                color: "#262626",
+                letterSpacing: 0.5,
+                fontFamily: "var(--font-geist-mono), monospace",
+              }}
+            >
+              MISSION STATUS
+            </span>
+          </div>
+          <h1
             style={{
-              fontSize: 36,
+              fontSize: 56,
               fontWeight: 500,
               margin: 0,
-              lineHeight: 1.1,
-              letterSpacing: -0.5,
+              lineHeight: 1,
+              letterSpacing: -1.5,
               color: results.solved >= TOTAL_SOLVE_TARGET ? "#fa5d19" : "#262626",
               fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             }}
@@ -197,660 +225,491 @@ export function ResultsScreen({
             {isProgressionOnly
               ? levelTitle
               : results.solved <= 2
-                ? "Time\u2019s Up"
+                ? "TIME\u2019S UP"
                 : results.solved < 10
-                  ? "Not Bad"
-                  : "All Clear"}
-          </h2>
+                  ? "NOT BAD"
+                  : "ALL CLEAR"}
+          </h1>
+          {results.solved >= TOTAL_SOLVE_TARGET && (
+            <p
+              style={{
+                marginTop: 12,
+                fontSize: 16,
+                fontWeight: 450,
+                color: "#fa5d19",
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                opacity: 0.8,
+              }}
+            >
+              We want to talk to you.
+            </p>
+          )}
         </div>
 
-        {!isProgressionOnly && results.solved <= 2 && (
-          <p
-            style={{
-              marginTop: 12,
-              fontSize: 15,
-              color: "rgba(0,0,0,0.4)",
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            }}
-          >
-            You probably need a different approach.
-          </p>
-        )}
-        {!isProgressionOnly && results.solved >= TOTAL_SOLVE_TARGET && (
-          <p
-            style={{
-              marginTop: 12,
-              fontSize: 15,
-              fontWeight: 450,
-              color: "#fa5d19",
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            }}
-          >
-            We want to talk to you.
-          </p>
-        )}
-
-        {/* Stats row */}
+        {/* Stats row - Terminal cards style */}
         <div
           style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: 0,
-            marginTop: 32,
-            background: "#fafafa",
-            borderRadius: 12,
-            overflow: "hidden",
-            border: "1px solid #f0f0f0",
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 12,
+            marginBottom: 32,
           }}
         >
           {[
             {
-              label: "Solved",
+              label: "[ SOLVED ]",
               value: `${results.solved}/${displayedSolveTarget}`,
               color: "#262626",
             },
-            { label: "Score", value: results.elo.toLocaleString(), color: "#fa5d19" },
-            { label: "Rank", value: `#${results.rank}`, color: "#262626" },
-          ].map((stat, i) => (
+            { label: "[ SCORE ]", value: results.elo.toLocaleString(), color: "#fa5d19" },
+            { label: "[ RANK ]", value: `#${results.rank}`, color: "#262626" },
+          ].map((stat) => (
             <div
               key={stat.label}
               style={{
-                flex: 1,
-                padding: "18px 16px",
-                borderRight: i < 2 ? "1px solid #f0f0f0" : "none",
+                background: "#ffffff",
+                border: "1px solid #e8e8e8",
+                borderRadius: 16,
+                padding: "24px 16px",
                 textAlign: "center",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.02)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
               }}
             >
-              <p
+              <span
                 style={{
                   fontSize: 11,
                   fontWeight: 500,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.5,
                   color: "rgba(0,0,0,0.3)",
-                  margin: 0,
+                  letterSpacing: 0.5,
                   fontFamily: "var(--font-geist-mono), monospace",
                 }}
               >
                 {stat.label}
-              </p>
-              <p
+              </span>
+              <span
                 style={{
-                  fontSize: 24,
+                  fontSize: 28,
                   fontWeight: 500,
                   color: stat.color,
-                  margin: "8px 0 0",
                   fontFamily: "var(--font-geist-mono), monospace",
                   fontVariantNumeric: "tabular-nums",
+                  letterSpacing: -1,
                 }}
               >
                 {stat.value}
-              </p>
+              </span>
             </div>
           ))}
         </div>
 
-        {/* ── Score Breakdown — only for final level ── */}
+        {/* ── Score Breakdown — Terminal Log style ── */}
         {!isProgressionOnly && (
-          <div style={{ marginTop: 28, textAlign: "left" }}>
-            <p
-              style={{
-                fontSize: 12,
-                fontWeight: 500,
-                color: "#262626",
-                margin: "0 0 14px",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                fontFamily: "var(--font-geist-mono), monospace",
-              }}
-            >
-              Score Breakdown
-            </p>
-
-            {/* Base score */}
+          <div
+            style={{
+              textAlign: "left",
+              background: "#ffffff",
+              border: "1px solid #e8e8e8",
+              borderRadius: 20,
+              padding: "32px",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.02)",
+              marginBottom: 32,
+            }}
+          >
             <div
               style={{
-                background: "#fafafa",
-                borderRadius: 10,
-                padding: "14px 18px",
-                marginBottom: 10,
-                border: "1px solid #f0f0f0",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                <span
-                  style={{
-                    color: "rgba(0,0,0,0.45)",
-                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                  }}
-                >
-                  Base score ({results.solved}/{displayedSolveTarget} solved,{" "}
-                  {results.timeRemaining}s remaining)
-                </span>
-                <span
-                  style={{
-                    fontWeight: 500,
-                    color: "#262626",
-                    fontFamily: "var(--font-geist-mono), monospace",
-                  }}
-                >
-                  {results.elo -
-                    (results.exploits ?? []).reduce((s, e) => s + e.bonus, 0) -
-                    (results.landmines ?? []).reduce((s, l) => s + l.penalty, 0)}
-                </span>
-              </div>
-            </div>
-
-            {/* ── Exploits ── */}
-            {(results.exploits ?? []).length > 0 && (
-              <div
-                style={{
-                  borderRadius: 10,
-                  border: "1px solid rgba(250,93,25,0.15)",
-                  overflow: "hidden",
-                  marginBottom: 10,
-                  background: "rgba(250,93,25,0.02)",
-                }}
-              >
-                <div
-                  style={{
-                    padding: "10px 18px",
-                    background: "rgba(250,93,25,0.05)",
-                    borderBottom: "1px solid rgba(250,93,25,0.12)",
-                  }}
-                >
-                  <p
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 500,
-                      color: "#fa5d19",
-                      margin: 0,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                      fontFamily: "var(--font-geist-mono), monospace",
-                    }}
-                  >
-                    Exploits
-                  </p>
-                </div>
-                {(results.exploits ?? []).map((e) => (
-                  <div
-                    key={e.id}
-                    style={{
-                      padding: "8px 18px",
-                      borderBottom: "1px solid rgba(250,93,25,0.08)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                    }}
-                  >
-                    <span style={{ fontSize: 14, width: 20, textAlign: "center", flexShrink: 0 }}>
-                      &#10003;
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 13,
-                        color: "#262626",
-                        flex: 1,
-                        lineHeight: 1.5,
-                        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                      }}
-                    >
-                      {e.message}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 500,
-                        color: "#1a9338",
-                        flexShrink: 0,
-                        fontFamily: "var(--font-geist-mono), monospace",
-                      }}
-                    >
-                      +{e.bonus}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* ── Landmines ── */}
-            {(results.landmines ?? []).length > 0 && (
-              <div
-                style={{
-                  borderRadius: 10,
-                  border: "1px solid rgba(220,38,38,0.15)",
-                  overflow: "hidden",
-                  marginBottom: 10,
-                  background: "rgba(220,38,38,0.02)",
-                }}
-              >
-                <div
-                  style={{
-                    padding: "10px 18px",
-                    background: "rgba(220,38,38,0.05)",
-                    borderBottom: "1px solid rgba(220,38,38,0.12)",
-                  }}
-                >
-                  <p
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 500,
-                      color: "#dc2626",
-                      margin: 0,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                      fontFamily: "var(--font-geist-mono), monospace",
-                    }}
-                  >
-                    Safety Issues
-                  </p>
-                </div>
-                {(results.landmines ?? []).map((l) => (
-                  <div
-                    key={l.id}
-                    style={{
-                      padding: "8px 18px",
-                      borderBottom: "1px solid rgba(220,38,38,0.08)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                    }}
-                  >
-                    <span style={{ fontSize: 14, width: 20, textAlign: "center", flexShrink: 0 }}>
-                      &#10007;
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 13,
-                        color: "#262626",
-                        flex: 1,
-                        lineHeight: 1.5,
-                        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                      }}
-                    >
-                      {l.message}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 500,
-                        color: "#dc2626",
-                        flexShrink: 0,
-                        fontFamily: "var(--font-geist-mono), monospace",
-                      }}
-                    >
-                      {l.penalty}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Final Score */}
-            <div
-              style={{
-                background: "#262626",
-                borderRadius: 10,
-                padding: "14px 18px",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
+                marginBottom: 24,
+                borderBottom: "1px solid #f0f0f0",
+                paddingBottom: 16,
               }}
             >
               <span
                 style={{
                   fontSize: 12,
                   fontWeight: 500,
-                  color: "rgba(255,255,255,0.6)",
+                  color: "#262626",
                   textTransform: "uppercase",
                   letterSpacing: 0.5,
                   fontFamily: "var(--font-geist-mono), monospace",
                 }}
               >
-                Final Score
+                [ SCORE_LOG ]
               </span>
               <span
                 style={{
-                  fontSize: 22,
-                  fontWeight: 500,
-                  color: "#fa5d19",
+                  fontSize: 12,
+                  color: "rgba(0,0,0,0.3)",
                   fontFamily: "var(--font-geist-mono), monospace",
-                  fontVariantNumeric: "tabular-nums",
                 }}
               >
-                {results.elo.toLocaleString()}
+                v2.0.0-PROD
               </span>
             </div>
 
-            {currentLevel === 3 && results.validation && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {/* Base score line */}
               <div
                 style={{
-                  marginTop: 14,
-                  border: "1px solid #e8e8e8",
-                  borderRadius: 10,
-                  overflow: "hidden",
-                  background: "#fafafa",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: 13,
+                  fontFamily: "var(--font-geist-mono), monospace",
                 }}
               >
-                {(() => {
-                  const passedCount = results.validation.results.filter((r) => r.correct).length;
-                  const failedCount = Math.max(0, results.validation.results.length - passedCount);
-                  return (
-                    <>
-                      <div
-                        style={{
-                          padding: "10px 18px",
-                          borderBottom: "1px solid #e8e8e8",
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 500,
-                            color: "#262626",
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                            fontFamily: "var(--font-geist-mono), monospace",
-                          }}
-                        >
-                          Stage 3 Verification
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 500,
-                            color: results.validation.compiled ? "#1a9338" : "#dc2626",
-                            fontFamily: "var(--font-geist-mono), monospace",
-                          }}
-                        >
-                          {passedCount}/{results.validation.results.length} checks passed
-                        </span>
-                      </div>
-                      {!results.validation.compiled && (
-                        <div
-                          style={{
-                            padding: "10px 18px",
-                            borderBottom: "1px solid #e8e8e8",
-                            fontSize: 13,
-                            color: "#dc2626",
-                            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                          }}
-                        >
-                          Compilation failed.
-                        </div>
-                      )}
-                      {failedCount > 0 && (
-                        <div
-                          style={{
-                            padding: "10px 18px",
-                            fontSize: 13,
-                            color: "rgba(0,0,0,0.6)",
-                            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                          }}
-                        >
-                          {failedCount} check{failedCount === 1 ? "" : "s"} failed.
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
+                <span style={{ color: "rgba(0,0,0,0.45)" }}>
+                  INIT_BASE_SCORE ({results.solved} solved, {results.timeRemaining}s rem)
+                </span>
+                <span style={{ fontWeight: 500, color: "#262626" }}>
+                  {(
+                    results.elo -
+                    (results.exploits ?? []).reduce((s, e) => s + e.bonus, 0) -
+                    (results.landmines ?? []).reduce((s, l) => s + l.penalty, 0)
+                  ).toLocaleString()}
+                </span>
               </div>
-            )}
+
+              {/* Exploits lines */}
+              {(results.exploits ?? []).map((e) => (
+                <div
+                  key={e.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: 13,
+                    fontFamily: "var(--font-geist-mono), monospace",
+                  }}
+                >
+                  <span style={{ color: "#1a9338" }}>+ EXPLOIT_BONUS: {e.message}</span>
+                  <span style={{ fontWeight: 500, color: "#1a9338" }}>+{e.bonus}</span>
+                </div>
+              ))}
+
+              {/* Landmines lines */}
+              {(results.landmines ?? []).map((l) => (
+                <div
+                  key={l.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: 13,
+                    fontFamily: "var(--font-geist-mono), monospace",
+                  }}
+                >
+                  <span style={{ color: "#dc2626" }}>- SAFETY_PENALTY: {l.message}</span>
+                  <span style={{ fontWeight: 500, color: "#dc2626" }}>{l.penalty}</span>
+                </div>
+              ))}
+
+              {/* Final total */}
+              <div
+                style={{
+                  marginTop: 20,
+                  paddingTop: 20,
+                  borderTop: "2px dashed #f0f0f0",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: "#262626",
+                    fontFamily: "var(--font-geist-mono), monospace",
+                  }}
+                >
+                  TOTAL_ELO_CALCULATED
+                </span>
+                <span
+                  style={{
+                    fontSize: 32,
+                    fontWeight: 500,
+                    color: "#fa5d19",
+                    fontFamily: "var(--font-geist-mono), monospace",
+                    letterSpacing: -1,
+                  }}
+                >
+                  {results.elo.toLocaleString()}
+                </span>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Capture form */}
+        {/* Capture form - More terminal style */}
         {!isProgressionOnly && results.solved >= 3 && !submittedLead && (
-          <div style={{ marginTop: 32 }}>
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e8e8e8",
+              borderRadius: 20,
+              padding: "32px",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.02)",
+              textAlign: "left",
+              marginBottom: 32,
+            }}
+          >
+            <div style={{ marginBottom: 24 }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "#262626",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
+                  fontFamily: "var(--font-geist-mono), monospace",
+                }}
+              >
+                [ SHIP_IDENTITY ]
+              </span>
+            </div>
+
             {submitError && (
               <div
                 style={{
-                  marginBottom: 12,
-                  padding: "8px 14px",
+                  marginBottom: 16,
+                  padding: "10px 14px",
                   background: "rgba(220,38,38,0.04)",
                   border: "1px solid rgba(220,38,38,0.15)",
                   borderRadius: 10,
                   color: "#dc2626",
                   fontSize: 13,
-                  fontWeight: 450,
                   fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 }}
               >
                 {submitError}
               </div>
             )}
+
             <div
               style={{
                 display: "grid",
-                gap: 14,
-                alignItems: "start",
-                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                width: "100%",
+                gap: 20,
+                gridTemplateColumns: "repeat(2, 1fr)",
               }}
             >
-              <div style={inputWrapperStyle}>
-                <span style={inputLabelStyle}>Email</span>
-                <input
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
+              {[
+                {
+                  label: "EMAIL",
+                  value: email,
+                  setter: (v: string) => {
+                    setEmail(v);
                     setEmailError("");
-                  }}
-                  placeholder="you@company.com"
-                  maxLength={254}
-                  style={{
-                    ...inputStyle,
-                    width: "100%",
-                    minWidth: 0,
-                    borderColor: emailError ? "#dc2626" : "#e8e8e8",
-                  }}
-                  onFocus={(e) => (e.target.style.borderColor = emailError ? "#dc2626" : "#fa5d19")}
-                  onBlur={(e) => (e.target.style.borderColor = emailError ? "#dc2626" : "#e8e8e8")}
-                />
-              </div>
-              <div style={inputWrapperStyle}>
-                <span style={inputLabelStyle}>GitHub</span>
-                <input
-                  value={github}
-                  readOnly
-                  style={{
-                    ...inputStyle,
-                    width: "100%",
-                    minWidth: 0,
-                    color: "rgba(0,0,0,0.35)",
-                  }}
-                />
-              </div>
-              <div style={inputWrapperStyle}>
-                <span style={inputLabelStyle}>X Handle</span>
-                <input
-                  value={xHandle}
-                  onChange={(e) => {
-                    setXHandle(e.target.value);
+                  },
+                  error: emailError,
+                  placeholder: "you@company.com",
+                },
+                { label: "GITHUB", value: github, readOnly: true },
+                {
+                  label: "X_HANDLE",
+                  value: xHandle,
+                  setter: (v: string) => {
+                    setXHandle(v);
                     setXHandleError("");
-                  }}
-                  placeholder="@x_handle"
-                  maxLength={16}
-                  style={{
-                    ...inputStyle,
-                    width: "100%",
-                    minWidth: 0,
-                    borderColor: xHandleError ? "#dc2626" : "#e8e8e8",
-                  }}
-                  onFocus={(e) =>
-                    (e.target.style.borderColor = xHandleError ? "#dc2626" : "#fa5d19")
-                  }
-                  onBlur={(e) =>
-                    (e.target.style.borderColor = xHandleError ? "#dc2626" : "#e8e8e8")
-                  }
-                />
-              </div>
-              <div style={inputWrapperStyle}>
-                <span style={inputLabelStyle}>Flag</span>
-                <input
-                  value={flag}
-                  onChange={(e) => setFlag(e.target.value)}
-                  placeholder="flag{...}"
-                  style={{
-                    ...inputStyle,
-                    width: "100%",
-                    minWidth: 0,
-                  }}
-                  onFocus={(e) => (e.target.style.borderColor = "#fa5d19")}
-                  onBlur={(e) => (e.target.style.borderColor = "#e8e8e8")}
-                />
-              </div>
+                  },
+                  error: xHandleError,
+                  placeholder: "@handle",
+                },
+                { label: "FLAG_OPTIONAL", value: flag, setter: setFlag, placeholder: "flag{...}" },
+              ].map((field) => (
+                <div key={field.label} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      color: "rgba(0,0,0,0.3)",
+                      fontFamily: "var(--font-geist-mono), monospace",
+                    }}
+                  >
+                    {field.label}
+                  </span>
+                  <input
+                    value={field.value}
+                    readOnly={field.readOnly}
+                    onChange={(e) => field.setter?.(e.target.value)}
+                    placeholder={field.placeholder}
+                    style={{
+                      ...inputStyle,
+                      borderColor: field.error ? "#dc2626" : "#e8e8e8",
+                      color: field.readOnly ? "rgba(0,0,0,0.3)" : "#262626",
+                      background: field.readOnly ? "rgba(0,0,0,0.02)" : "#fafafa",
+                    }}
+                    onFocus={(e) => {
+                      if (!field.readOnly) e.target.style.borderColor = field.error ? "#dc2626" : "#fa5d19";
+                    }}
+                    onBlur={(e) => {
+                      if (!field.readOnly) e.target.style.borderColor = field.error ? "#dc2626" : "#e8e8e8";
+                    }}
+                  />
+                </div>
+              ))}
             </div>
-            <div style={{ marginTop: 14 }}>
+
+            <div style={{ marginTop: 32 }}>
               <button
                 disabled={!email.trim()}
                 onClick={submitLeadForm}
                 style={{
                   width: "100%",
-                  maxWidth: 280,
-                  height: 40,
-                  padding: "0 24px",
-                  borderRadius: 10,
+                  height: 44,
+                  borderRadius: 12,
                   fontSize: 14,
-                  fontWeight: 450,
+                  fontWeight: 500,
                   fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                  whiteSpace: "nowrap",
-                  display: "block",
-                  margin: "0 auto",
                   background: "#ff4c00",
                   color: "#ffffff",
-                  border: "1px solid #f25515",
+                  border: "none",
                   cursor: !email.trim() ? "not-allowed" : "pointer",
                   opacity: !email.trim() ? 0.4 : 1,
                   boxShadow: HEAT_SHADOW,
                   transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
                 }}
               >
-                Submit
+                VERIFY & SHIP
               </button>
             </div>
-            {(emailError || xHandleError) && (
-              <p
-                style={{
-                  margin: "8px 0 0",
-                  fontSize: 13,
-                  color: "#dc2626",
-                  textAlign: "left",
-                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                }}
-              >
-                {emailError || xHandleError}
-              </p>
-            )}
           </div>
         )}
 
+        {/* Success message */}
         {!isProgressionOnly && submittedLead && (
-          <p
+          <div
             style={{
-              marginTop: 28,
-              fontSize: 15,
-              fontWeight: 450,
+              marginBottom: 32,
+              padding: "24px",
+              background: "rgba(26,147,56,0.05)",
+              border: "1px solid rgba(26,147,56,0.15)",
+              borderRadius: 20,
               color: "#1a9338",
+              fontSize: 16,
+              fontWeight: 500,
               fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             }}
           >
-            You&apos;re in. Share for the next challenge.
-          </p>
+            Mission success. Data transmitted.
+          </div>
         )}
 
         {/* Action buttons */}
-        {!isProgressionOnly && (
-          <div
-            style={{
-              display: "grid",
-              gap: 10,
-              marginTop: 32,
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-            }}
-          >
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            justifyContent: "center",
+          }}
+        >
+          {isProgressionOnly && canAdvance ? (
             <button
-              onClick={shareScore}
+              onClick={() => startGame(nextLevel)}
               style={{
-                flex: 1,
-                height: 44,
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 450,
+                width: "100%",
+                maxWidth: 400,
+                height: 52,
+                borderRadius: 16,
+                fontSize: 16,
+                fontWeight: 500,
                 fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 background: "#ff4c00",
                 color: "#ffffff",
-                border: "1px solid #f25515",
+                border: "none",
                 cursor: "pointer",
                 boxShadow: HEAT_SHADOW,
                 transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
               }}
             >
-              Share on X
+              CONTINUE TO LEVEL {nextLevel}
             </button>
-            <button
-              onClick={resetAll}
-              style={{
-                flex: 1,
-                height: 44,
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 450,
-                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                background: "rgba(0,0,0,0.04)",
-                color: "#262626",
-                border: "none",
-                cursor: "pointer",
-                transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
-              }}
-            >
-              Try Again
-            </button>
-          </div>
-        )}
-
-        {isProgressionOnly && canAdvance && (
-          <button
-            onClick={() => startGame(nextLevel)}
-            style={{
-              width: "100%",
-              height: 48,
-              borderRadius: 10,
-              fontSize: 15,
-              fontWeight: 450,
-              letterSpacing: 0.3,
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              marginTop: 24,
-              background: "#ff4c00",
-              color: "#ffffff",
-              border: "1px solid #f25515",
-              cursor: "pointer",
-              boxShadow: HEAT_SHADOW,
-              transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
-            }}
-          >
-            {`Continue to Level ${nextLevel}`}
-          </button>
-        )}
+          ) : (
+            <>
+              {!isProgressionOnly && (
+                <>
+                  <button
+                    onClick={shareScore}
+                    style={{
+                      flex: 1,
+                      height: 48,
+                      borderRadius: 16,
+                      fontSize: 14,
+                      fontWeight: 500,
+                      fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                      background: "#ff4c00",
+                      color: "#ffffff",
+                      border: "none",
+                      cursor: "pointer",
+                      boxShadow: HEAT_SHADOW,
+                      transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
+                    }}
+                  >
+                    SHARE ON X
+                  </button>
+                  <button
+                    onClick={resetAll}
+                    style={{
+                      flex: 1,
+                      height: 48,
+                      borderRadius: 16,
+                      fontSize: 14,
+                      fontWeight: 500,
+                      fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                      background: "rgba(0,0,0,0.04)",
+                      color: "#262626",
+                      border: "none",
+                      cursor: "pointer",
+                      transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
+                    }}
+                  >
+                    RETRY MISSION
+                  </button>
+                </>
+              )}
+            </>
+          )}
+        </div>
 
         {isProgressionOnly && !canAdvance && (
           <p
             style={{
-              marginTop: 20,
-              fontSize: 14,
-              color: "rgba(0,0,0,0.5)",
+              marginTop: 24,
+              fontSize: 13,
+              color: "rgba(0,0,0,0.4)",
               fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             }}
           >
             {currentLevel === 1
-              ? "Level 2 unlocks after clearing all 25 Level 1 problems."
-              : "Level 3 unlocks after clearing all 10 Level 2 questions."}
+              ? `Level 2 unlocks after clearing all Level 1 problems.`
+              : `Level 3 unlocks after clearing all Level 2 questions.`}
           </p>
         )}
+      </div>
+
+      {/* Footer footer */}
+      <div
+        style={{
+          marginTop: 60,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: 12,
+          fontSize: 12,
+          color: "rgba(0,0,0,0.16)",
+          fontFamily: "var(--font-geist-mono), monospace",
+          position: "relative",
+          zIndex: 10,
+        }}
+      >
+        <span>FIRE_CTF_PROD</span>
+        <span>·</span>
+        <span>AUTH_SYNCED</span>
+        <span>·</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <BrailleSpinner /> v2.0
+        </span>
       </div>
     </div>
   );

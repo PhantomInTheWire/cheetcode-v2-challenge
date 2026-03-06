@@ -146,6 +146,27 @@ const ResultsScreen = dynamic(
     ),
   },
 );
+const Level3VerificationScreen = dynamic(
+  () =>
+    import("@/components/game/Level3VerificationScreen").then((m) => m.Level3VerificationScreen),
+  {
+    loading: () => (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "#f9f9f9",
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+          color: "rgba(0,0,0,0.35)",
+          fontSize: 14,
+        }}
+      >
+        Loading...
+      </div>
+    ),
+  },
+);
 
 function useIsMobile() {
   const query = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`;
@@ -222,7 +243,11 @@ function renderPlayingScreen(params: {
   const finishAndShowResults = (nextResults: HomeGameState["results"]) => {
     params.clearStoredSession();
     params.setResults(nextResults);
-    params.setScreen("results");
+    if (params.currentLevel === 3) {
+      params.setScreen("level3-verification");
+    } else {
+      params.setScreen("results");
+    }
   };
 
   if (params.currentLevel === 2) {
@@ -436,6 +461,15 @@ function renderHomeScreen(params: {
         onBack={() =>
           goBackToLanding(params.clearStoredFlowScreen, params.setPendingLevel, params.setScreen)
         }
+      />
+    );
+  }
+
+  if (params.screen === "level3-verification" && params.results) {
+    return (
+      <Level3VerificationScreen
+        results={params.results}
+        onContinue={() => params.setScreen("results")}
       />
     );
   }
