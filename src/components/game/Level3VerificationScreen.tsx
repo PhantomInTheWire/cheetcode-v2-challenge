@@ -10,14 +10,6 @@ type Level3VerificationScreenProps = {
   onContinue: () => void;
 };
 
-const HEAT_SHADOW = `
-  inset 0px -6px 12px 0px rgba(250,25,25,0.2),
-  0px 2px 4px 0px rgba(250,93,25,0.12),
-  0px 1px 1px 0px rgba(250,93,25,0.12),
-  0px 0.5px 0.5px 0px rgba(250,93,25,0.16),
-  0px 0.25px 0.25px 0px rgba(250,93,25,0.2)
-`;
-
 export function Level3VerificationScreen({ results, onContinue }: Level3VerificationScreenProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   useEffect(() => {
@@ -138,7 +130,7 @@ export function Level3VerificationScreen({ results, onContinue }: Level3Verifica
                 fontFamily: "var(--font-geist-mono), monospace",
               }}
             >
-              LEVEL 3 VERIFICATION
+              [ LEVEL 3 VERIFICATION ]
             </span>
           </div>
           <h1
@@ -210,7 +202,7 @@ export function Level3VerificationScreen({ results, onContinue }: Level3Verifica
                 fontFamily: "var(--font-geist-mono), monospace",
               }}
             >
-              <span style={{ color: "rgba(0,0,0,0.45)" }}>COMPILATION_STATUS</span>
+              <span style={{ color: "rgba(0,0,0,0.45)" }}>[ COMPILATION_STATUS ]</span>
               <span
                 style={{
                   fontWeight: 600,
@@ -270,6 +262,7 @@ export function Level3VerificationScreen({ results, onContinue }: Level3Verifica
         </div>
 
         <button
+          className="btn-heat"
           onClick={onContinue}
           style={{
             width: "100%",
@@ -279,12 +272,6 @@ export function Level3VerificationScreen({ results, onContinue }: Level3Verifica
             fontSize: 16,
             fontWeight: 500,
             fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            background: "#ff4c00",
-            color: "#ffffff",
-            border: "none",
-            cursor: "pointer",
-            boxShadow: HEAT_SHADOW,
-            transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
           }}
         >
           CONTINUE TO SCOREBOARD
@@ -305,9 +292,9 @@ export function Level3VerificationScreen({ results, onContinue }: Level3Verifica
           zIndex: 10,
         }}
       >
-        <span>FIRE_CTF_PROD</span>
+        <span>[ FIRE_CTF_PROD ]</span>
         <span>·</span>
-        <span>AUTH_SYNCED</span>
+        <span>[ AUTH_SYNCED ]</span>
         <span>·</span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
           <BrailleSpinner /> v2.0

@@ -30,10 +30,14 @@ export async function POST(request: Request) {
   // Parse request body for level selection
   let requestedLevel: number | undefined;
   let requestedLevel3ChallengeId: string | undefined;
+  let requestedLevel2Projects: string[] | undefined;
   try {
     const body = await request.json().catch(() => ({}));
     requestedLevel = body.level;
     requestedLevel3ChallengeId = body.level3ChallengeId;
+    requestedLevel2Projects = Array.isArray(body.level2Projects)
+      ? body.level2Projects.filter((entry: unknown): entry is string => typeof entry === "string")
+      : undefined;
   } catch {
     // Ignore parse errors, use default
   }
@@ -48,6 +52,7 @@ export async function POST(request: Request) {
       github,
       requestedLevel,
       requestedLevel3ChallengeId,
+      requestedLevel2Projects,
     });
 
     if (result.level === 1 && Array.isArray(result.problems)) {

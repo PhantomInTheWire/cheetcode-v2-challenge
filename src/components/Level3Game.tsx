@@ -12,6 +12,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { cpp } from "@codemirror/lang-cpp";
 import { rust } from "@codemirror/lang-rust";
 import { L3_MARKDOWN_COMPONENTS } from "./level3MarkdownComponents";
+import { BrailleSpinner } from "./game/decor";
 
 const ROUND_DURATION_L3_MS = 120_000;
 const LEVEL3_STATUS_STORAGE_KEY = "cheetcode.level3Status";
@@ -133,7 +134,6 @@ export function Level3Game({
   const [runUiPhase, setRunUiPhase] = useState<RunUiPhase>("idle");
   const [runHint, setRunHint] = useState<string | null>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const [pulseFrame, setPulseFrame] = useState(0);
   const [leftPaneWidth, setLeftPaneWidth] = useState(48);
   const [editorHeightRatio, setEditorHeightRatio] = useState(0.75);
   const lockedTimeElapsedMsRef = useRef<number | null>(null);
@@ -302,16 +302,8 @@ export function Level3Game({
   }, []);
 
   useEffect(() => {
-    if ((!isChecking && !isSubmitting) || prefersReducedMotion) return;
-    const id = setInterval(() => {
-      setPulseFrame((value) => (value + 1) % 8);
-    }, 120);
-    return () => clearInterval(id);
-  }, [isChecking, isSubmitting, prefersReducedMotion]);
-
-  useEffect(() => {
-    const isBusy = isChecking || isSubmitting;
-    if (isBusy) {
+    const Busy = isChecking || isSubmitting;
+    if (Busy) {
       if (pauseStartedAtRef.current === null) {
         pauseStartedAtRef.current = Date.now();
       }
@@ -349,10 +341,7 @@ export function Level3Game({
     () => [editorExtensionFor(challenge.language)],
     [challenge.language],
   );
-  const brailleSpinner = prefersReducedMotion
-    ? ["\u2026"]
-    : ["\u28FE", "\u28FD", "\u28FB", "\u28BF", "\u287F", "\u28DF", "\u28EF", "\u28F7"];
-  const spinnerGlyph = brailleSpinner[pulseFrame % brailleSpinner.length] ?? "\u28FE";
+
   const handleCodeChange = useCallback((value: string) => {
     setCode(value);
   }, []);
@@ -389,11 +378,7 @@ export function Level3Game({
   );
   const isRunBusy = runUiPhase === "compiling" || runUiPhase === "running";
   const runButtonLabel =
-    runUiPhase === "compiling"
-      ? "Compiling\u2026"
-      : runUiPhase === "running"
-        ? "Running\u2026"
-        : "Run";
+    runUiPhase === "compiling" ? "Compiling" : runUiPhase === "running" ? "Running" : "Run";
 
   async function runChecks() {
     const nowMs = Date.now();
@@ -550,7 +535,16 @@ export function Level3Game({
   }, []);
 
   const timerBg = secondsLeft <= 20 ? "#dc2626" : secondsLeft <= 45 ? "#fa5d19" : "#1a9338";
-  const timerFg = secondsLeft <= 20 ? "#dc2626" : secondsLeft <= 45 ? "#fa5d19" : "#1a9338";
+  const timerFg = timerBg;
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: 12,
+    color: "rgba(0,0,0,0.12)",
+    fontFamily: "var(--font-geist-mono), monospace",
+    fontWeight: 450,
+    textTransform: "uppercase",
+    letterSpacing: "0.02em",
+  };
 
   return (
     <div
@@ -592,8 +586,9 @@ export function Level3Game({
           background: "rgba(255,255,255,0.85)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
-          position: "relative",
-          zIndex: 10,
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -666,18 +661,7 @@ export function Level3Game({
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 500,
-                color: "rgba(0,0,0,0.35)",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                fontFamily: "var(--font-geist-mono), monospace",
-              }}
-            >
-              Passed
-            </span>
+            <span style={labelStyle}>[ PASSED ]</span>
             <span
               style={{
                 fontSize: 16,
@@ -687,15 +671,19 @@ export function Level3Game({
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              {solvedLocal}
-              <span style={{ color: "rgba(0,0,0,0.2)" }}>/ {totalChecks}</span>
+              {String(solvedLocal).padStart(2, "0")}
+              <span style={{ color: "rgba(0,0,0,0.2)" }}>
+                {" "}
+                / {String(totalChecks).padStart(2, "0")}
+              </span>
             </span>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={labelStyle}>[ TIME ]</span>
             <div
               style={{
-                width: 160,
+                width: 120,
                 height: 4,
                 background: "#e8e8e8",
                 borderRadius: 4,
@@ -733,16 +721,18 @@ export function Level3Game({
                 style={{
                   fontSize: 10,
                   fontWeight: 500,
-                  color: "#8a3d14",
+                  color: "#fa5d19",
                   background: "rgba(250, 93, 25, 0.12)",
                   border: "1px solid rgba(250, 93, 25, 0.25)",
                   borderRadius: 999,
                   padding: "4px 8px",
                   letterSpacing: 0.2,
                   whiteSpace: "nowrap",
+                  fontFamily: "var(--font-geist-mono), monospace",
+                  textTransform: "uppercase",
                 }}
               >
-                Timer paused
+                Paused
               </span>
             )}
           </div>
@@ -750,7 +740,7 @@ export function Level3Game({
           <button
             onClick={() => void runChecks()}
             disabled={isSubmitting || timeUp || !code.trim()}
-            className={`btn-ghost${isRunBusy ? " btn-ghost-busy" : ""}`}
+            className="btn-ghost"
             style={{
               height: 32,
               padding: "0 14px",
@@ -772,19 +762,22 @@ export function Level3Game({
                 zIndex: 2,
               }}
             >
-              <span>{runButtonLabel}</span>
-              {isRunBusy && (
-                <span
-                  style={{
-                    fontSize: 11,
-                    minWidth: 10,
-                    textAlign: "center",
-                    fontFamily: "var(--font-geist-mono), monospace",
-                  }}
-                  aria-hidden="true"
-                >
-                  {spinnerGlyph}
-                </span>
+              {isRunBusy ? (
+                <>
+                  {prefersReducedMotion ? (
+                    <span
+                      aria-hidden="true"
+                      style={{ fontFamily: "var(--font-geist-mono), monospace" }}
+                    >
+                      ...
+                    </span>
+                  ) : (
+                    <BrailleSpinner />
+                  )}
+                  <span>{runButtonLabel}</span>
+                </>
+              ) : (
+                <span>{runButtonLabel}</span>
               )}
             </span>
           </button>
@@ -795,6 +788,7 @@ export function Level3Game({
                 color: "rgba(0,0,0,0.5)",
                 marginLeft: -8,
                 whiteSpace: "nowrap",
+                fontFamily: "var(--font-geist-mono), monospace",
               }}
             >
               {runHint}
@@ -805,23 +799,25 @@ export function Level3Game({
               style={{
                 fontSize: 10,
                 fontWeight: 500,
-                color: "#8a3d14",
+                color: "#fa5d19",
                 background: "rgba(250, 93, 25, 0.12)",
                 border: "1px solid rgba(250, 93, 25, 0.25)",
                 borderRadius: 999,
                 padding: "4px 8px",
                 letterSpacing: 0.2,
                 whiteSpace: "nowrap",
+                fontFamily: "var(--font-geist-mono), monospace",
+                textTransform: "uppercase",
               }}
             >
-              Instant (cached)
+              Instant
             </span>
           )}
 
           <button
             onClick={() => void finishGame()}
             disabled={isSubmitting}
-            className={`btn-heat${isSubmitting ? " btn-heat-busy" : ""}`}
+            className="btn-heat"
             style={{
               height: 32,
               padding: "0 18px",
@@ -836,17 +832,17 @@ export function Level3Game({
           >
             {isSubmitting ? (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                {prefersReducedMotion ? (
+                  <span
+                    aria-hidden="true"
+                    style={{ fontFamily: "var(--font-geist-mono), monospace" }}
+                  >
+                    ...
+                  </span>
+                ) : (
+                  <BrailleSpinner />
+                )}
                 <span>Submitting…</span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontFamily: "var(--font-geist-mono), monospace",
-                    minWidth: 10,
-                  }}
-                  aria-hidden="true"
-                >
-                  {spinnerGlyph}
-                </span>
               </span>
             ) : (
               "Submit"
@@ -966,7 +962,7 @@ export function Level3Game({
                   flex: editorHeightRatio,
                   minHeight: 0,
                   border: "1px solid rgba(250, 93, 25, 0.16)",
-                  borderRadius: 10,
+                  borderRadius: 16,
                   overflow: "hidden",
                   background: "#fffaf7",
                 }}
@@ -1025,7 +1021,7 @@ export function Level3Game({
                   flex: 1 - editorHeightRatio,
                   minHeight: 0,
                   border: "1px solid #e8e8e8",
-                  borderRadius: 8,
+                  borderRadius: 16,
                   overflowY: "auto",
                 }}
               >

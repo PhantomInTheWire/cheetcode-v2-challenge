@@ -139,7 +139,7 @@ export function AnimatedLandingDecor() {
     <>
       <div
         style={{
-          position: "absolute",
+          position: "fixed",
           left: 16,
           top: "50%",
           transform: "translateY(-50%)",
@@ -158,7 +158,7 @@ export function AnimatedLandingDecor() {
       </div>
       <div
         style={{
-          position: "absolute",
+          position: "fixed",
           right: 16,
           top: "50%",
           transform: "translateY(-50%) scaleX(-1)",
@@ -177,7 +177,7 @@ export function AnimatedLandingDecor() {
       </div>
       <div
         style={{
-          position: "absolute",
+          position: "fixed",
           bottom: 0,
           left: -280,
           width: 783,
@@ -205,7 +205,7 @@ export function AnimatedLandingDecor() {
       </div>
       <div
         style={{
-          position: "absolute",
+          position: "fixed",
           bottom: 0,
           right: -280,
           width: 783,

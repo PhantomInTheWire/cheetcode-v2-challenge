@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LEVEL2_PROBLEMS } from "../server/level2/problems";
+import { LEVEL2_PROBLEMS, LEVEL2_PROJECTS } from "../server/level2/problems";
 
 describe("level2 questions json", () => {
   it("loads at least one question", () => {
@@ -10,6 +10,9 @@ describe("level2 questions json", () => {
     for (const problem of LEVEL2_PROBLEMS) {
       expect(typeof problem.id).toBe("string");
       expect(problem.id.trim().length).toBeGreaterThan(0);
+
+      expect(typeof problem.project).toBe("string");
+      expect(LEVEL2_PROJECTS.includes(problem.project)).toBe(true);
 
       expect(typeof problem.question).toBe("string");
       expect(problem.question.trim().length).toBeGreaterThan(0);
@@ -33,6 +36,7 @@ describe("level2 questions json", () => {
     const first = LEVEL2_PROBLEMS[0];
     expect(first).toMatchObject({
       id: expect.any(String),
+      project: expect.any(String),
       question: expect.any(String),
       answer: expect.any(String),
     });

@@ -5,6 +5,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { isClientDevMode } from "../lib/myEnv";
 import { clientFetch } from "../lib/client-identity";
 import { FIRECRAWL_FLAME_SVG } from "./game/firecrawl-flame";
+import { BrailleSpinner } from "./game/decor";
 
 const ROUND_DURATION_L2_MS = 60_000;
 const LEVEL2_STATUS_STORAGE_KEY = "cheetcode.level2Status";
@@ -13,6 +14,35 @@ type Level2Problem = {
   id: string;
   question: string;
 };
+
+type Level2ProjectKey = "chromium" | "firefox" | "libreoffice" | "postgres";
+
+const LEVEL2_PROJECT_HASHES: Record<Level2ProjectKey, { label: string; commit: string }> = {
+  chromium: {
+    label: "Chromium",
+    commit: "69c7c0a024efdc5bec0a9075e306e180b51e4278",
+  },
+  firefox: {
+    label: "Firefox",
+    commit: "22d04b52b0eb8d9fa11bf8ede5ccc0243a07c5ba",
+  },
+  libreoffice: {
+    label: "LibreOffice",
+    commit: "05aabfc2dbe",
+  },
+  postgres: {
+    label: "PostgreSQL",
+    commit: "f1baed18b",
+  },
+};
+
+function inferProjectFromProblemId(problemId: string): Level2ProjectKey | null {
+  if (problemId.startsWith("l2_")) return "chromium";
+  if (problemId.startsWith("ff_")) return "firefox";
+  if (problemId.startsWith("lo_")) return "libreoffice";
+  if (problemId.startsWith("pg_")) return "postgres";
+  return null;
+}
 
 type Level2GameProps = {
   sessionId: Id<"sessions">;
@@ -101,6 +131,14 @@ export function Level2Game({
     () => Object.values(localCorrect).filter((v) => v === true).length,
     [localCorrect],
   );
+  const sessionProjects = useMemo(() => {
+    const discovered = new Set<Level2ProjectKey>();
+    for (const problem of problems) {
+      const key = inferProjectFromProblemId(problem.id);
+      if (key) discovered.add(key);
+    }
+    return [...discovered];
+  }, [problems]);
   const timeUp = timeLeftMs === 0;
 
   const finishGame = useCallback(async () => {
@@ -196,7 +234,16 @@ export function Level2Game({
   }
 
   const timerBg = secondsLeft <= 10 ? "#dc2626" : secondsLeft <= 20 ? "#fa5d19" : "#1a9338";
-  const timerFg = secondsLeft <= 10 ? "#dc2626" : secondsLeft <= 20 ? "#fa5d19" : "#1a9338";
+  const timerFg = timerBg;
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: 12,
+    color: "rgba(0,0,0,0.12)",
+    fontFamily: "var(--font-geist-mono), monospace",
+    fontWeight: 450,
+    textTransform: "uppercase",
+    letterSpacing: "0.02em",
+  };
 
   return (
     <div
@@ -239,8 +286,9 @@ export function Level2Game({
           background: "rgba(255,255,255,0.85)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
-          position: "relative",
-          zIndex: 10,
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -314,18 +362,7 @@ export function Level2Game({
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           {/* Solved */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 500,
-                color: "rgba(0,0,0,0.35)",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                fontFamily: "var(--font-geist-mono), monospace",
-              }}
-            >
-              Solved
-            </span>
+            <span style={labelStyle}>[ SOLVED ]</span>
             <span
               style={{
                 fontSize: 16,
@@ -335,15 +372,16 @@ export function Level2Game({
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              {solvedLocal}
-              <span style={{ color: "rgba(0,0,0,0.2)" }}>/10</span>
+              {String(solvedLocal).padStart(2, "0")}
+              <span style={{ color: "rgba(0,0,0,0.2)" }}> / 10</span>
             </span>
           </div>
           {/* Timer */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={labelStyle}>[ TIME ]</span>
             <div
               style={{
-                width: 140,
+                width: 120,
                 height: 4,
                 background: "#e8e8e8",
                 borderRadius: 4,
@@ -430,7 +468,7 @@ export function Level2Game({
                 fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
               }}
             >
-              <strong style={{ fontWeight: 500 }}>Level 2:</strong> Chromium Search Challenge
+              <strong style={{ fontWeight: 500 }}>Level 2:</strong> Multi-Project Source Challenge
             </p>
             <p
               style={{
@@ -440,8 +478,21 @@ export function Level2Game({
                 fontFamily: "var(--font-geist-mono), monospace",
               }}
             >
-              Target: Chromium commit 69c7c0a024efdc5bec0a9075e306e180b51e4278
+              Random 2-project cocktail per round: 5 questions + 5 questions.
             </p>
+            {sessionProjects.map((project) => (
+              <p
+                key={project}
+                style={{
+                  fontSize: 11,
+                  color: "rgba(0,0,0,0.35)",
+                  margin: "4px 0 0",
+                  fontFamily: "var(--font-geist-mono), monospace",
+                }}
+              >
+                {LEVEL2_PROJECT_HASHES[project].label}: {LEVEL2_PROJECT_HASHES[project].commit}
+              </p>
+            ))}
           </div>
 
           {problems.map((problem, idx) => {
@@ -473,7 +524,7 @@ export function Level2Game({
                       fontFamily: "var(--font-geist-mono), monospace",
                     }}
                   >
-                    #{idx + 1}
+                    [{String(idx + 1).padStart(2, "0")}]
                   </span>
                   <div style={{ flex: 1 }}>
                     <p
@@ -519,11 +570,12 @@ export function Level2Game({
                       <button
                         onClick={() => checkAnswer(problem.id)}
                         disabled={timeUp || status === true || !(answers[problem.id] || "").trim()}
+                        className={status === true ? "" : "btn-heat"}
                         style={{
                           height: 36,
                           padding: "0 16px",
                           borderRadius: 8,
-                          border: "none",
+                          border: status === true ? "none" : undefined,
                           fontSize: 12,
                           fontWeight: 450,
                           fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
@@ -531,13 +583,8 @@ export function Level2Game({
                             timeUp || status === true || !(answers[problem.id] || "").trim()
                               ? "not-allowed"
                               : "pointer",
-                          background: status === true ? "rgba(26,147,56,0.08)" : "#ff4c00",
-                          color: status === true ? "#1a9338" : "#fff",
-                          transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
-                          boxShadow:
-                            status === true
-                              ? "none"
-                              : "0px 1px 2px rgba(250,93,25,0.12), 0px 0.5px 0.5px rgba(250,93,25,0.16)",
+                          background: status === true ? "rgba(26,147,56,0.08)" : undefined,
+                          color: status === true ? "#1a9338" : undefined,
                         }}
                       >
                         {status === true ? "Passed" : status === false ? "Retry" : "Check"}
@@ -610,7 +657,7 @@ export function Level2Game({
                 fontWeight: 400,
               }}
             >
-              {solvedLocal}/10 solved
+              <span style={labelStyle}>[ STATUS ]</span> {solvedLocal}/10 solved
             </p>
             {!isSubmitting && (
               <button
@@ -623,23 +670,27 @@ export function Level2Game({
                   fontSize: 14,
                   fontWeight: 450,
                   fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                  letterSpacing: 0.3,
                 }}
               >
                 See Results
               </button>
             )}
             {isSubmitting && !submitError && (
-              <p
+              <div
                 style={{
                   fontSize: 13,
                   color: "rgba(0,0,0,0.3)",
                   marginTop: 20,
                   fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
                 }}
               >
-                Validating your answers...
-              </p>
+                <BrailleSpinner />
+                <span>Validating your answers...</span>
+              </div>
             )}
             {submitError && (
               <div style={{ marginTop: 20 }}>

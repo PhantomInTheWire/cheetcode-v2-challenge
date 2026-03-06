@@ -29,7 +29,7 @@ export function Level3PrereqScreen({
   return (
     <PrereqScreenShell
       width="min(760px, 100%)"
-      title="Before Level 3: Compiler Readiness"
+      title="Level 3: Compiler Readiness"
       actions={
         <>
           <button
@@ -38,7 +38,7 @@ export function Level3PrereqScreen({
             disabled={level3PreviewLoading}
             style={{
               height: 36,
-              padding: "0 18px",
+              padding: "0 24px",
               borderRadius: 10,
               fontWeight: 450,
               fontSize: 13,
@@ -52,7 +52,7 @@ export function Level3PrereqScreen({
             onClick={onBack}
             style={{
               height: 36,
-              padding: "0 18px",
+              padding: "0 20px",
               borderRadius: 10,
               fontWeight: 450,
               fontSize: 13,
@@ -64,9 +64,22 @@ export function Level3PrereqScreen({
         </>
       }
     >
+      <div
+        style={{
+          fontSize: 12,
+          color: "rgba(0,0,0,0.12)",
+          fontFamily: "var(--font-geist-mono), monospace",
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          marginBottom: 16,
+          marginTop: 12,
+        }}
+      >
+        [ Preparation ]
+      </div>
       <p
         style={{
-          margin: "12px 0 0",
+          margin: "0 0 20px",
           fontSize: 14,
           color: "rgba(0,0,0,0.6)",
           lineHeight: 1.6,
@@ -78,51 +91,71 @@ export function Level3PrereqScreen({
         ) : level3Preview ? (
           <>
             Your next Level 3 challenge is{" "}
-            <strong style={{ fontWeight: 500 }}>{level3Preview.taskName}</strong> in{" "}
-            <strong style={{ fontWeight: 500 }}>{level3Preview.language}</strong>. Confirm your
-            compiler is ready.
+            <strong style={{ fontWeight: 500, color: "#262626" }}>{level3Preview.taskName}</strong>{" "}
+            assigned in{" "}
+            <strong style={{ fontWeight: 500, color: "#fa5d19" }}>{level3Preview.language}</strong>.
+            Confirm your local environment is configured for systems development.
           </>
         ) : (
           <>
-            Confirm you have a <strong style={{ fontWeight: 500 }}>C</strong>,{" "}
-            <strong style={{ fontWeight: 500 }}>C++</strong>, or{" "}
-            <strong style={{ fontWeight: 500 }}>Rust</strong> compiler ready for the Level 3 systems
-            challenge.
+            Confirm you have a <strong style={{ fontWeight: 500, color: "#262626" }}>C</strong>,{" "}
+            <strong style={{ fontWeight: 500, color: "#262626" }}>C++</strong>, or{" "}
+            <strong style={{ fontWeight: 500, color: "#262626" }}>Rust</strong> compiler ready for
+            the Level 3 systems challenge.
           </>
         )}
       </p>
+
       <div
         style={{
-          marginTop: 16,
           background: "#fafafa",
           border: "1px solid #e8e8e8",
           borderRadius: 12,
-          padding: 14,
+          padding: 16,
         }}
       >
-        <p
+        <span
           style={{
-            margin: 0,
-            fontSize: 13,
-            color: "rgba(0,0,0,0.55)",
-            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontSize: 11,
+            color: "rgba(0,0,0,0.35)",
+            fontFamily: "var(--font-geist-mono), monospace",
+            textTransform: "uppercase",
+            display: "block",
+            marginBottom: 8,
           }}
         >
-          Suggested local check:
-        </p>
+          [ Recommended Diagnostic ]
+        </span>
         <CommandBlock command={compilerCommand} onCopy={onCopy} />
-      </div>
-      {level3PreviewError && (
         <p
           style={{
             margin: "12px 0 0",
-            fontSize: 13,
+            fontSize: 12,
+            color: "rgba(0,0,0,0.4)",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontStyle: "italic",
+          }}
+        >
+          Tip: Ensure you can compile and run a basic &quot;Hello World&quot; in{" "}
+          {level3Preview?.language || "the target language"} before starting.
+        </p>
+      </div>
+
+      {level3PreviewError && (
+        <div
+          style={{
+            marginTop: 16,
+            padding: "10px 14px",
+            background: "rgba(220,38,38,0.05)",
+            border: "1px solid rgba(220,38,38,0.15)",
+            borderRadius: 8,
             color: "#dc2626",
+            fontSize: 13,
             fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
           }}
         >
           {level3PreviewError}
-        </p>
+        </div>
       )}
     </PrereqScreenShell>
   );

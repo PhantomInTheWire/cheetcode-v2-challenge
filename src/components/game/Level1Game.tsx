@@ -3,6 +3,7 @@
 import React from "react";
 import { PROBLEMS_PER_SESSION, ROUND_DURATION_MS } from "@/lib/constants";
 import { FIRECRAWL_FLAME_SVG } from "@/components/game/firecrawl-flame";
+import { BrailleSpinner } from "./decor";
 
 type GameProblem = {
   id: string;
@@ -36,15 +37,6 @@ type Level1GameProps = {
   ) => void;
   runLocalCheckAction: (problem: GameProblem) => void;
 };
-
-/* ── Firecrawl button shadow (matches LandingScreen) ── */
-const HEAT_SHADOW = `
-  inset 0px -6px 12px 0px rgba(250,25,25,0.2),
-  0px 2px 4px 0px rgba(250,93,25,0.12),
-  0px 1px 1px 0px rgba(250,93,25,0.12),
-  0px 0.5px 0.5px 0px rgba(250,93,25,0.16),
-  0px 0.25px 0.25px 0px rgba(250,93,25,0.2)
-`;
 
 export function Level1Game({
   github,
@@ -80,6 +72,15 @@ export function Level1Game({
   const timerBg = secondsLeft <= 10 ? "#dc2626" : secondsLeft <= 20 ? "#fa5d19" : "#1a9338";
   const timerFg = timerBg;
 
+  const labelStyle: React.CSSProperties = {
+    fontSize: 12,
+    color: "rgba(0,0,0,0.12)",
+    fontFamily: "var(--font-geist-mono), monospace",
+    fontWeight: 450,
+    textTransform: "uppercase",
+    letterSpacing: "0.02em",
+  };
+
   return (
     <div
       style={{
@@ -110,18 +111,19 @@ export function Level1Game({
       {/* ── Header bar ── */}
       <div
         style={{
-          height: 48,
+          height: 44,
           flexShrink: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 16px",
+          padding: "0 14px",
           borderBottom: "1px solid #e8e8e8",
           background: "rgba(255,255,255,0.85)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
-          position: "relative",
-          zIndex: 10,
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -175,23 +177,28 @@ export function Level1Game({
               {isAutoSolving ? "solving..." : "Auto Solve"}
             </button>
           )}
+          <span
+            style={{
+              fontSize: 10,
+              padding: "2px 8px",
+              background: "rgba(250, 93, 25, 0.15)",
+              color: "#fa5d19",
+              borderRadius: 4,
+              fontWeight: 500,
+              marginLeft: 8,
+              fontFamily: "var(--font-geist-mono), monospace",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
+            LEVEL 1
+          </span>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           {/* Solved */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 450,
-                color: "rgba(0,0,0,0.35)",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                fontFamily: "var(--font-geist-mono), monospace",
-              }}
-            >
-              Solved
-            </span>
+            <span style={labelStyle}>[ SOLVED ]</span>
             <span
               style={{
                 fontSize: 16,
@@ -201,12 +208,13 @@ export function Level1Game({
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              {solvedLocal}
-              <span style={{ color: "rgba(0,0,0,0.2)" }}>/{PROBLEMS_PER_SESSION}</span>
+              {String(solvedLocal).padStart(2, "0")}
+              <span style={{ color: "rgba(0,0,0,0.2)" }}> / {PROBLEMS_PER_SESSION}</span>
             </span>
           </div>
           {/* Timer */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={labelStyle}>[ TIME ]</span>
             <div
               style={{
                 width: 120,
@@ -248,6 +256,7 @@ export function Level1Game({
           <button
             onClick={() => void finishGameAction()}
             disabled={isSubmitting}
+            className="btn-heat"
             style={{
               height: 32,
               padding: "0 18px",
@@ -260,11 +269,6 @@ export function Level1Game({
               opacity: isSubmitting ? 0.6 : 1,
               whiteSpace: "nowrap",
               position: "relative",
-              background: "#ff4c00",
-              color: "#ffffff",
-              border: "1px solid #f25515",
-              boxShadow: HEAT_SHADOW,
-              transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
             }}
           >
             {isSubmitting ? "Submitting..." : "Finish & Submit"}
@@ -358,7 +362,7 @@ export function Level1Game({
                       fontFamily: "var(--font-geist-mono), monospace",
                     }}
                   >
-                    #{idx + 1}
+                    [{String(idx + 1).padStart(2, "0")}]
                   </span>
                   <span
                     style={{
@@ -515,11 +519,12 @@ export function Level1Game({
                 <button
                   onClick={() => runLocalCheckAction(problem)}
                   disabled={timeUp || status === "passed" || !(codes[problem.id] ?? "").trim()}
+                  className={status === "passed" ? "" : "btn-heat"}
                   style={{
                     width: "100%",
                     padding: "5px 0",
                     borderRadius: 8,
-                    border: "none",
+                    border: status === "passed" ? "none" : undefined,
                     fontSize: 11,
                     fontWeight: 450,
                     fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
@@ -527,14 +532,8 @@ export function Level1Game({
                       timeUp || status === "passed" || !(codes[problem.id] ?? "").trim()
                         ? "not-allowed"
                         : "pointer",
-                    background:
-                      status === "passed" ? "rgba(26,147,56,0.08)" : timeUp ? "#e8e8e8" : "#ff4c00",
-                    color: status === "passed" ? "#1a9338" : timeUp ? "rgba(0,0,0,0.3)" : "#fff",
-                    transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
-                    boxShadow:
-                      status === "passed" || timeUp
-                        ? "none"
-                        : "0px 1px 2px rgba(250,93,25,0.12), 0px 0.5px 0.5px rgba(250,93,25,0.16)",
+                    background: status === "passed" ? "rgba(26,147,56,0.08)" : undefined,
+                    color: status === "passed" ? "#1a9338" : undefined,
                   }}
                 >
                   {status === "passed"
@@ -614,11 +613,12 @@ export function Level1Game({
                 fontWeight: 400,
               }}
             >
-              {solvedLocal}/{PROBLEMS_PER_SESSION} solved locally
+              <span style={labelStyle}>[ STATUS ]</span> {solvedLocal}/{PROBLEMS_PER_SESSION} solved
             </p>
             {!isSubmitting && (
               <button
                 onClick={() => void finishGameAction()}
+                className="btn-heat"
                 style={{
                   marginTop: 28,
                   padding: "12px 44px",
@@ -626,28 +626,27 @@ export function Level1Game({
                   fontSize: 14,
                   fontWeight: 450,
                   fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                  background: "#ff4c00",
-                  color: "#ffffff",
-                  border: "1px solid #f25515",
-                  cursor: "pointer",
-                  boxShadow: HEAT_SHADOW,
-                  transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
                 }}
               >
                 See Results
               </button>
             )}
             {isSubmitting && (
-              <p
+              <div
                 style={{
                   fontSize: 13,
                   color: "rgba(0,0,0,0.3)",
                   marginTop: 20,
                   fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
                 }}
               >
-                Validating your solutions on the server...
-              </p>
+                <BrailleSpinner />
+                <span>Validating your solutions on the server...</span>
+              </div>
             )}
           </div>
         </div>

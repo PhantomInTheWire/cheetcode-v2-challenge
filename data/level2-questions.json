@@ -1,30 +1,35 @@
 [
   {
     "id": "l2_1",
+    "project": "chromium",
     "question": "When a web page executes a command to open a local file selection dialog, what is the status code name returned if the tab is currently visible in a split-view mode but does not have active focus at the precise moment of the request?",
     "answer": "kOperationAborted",
     "acceptableAnswers": ["kOperationAborted", "9", "OperationAborted"]
   },
   {
     "id": "l2_2",
+    "project": "chromium",
     "question": "When a site continuously monitors for connected physical game controllers but the person using the machine has not yet interacted with the hardware, how many game controllers are reported in the list returned to the site?",
     "answer": "0",
     "acceptableAnswers": ["0", "zero", "none"]
   },
   {
     "id": "l2_3",
+    "project": "chromium",
     "question": "If a web application attempts to transmit local files to other native programs using the standard sharing interface, the browser process validates the site's reputation. If the background query to the safety database reaches its maximum allowed duration without a result, what is the numeric value of the threat type finally assigned to the site by the reputation service?",
     "answer": "1",
     "acceptableAnswers": ["1", "SB_THREAT_TYPE_SAFE", "SAFE"]
   },
   {
     "id": "l2_4",
+    "project": "chromium",
     "question": "When a site attempts to copy text to the system buffer, but an organizational security policy determines the site's address is restricted, what specific localized content is placed into the buffer instead of the original text?",
     "answer": "warning message",
     "acceptableAnswers": ["warning message", "warning", "restriction message", "localized warning"]
   },
   {
     "id": "l2_10",
+    "project": "chromium",
     "question": "When a user logs in using saved credentials from a related but non-identical address (such as a mobile app or a sub-brand domain), what specific modification does the system make to its internal records for the current site's address to improve future login accuracy?",
     "answer": "create duplicate record",
     "acceptableAnswers": [
@@ -37,54 +42,63 @@
   },
   {
     "id": "l2_5",
+    "project": "chromium",
     "question": "When a page attempts to move its audio output to a new speaker but the underlying operating system reports a fatal initialization error for that hardware, what is the specific status name of the resulting hardware state?",
     "answer": "OUTPUT_DEVICE_STATUS_ERROR_INTERNAL",
     "acceptableAnswers": ["OUTPUT_DEVICE_STATUS_ERROR_INTERNAL", "4", "ERROR_INTERNAL"]
   },
   {
     "id": "l2_6",
+    "project": "chromium",
     "question": "A background download task for multiple files is configured with a maximum size limit. If a cross-origin resource fails its security checks and the total data eventually exceeds the limit, what specific failure category name is reported to the site instead of a quota error?",
     "answer": "FETCH_ERROR",
     "acceptableAnswers": ["FETCH_ERROR", "4", "fetch error"]
   },
   {
     "id": "l2_7",
+    "project": "chromium",
     "question": "When a background execution context attempts to save a massive data structure to the local database but the system disk space is completely exhausted during the write, what is the name of the exception provided to the script's failure handler?",
     "answer": "QuotaExceededError",
     "acceptableAnswers": ["QuotaExceededError", "22", "kQuotaExceededError"]
   },
   {
     "id": "l2_8",
+    "project": "chromium",
     "question": "A web page attempts to create a new file within a directory it has previously accessed. If the underlying operating system has marked that directory as read-only, what is the name of the exception returned to the script to describe the failure?",
     "answer": "NoModificationAllowedError",
     "acceptableAnswers": ["NoModificationAllowedError", "kNoModificationAllowedError"]
   },
   {
     "id": "l2_9",
+    "project": "chromium",
     "question": "When a long-running background download completes its network phase but fails to save because the site's assigned storage limit is reached, what is the specific internal failure name for the termination of the download job?",
     "answer": "QUOTA_EXCEEDED",
     "acceptableAnswers": ["QUOTA_EXCEEDED", "6", "quota exceeded"]
   },
   {
     "id": "l2_11",
+    "project": "chromium",
     "question": "On a managed workstation, an organization's data governance framework includes two opposing directives for the system buffer: one that suppresses transfer of selected content from a particular web origin to a specific destination, and another that grants express clearance for that same origin-destination pair. Both directives match when a user initiates a paste. In the graduated response category ladder used internally to resolve such conflicts — where each category occupies a fixed numerical position starting from zero — what is the exact numerical position of the category that prevails?",
     "answer": "4",
     "acceptableAnswers": ["4", "kAllow", "Allow"]
   },
   {
     "id": "l2_12",
+    "project": "chromium",
     "question": "When a managed browser submits content for deep inspection by the organization's remote content analysis back-end, the submission may request evaluation across multiple distinct safety-check dimensions simultaneously. If the back-end's reply delivers verdicts for only a subset of the requested evaluation dimensions — omitting one or more categories entirely — what specific upload-outcome status value does the browser assign to that submission?",
     "answer": "kIncompleteResponse",
     "acceptableAnswers": ["kIncompleteResponse", "10", "IncompleteResponse"]
   },
   {
     "id": "l2_13",
+    "project": "chromium",
     "question": "When the software's self-renewal mechanism receives a directive to merely assess whether a fresher revision exists — without actually retrieving or applying it — and the remote distribution server responds affirmatively that a newer revision is indeed available, the internal state progression reaches the point where it would normally begin retrieval. Instead, the processing pipeline terminates early and records a dedicated sentinel value in the service-layer error classification. What is the exact name of that sentinel value?",
     "answer": "CHECK_FOR_UPDATE_ONLY",
     "acceptableAnswers": ["CHECK_FOR_UPDATE_ONLY", "4", "ServiceError::CHECK_FOR_UPDATE_ONLY"]
   },
   {
     "id": "l2_14",
+    "project": "chromium",
     "question": "When the organization's central device management server issues a configuration delivery payload that includes a replacement signing credential — performing a signing authority credential rotation — the client must verify that this incoming credential was itself endorsed by a root trust anchor that is immutably embedded in the application binary. If this cryptographic endorsement verification against the permanently compiled-in root trust anchor fails, what specific validation disposition code does the configuration payload integrity checker assign to reject the entire settings bundle?",
     "answer": "VALIDATION_BAD_KEY_VERIFICATION_SIGNATURE",
     "acceptableAnswers": [
@@ -95,12 +109,14 @@
   },
   {
     "id": "l2_15",
+    "project": "chromium",
     "question": "When the browser performs a device identity verification exchange with a remote access gateway, the response payload is assembled from contributions by two separate endorsers — one scoped to the machine's management enrollment and one scoped to the managed account's profile. If the fleet policy that triggers this exchange is configured only at the managed-account level, neither endorser is able to apply a cryptographic seal to the outbound payload. The system still considers this a successful outcome and transmits the unsealed payload. What is the specific status value recorded for this unsealed-but-successful result?",
     "answer": "kSuccessNoSignature",
     "acceptableAnswers": ["kSuccessNoSignature", "11", "SuccessNoSignature"]
   },
   {
     "id": "l2_16",
+    "project": "chromium",
     "question": "A user plugs a portable hardware credential device — one equipped with an integrated fingerprint sensor but no separate numeric secret configured — into their computer and taps a website's sign-in button. The browser dispatches a site identity proof request to the device. The device's embedded biometric recognition has already been rendered permanently unresponsive from too many failed finger-swipe attempts during an earlier session. The user touches the device to confirm presence, but because the on-device biometric subsystem is irrecoverably locked for this power cycle and no alternative owner-verification mechanism exists on the device, the credential token acquisition pipeline cannot proceed. What is the exact result-enum value name emitted by the subsystem responsible for negotiating owner-verification tokens from the device to describe this specific terminal failure?",
     "answer": "kPostTouchAuthenticatorInternalUVLock",
     "acceptableAnswers": [
@@ -110,56 +126,628 @@
   },
   {
     "id": "l2_17",
+    "project": "chromium",
     "question": "On Apple's desktop platform, a notification ribbon in the browser proposes elevating the automatic-patch orchestrator to machine-wide scope. When the user approves, the operating system's credential dialog appears. After the user authenticates, a daemon-management primitive loads a root-level companion process. The browser then dispatches a cross-process directive to this companion, which extracts the bundled patch-orchestrator application into a per-user secure scratch area and subjects it to a dual-condition code-authenticity audit — confirming that every processor-architecture slice is genuine AND that every nested signed payload also passes validation. If this dual-condition audit determines the extracted bundle is not authentic, what named integer constant does the calling function return?",
     "answer": "kFailedToVerifyUpdater",
     "acceptableAnswers": ["kFailedToVerifyUpdater", "-6"]
   },
   {
     "id": "l2_18",
+    "project": "chromium",
     "question": "In the browser's short-range wireless radio stack, when the browser process tries to initiate a link-layer connection to a peripheral device but the hardware adapter's device lookup returns null — indicating the peripheral has physically moved beyond signal reach — what is the exact result-code enum value that propagates from the device-layer connection interface through the interprocess message definition and ultimately surfaces as a network-category web-facing exception reading 'is no longer in range'?",
     "answer": "DEVICE_NO_LONGER_IN_RANGE",
     "acceptableAnswers": ["DEVICE_NO_LONGER_IN_RANGE"]
   },
   {
     "id": "l2_19",
+    "project": "chromium",
     "question": "In the video acquisition subsystem on the platform that uses a hardware media transform pipeline, when the native capture engine's preview stream fails to begin, the system does not immediately signal an error. Instead, it spawns a peripheral occupancy probe that queries whether a rival process holds an active streaming claim on the same physical imaging device. If the probe's activity report confirms that an external process is indeed streaming, what is the specific error enumeration value emitted by the capture device before the error propagates through the frame receiver, the browser-side distribution controller, the host IPC bridge, and ultimately reaches the renderer's capture implementation, which maps it to a dedicated busy state — distinct from both the generic error state and the system-permissions-denied state?",
     "answer": "kWinMediaFoundationCameraBusy",
     "acceptableAnswers": ["kWinMediaFoundationCameraBusy", "149"]
   },
   {
     "id": "l2_20",
+    "project": "chromium",
     "question": "When a web page dispatches an outbound vendor-typed command transfer to a tethered peripheral, the browser's device-service relay inspects the payload bytes for a hardcoded hexadecimal sentinel string. This sentinel identifies an attempt to reprogram the peripheral into an authentication-credential accessory role via an open-accessory handshake. If the payload begins with this sentinel and the command targets string-index one with request code fifty-two, the relay silently refuses the transfer and the requesting page receives a security rejection. What is the exact literal value of this hexadecimal sentinel string?",
     "answer": "12eba9f901039b36",
     "acceptableAnswers": ["12eba9f901039b36"]
   },
   {
     "id": "l2_21",
+    "project": "chromium",
     "question": "When the browser's credential revocation blocklist identifies that a chain's signing authority key fingerprint belongs to a recognized third-party eavesdropper (not the device owner), and that chain has already been marked as revoked, a special compound error is produced. This error is unique because the status-to-error mapping function gives it higher priority than the underlying revocation failure, and three separate connection layers (stream socket, resource request dispatcher, and multiplexed transport proof verification) all contain explicit carve-outs ensuring it remains user-overridable even when the destination host enforces a mandatory encrypted channel policy. What is the signed integer value of this network error code?",
     "answer": "-217",
     "acceptableAnswers": ["-217", "217", "CERT_KNOWN_INTERCEPTION_BLOCKED"]
   },
   {
     "id": "l2_22",
+    "project": "chromium",
     "question": "When a signed software package for a browser add-on sourced from the official add-on marketplace fails unpacking because the package header lacks a cryptographic attestation from the marketplace operator (distinct from the developer's own signing key), the sandboxed unpacking pipeline emits a specific failure code with integer value 41. That failure code is then classified as a package-integrity fault, causing the auto-update subsystem to evict the cached package and re-fetch it. What is the exact name of the failure reason enum value (integer value 41) in the unpacker failure enumeration?",
     "answer": "CRX_REQUIRED_PROOF_MISSING",
     "acceptableAnswers": ["CRX_REQUIRED_PROOF_MISSING", "41"]
   },
   {
     "id": "l2_23",
+    "project": "chromium",
     "question": "In the hardcopy reproduction subsystem's device-state taxonomy, which enumerated diagnostic condition — assigned ordinal position twenty-eight — describes the scenario where a physical document output device's pigment-fixation heat roller has failed to reach sufficient operating temperature? This condition is notably grouped with four other hardware-fault reasons (including photoconductor expiration and command-interpreter resource exhaustion) and collectively re-classified as a generic apparatus malfunction when translated into the OS-layer status vocabulary, yet it is entirely absent from the explicit switch branches of the print-management error-code distillation logic, causing it to silently resolve as 'no error.'",
     "answer": "kFuserUnderTemp",
     "acceptableAnswers": ["kFuserUnderTemp", "28", "FuserUnderTemp"]
   },
   {
     "id": "l2_24",
+    "project": "chromium",
     "question": "When a background worker acting as a transaction fulfillment handler provides a goods-delivery destination in its response to a merchant checkout ceremony, the sole validation performed on that destination checks whether the sovereign territory designator conforms to a two-character uppercase alphabetic pattern. If the designator is malformed — even though the destination itself was supplied — what enumerated outcome signal is transmitted back through the inter-process channel to indicate this specific delivery-destination rejection?",
     "answer": "SHIPPING_ADDRESS_INVALID",
     "acceptableAnswers": ["SHIPPING_ADDRESS_INVALID"]
   },
   {
     "id": "l2_25",
+    "project": "chromium",
     "question": "In the browser's framework for managing human-operated input peripherals, a curated roster of recognized physical credential fobs lists exactly one model. When a peripheral on this roster is connected and the requesting origin holds credential-fob access privileges, the interaction report restriction layer is bypassed entirely — even for reports outside the credential-fob data namespace. What is the hexadecimal model designator (product identifier) of that sole roster entry?",
     "answer": "0x5026",
     "acceptableAnswers": ["0x5026", "5026"]
+  },
+  {
+    "id": "ff_1",
+    "project": "firefox",
+    "question": "In the network transport stack, when the multiplexed transport protocol's session validates the encrypted channel's negotiated cryptographic profile — confirming that message authentication employs exclusively an authenticated-encryption-with-associated-data construction and that key-agreement bit lengths meet the specification's mandatory floor — and this validation fails on a channel carrying an encrypted name resolution proxy lookup, the resulting failure is cataloged under an abandonment-reason inventory. The entry at ordinal twenty-three in that inventory carries a single-letter misspelling in its last word compared to the correctly-spelled status disposition code from which it derives. What is the full identifier of that misspelled inventory entry?",
+    "answer": "TRR_NET_INADEQ_SEQURITY",
+    "acceptableAnswers": ["TRR_NET_INADEQ_SEQURITY"]
+  },
+  {
+    "id": "ff_2",
+    "project": "firefox",
+    "question": "In the script execution engine's runtime code generation optimizer, a late-stage transformation pass can merge a property-slot memory fetch with an immediately subsequent value-type narrowing check into a single compound intermediate representation node. When this amalgamated operation's type assumption proves wrong at execution time and triggers an optimized-code abandonment, the recovery handler sets a persistent bit flag (at position 27 in the mutable script flags word) that permanently suppresses this particular merging transformation in all future recompilations of the same script. What is the name of the optimized-code abandonment category (the enum variant in the abandonment-kind enumeration) that is assigned to instructions produced by this specific fusion pass?",
+    "answer": "UnboxFolding",
+    "acceptableAnswers": ["UnboxFolding", "BailoutKind::UnboxFolding"]
+  },
+  {
+    "id": "ff_3",
+    "project": "firefox",
+    "question": "In the browser's credential revocation live-check response cache, two result statuses share the privilege of being shielded from displacement when the cache reaches capacity. One is the status indicating the credential has been withdrawn. What is the internal result enum value for the other protected status — the one that indicates the revocation responder does not recognize the credential at all — which also uniquely overrides lenient failure tolerance by blocking the connection even when the revocation service cannot be contacted and the system would otherwise permit the handshake to proceed?",
+    "answer": "ERROR_OCSP_UNKNOWN_CERT",
+    "acceptableAnswers": [
+      "ERROR_OCSP_UNKNOWN_CERT",
+      "Result::ERROR_OCSP_UNKNOWN_CERT",
+      "SEC_ERROR_OCSP_UNKNOWN_CERT"
+    ]
+  },
+  {
+    "id": "ff_4",
+    "project": "firefox",
+    "question": "In Firefox's structured client-side object store, when a data-modification session aborts because the local storage capacity enforcer rejected a write through the embedded relational data engine's filesystem interposition layer — which returns the engine's numeric 'database is full' signal — the owning store container latches a boolean flag recording this capacity breach. When the application next requests a standard read-write data-modification session on that same container, the session is silently promoted to a special internal operating mode whose sole distinguishing behavior on the supervising process side is to suspend all capacity-limit verification on the tracked file objects for the session's duration. What is the single-word name of this internal transaction operating mode (the enum member in the mode enumeration)?",
+    "answer": "Cleanup",
+    "acceptableAnswers": ["Cleanup", "Mode::Cleanup", "IDBTransaction::Mode::Cleanup"]
+  },
+  {
+    "id": "ff_5",
+    "project": "firefox",
+    "question": "In the browser's touch input gesture recognition subsystem, the two-contact scaling gesture (magnification) uses a multi-phase lifecycle type enumeration to signal its progression. One particular phase type represents a unique intermediate condition: when exactly one of the two screen contacts is withdrawn while the other persists — distinct from the final termination signal where all contacts are removed. Upon receiving this intermediate signal, the asynchronous scroll compositor transitions from its active scaling mode into a single-contact tracking mode, preserving the position of the surviving contact point as a positional anchor for potential follow-up dragging. What is the exact name of this enumeration value?",
+    "answer": "PINCHGESTURE_FINGERLIFTED",
+    "acceptableAnswers": [
+      "PINCHGESTURE_FINGERLIFTED",
+      "PinchGestureType::PINCHGESTURE_FINGERLIFTED",
+      "PinchGestureInput::PINCHGESTURE_FINGERLIFTED"
+    ]
+  },
+  {
+    "id": "ff_6",
+    "project": "firefox",
+    "question": "When a page request is using the newest packet based web route, the remote side starts closing while no earlier failure is recorded, and the close reason is neither a stateless wipe nor a clean no harm finish and not an identity retry signal, which status disposition code is applied to each affected request?",
+    "answer": "NS_ERROR_NET_HTTP3_PROTOCOL_ERROR",
+    "acceptableAnswers": ["NS_ERROR_NET_HTTP3_PROTOCOL_ERROR"]
+  },
+  {
+    "id": "ff_7",
+    "project": "firefox",
+    "question": "In a child class initializer after parent setup is complete, a removal attempt targets a parent exposed member instead of the instance itself. Which internal throw message kind is emitted for that forbidden removal path?",
+    "answer": "CantDeleteSuper",
+    "acceptableAnswers": ["CantDeleteSuper", "ThrowMsgKind::CantDeleteSuper"]
+  },
+  {
+    "id": "ff_8",
+    "project": "firefox",
+    "question": "During server certificate checks, when a connection chains to a locally trusted root instead of a Mozilla built in root, and one subject alternative name entry is malformed but not fatal, which policy action name tells hostname matching to continue past that bad entry?",
+    "answer": "HandleInvalidSubjectAlternativeNamesBy::Skipping",
+    "acceptableAnswers": [
+      "HandleInvalidSubjectAlternativeNamesBy::Skipping",
+      "pkix::HandleInvalidSubjectAlternativeNamesBy::Skipping",
+      "Skipping"
+    ]
+  },
+  {
+    "id": "ff_9",
+    "project": "firefox",
+    "question": "While erasing a site data vault, the browser briefly turns off its normal size gate because cleanup can need short lived extra room before shrinkage. If the machine truly runs out of physical room during that moment, which low level status name is later translated into the same storage limit failure seen by the page?",
+    "answer": "NS_ERROR_FILE_NO_DEVICE_SPACE",
+    "acceptableAnswers": ["NS_ERROR_FILE_NO_DEVICE_SPACE", "ns_error_file_no_device_space"]
+  },
+  {
+    "id": "ff_10",
+    "project": "firefox",
+    "question": "When a finger lands on content flattened into one painted snapshot because its shape is too messy for precise local picking, and page rules also block smooth continuing zoom movement, which behavior bucket is chosen before gesture permissions are interpreted?",
+    "answer": "AllowedTouchBehavior::UNKNOWN",
+    "acceptableAnswers": ["AllowedTouchBehavior::UNKNOWN", "UNKNOWN"]
+  },
+  {
+    "id": "ff_11",
+    "project": "firefox",
+    "question": "When tracker cookies are not fully denied and are instead isolated per site, the code first marks them with a foreign partitioned cookie state and only later upgrades that state for tracker specific reporting. What is the first state token called?",
+    "answer": "STATE_COOKIES_PARTITIONED_FOREIGN",
+    "acceptableAnswers": [
+      "STATE_COOKIES_PARTITIONED_FOREIGN",
+      "nsIWebProgressListener::STATE_COOKIES_PARTITIONED_FOREIGN",
+      "Ci.nsIWebProgressListener.STATE_COOKIES_PARTITIONED_FOREIGN"
+    ]
+  },
+  {
+    "id": "ff_12",
+    "project": "firefox",
+    "question": "A page asks its background helper to refresh, but that request sits behind a delay. When it finally runs, the helper for the same territory now points at a different starting address than the one captured when the request was queued. Which internal message token labels the typed failure returned in that mismatch case?",
+    "answer": "MSG_SW_UPDATE_BAD_REGISTRATION",
+    "acceptableAnswers": ["MSG_SW_UPDATE_BAD_REGISTRATION"]
+  },
+  {
+    "id": "ff_13",
+    "project": "firefox",
+    "question": "A person starts a new passkey enrollment on a site with a removable security key. In one plugged-in session they repeatedly enter the device unlock number incorrectly and hit a temporary lock screen, but unplugging and reconnecting the key allows attempts again without wiping it. At the deepest transport status layer, what exact token names that temporary lock condition?",
+    "answer": "StatusCode::PinAuthBlocked",
+    "acceptableAnswers": ["StatusCode::PinAuthBlocked", "PinAuthBlocked", "0x34"]
+  },
+  {
+    "id": "ff_14",
+    "project": "firefox",
+    "question": "During a multi-process tab shutdown, the tab itself did not ask to close and no crash occurred. Instead, a higher control link is removed, and teardown propagates downward until the hidden per-tab window object is destroyed. What exact destruction-reason token is assigned to descendants in that propagated teardown?",
+    "answer": "AncestorDeletion",
+    "acceptableAnswers": ["AncestorDeletion", "IProtocol::AncestorDeletion"]
+  },
+  {
+    "id": "ff_15",
+    "project": "firefox",
+    "question": "Inside a portable bytecode routine, an exception object is re-launched through the reference-only throw lane. The payload is present so the empty-value fault path is skipped, and the helper returns a negative marker only because the host has already logged the failure and now needs unwinding. Which trap category name marks that edge path?",
+    "answer": "ThrowReported",
+    "acceptableAnswers": ["ThrowReported", "Trap::ThrowReported"]
+  },
+  {
+    "id": "ff_16",
+    "project": "firefox",
+    "question": "An anchored popup cycles through automatic backup placements. One backup mode reverses the front-facing side in both text directions simultaneously, instead of a one-direction-only change. Which internal tactic keyword is used for that mode?",
+    "answer": "FlipStart",
+    "acceptableAnswers": ["FlipStart", "PositionTryFallbacksTryTacticKeyword::FlipStart"]
+  },
+  {
+    "id": "ff_17",
+    "project": "firefox",
+    "question": "During call setup, a remote route note arrives using only a numbered lane marker. If that number points past the final announced lane in the current session map, which exact internal verdict label is produced?",
+    "answer": "RTCErrorType::INVALID_RANGE",
+    "acceptableAnswers": ["RTCErrorType::INVALID_RANGE", "INVALID_RANGE"]
+  },
+  {
+    "id": "ff_18",
+    "project": "firefox",
+    "question": "When a person chooses the browser action that saves a linked file, and an installed add-on halts that transfer before response details are usable, the download dialog may blame an add-on instead of showing a generic error. Which exact internal blocking reason label must be written into the request record for that path to fire?",
+    "answer": "BLOCKING_REASON_EXTENSION_WEBREQUEST",
+    "acceptableAnswers": ["BLOCKING_REASON_EXTENSION_WEBREQUEST", "6000"]
+  },
+  {
+    "id": "ff_19",
+    "project": "firefox",
+    "question": "When a card-catalog write needs a rounded requested size increase, the browser asks a building-wide space steward; in the edge case where it cannot reclaim any tenant locker, what exact intermediate status disposition code is emitted by the SQL bridge before later remapping to the page-facing object-store failure?",
+    "answer": "NS_ERROR_FILE_NO_DEVICE_SPACE",
+    "acceptableAnswers": ["NS_ERROR_FILE_NO_DEVICE_SPACE"]
+  },
+  {
+    "id": "ff_20",
+    "project": "firefox",
+    "question": "During touch or wheel routing, an inner scroll region is configured with strict boundary behavior in both directions so motion is not allowed to spill into parent regions. In the brief wait before the central thread returns a destination verdict, which hit-test flag marks this region so ancestor takeover is blocked if no verdict arrives?",
+    "answer": "eRequiresTargetConfirmation",
+    "acceptableAnswers": [
+      "eRequiresTargetConfirmation",
+      "CompositorHitTestFlags::eRequiresTargetConfirmation",
+      "gfx::CompositorHitTestFlags::eRequiresTargetConfirmation"
+    ]
+  },
+  {
+    "id": "ff_21",
+    "project": "firefox",
+    "question": "Someone has enabled the browser option that tolerates local interception roots. A site still has a baked in identity lock list, but the chain ends at a root that is not from the built in store. Which mode label makes the lock check auto pass in that corner case?",
+    "answer": "PinningMode::AllowUserCAMITM",
+    "acceptableAnswers": ["PinningMode::AllowUserCAMITM", "AllowUserCAMITM", "1"]
+  },
+  {
+    "id": "ff_22",
+    "project": "firefox",
+    "question": "When a name lookup is sent through the browser's encrypted resolver relay, the connection fails immediately because the remote endpoint's security grade is below policy, and no decoded reply records are produced. Which internal skip-reason token is recorded for that exact branch?",
+    "answer": "TRR_NET_INADEQ_SEQURITY",
+    "acceptableAnswers": ["TRR_NET_INADEQ_SEQURITY", "23"]
+  },
+  {
+    "id": "ff_23",
+    "project": "firefox",
+    "question": "In class code, a hidden-name marker is used for a membership check, but that hidden name is first combined inside an arithmetic step so grouping changes reduction order before the membership test is formed. Which exact diagnostic token is raised for this precedence-only parser failure?",
+    "answer": "JSMSG_INVALID_PRIVATE_NAME_PRECEDENCE",
+    "acceptableAnswers": ["JSMSG_INVALID_PRIVATE_NAME_PRECEDENCE"]
+  },
+  {
+    "id": "ff_24",
+    "project": "firefox",
+    "question": "During startup, the browser's shared disk-budget accountant scans each site folder for the small key-value store. If the fast-size memo file exists but its first 4 bytes fail the expected seal check, the memo is treated as damaged and usage is rebuilt from the main database. What exact token names that expected seal constant?",
+    "answer": "kUsageFileCookie",
+    "acceptableAnswers": ["kUsageFileCookie", "0x420a420a"]
+  },
+  {
+    "id": "ff_25",
+    "project": "firefox",
+    "question": "During a touch sequence, the compositor first picks a provisional receiver. The adjudicator reply misses the watchdog window, and later confirmation says there was no valid receiver, so queued motion gets discarded. Which exact internal state tag marks that receiver decision as expired?",
+    "answer": "eTimedOut",
+    "acceptableAnswers": ["eTimedOut", "TargetConfirmationState::eTimedOut"]
+  },
+  {
+    "id": "lo_1",
+    "project": "libreoffice",
+    "question": "In a long-document composition engine, a sealed-delivery cleanup pass strips camouflage-only text fragments and conditional regions before outbound transfer, and a follow-up phase rolls that change back only when the last reversal ledger entry carries the same cleanup stamp. What exact reversal-label token marks that cleanup transaction?",
+    "answer": "UI_DELETE_INVISIBLECNTNT",
+    "acceptableAnswers": ["UI_DELETE_INVISIBLECNTNT", "SwUndoId::UI_DELETE_INVISIBLECNTNT"]
+  },
+  {
+    "id": "lo_2",
+    "project": "libreoffice",
+    "question": "In the tabular computation engine, consider the import path for a proprietary spreadsheet interchange stream where a cached result slot is explicitly marked as an error/boolean payload, and the payload byte indicates the null-intersection fault rather than divide-by-zero or missing-reference. When that imported state is later classified by the standards-oriented error-type routine that returns small integer categories, what is the exact internal error token name carried through this path?",
+    "answer": "FormulaError::NoCode",
+    "acceptableAnswers": ["FormulaError::NoCode", "NoCode"]
+  },
+  {
+    "id": "lo_3",
+    "project": "libreoffice",
+    "question": "When a page with stacked see through drawing layers is flattened into picture tiles during fixed layout export because direct blending for those recorded drawing steps cannot be trusted, which internal warning label is logged for that tile conversion path instead of the warnings that only discard blending?",
+    "answer": "Warning_Transparency_Converted",
+    "acceptableAnswers": [
+      "Warning_Transparency_Converted",
+      "vcl::PDFWriter::Warning_Transparency_Converted"
+    ]
+  },
+  {
+    "id": "lo_4",
+    "project": "libreoffice",
+    "question": "When only a motion path editor tag is selected and no normal drawing object is selected, the close shape control is treated as unavailable. If code still asks for the internal open or closed state in that edge case, which exact token is returned?",
+    "answer": "SdrObjClosedKind::Open",
+    "acceptableAnswers": ["SdrObjClosedKind::Open"]
+  },
+  {
+    "id": "lo_5",
+    "project": "libreoffice",
+    "question": "In text package detection, when the relationship type points to the strict office document family and a later decision routes that strict flavor through the same modern path as ISO transitional because strict is not supported, which internal variant label is set at the detection moment?",
+    "answer": "OOXMLVariant::ISO_Strict",
+    "acceptableAnswers": ["OOXMLVariant::ISO_Strict", "ISO_Strict"]
+  },
+  {
+    "id": "lo_6",
+    "project": "libreoffice",
+    "question": "When revision marking is active, a person adds text that directly touches the edge of their own earlier added text, that earlier piece is not a moved chunk, and the engine absorbs the newcomer into the old marked span instead of keeping a separate mark. What exact internal verdict word names that absorbed result?",
+    "answer": "MERGED",
+    "acceptableAnswers": ["MERGED", "AppendResult::MERGED"]
+  },
+  {
+    "id": "lo_7",
+    "project": "libreoffice",
+    "question": "When a workbook is reopened, a remote-text cell can reuse cached text only for the simplest one-step fetch. If background fetch from other documents is switched off and that cell is wrapped inside a larger expression, which internal failure label is emitted so recalculation is deferred until link checks run?",
+    "answer": "FormulaError::LinkFormulaNeedingCheck",
+    "acceptableAnswers": ["FormulaError::LinkFormulaNeedingCheck", "LinkFormulaNeedingCheck", "540"]
+  },
+  {
+    "id": "lo_8",
+    "project": "libreoffice",
+    "question": "During picture insertion in the long-document editor, the file type is recognized and pixel decoding has already succeeded, but the operation still fails when the system tries to keep a second compact copy of the original byte stream for later reuse. The same failure class is also surfaced by the slide editor through the shared picture-loading path. What exact internal status token marks this late-stage oversized-allocation edge case?",
+    "answer": "ERRCODE_GRFILTER_TOOBIG",
+    "acceptableAnswers": [
+      "ERRCODE_GRFILTER_TOOBIG",
+      "ErrCode(ErrCodeArea::Vcl, ErrCodeClass::General, 7)",
+      "Vcl/General/7"
+    ]
+  },
+  {
+    "id": "lo_9",
+    "project": "libreoffice",
+    "question": "In the slide presentation engine, two nearby test-run controls behave differently: one replays a single object's motion recipe, while the other checks full slide-to-slide handoffs. In the single-object path, the short run should still advance automatically but must suppress between-slide visual handoffs even when the page has one configured. What exact runtime property name is injected to force that suppression?",
+    "answer": "NoSlideTransitions",
+    "acceptableAnswers": ["NoSlideTransitions", "\"NoSlideTransitions\""]
+  },
+  {
+    "id": "lo_10",
+    "project": "libreoffice",
+    "question": "During a save-open-save bridge between older and newer document package flavors, a drawing border paint-strength percentage must be inverted so 0 and 100 swap meaning; otherwise the border looks visually reversed after the round trip. Which internal action token performs that inversion in both directions?",
+    "answer": "XML_ATACTION_OPACITY_FIX",
+    "acceptableAnswers": ["XML_ATACTION_OPACITY_FIX"]
+  },
+  {
+    "id": "lo_11",
+    "project": "libreoffice",
+    "question": "In slide import, an attached payload can be wrapped in a branching compatibility container. A lane is taken only if every required badge is recognized, but a later validation failure causes selection to be reopened so a backup lane can run. Which internal state token records that a lane had already been accepted before that reset logic?",
+    "answer": "MCE_STATE::FoundChoice",
+    "acceptableAnswers": ["MCE_STATE::FoundChoice", "FoundChoice"]
+  },
+  {
+    "id": "lo_12",
+    "project": "libreoffice",
+    "question": "When shutdown sweeps through open workspaces, one workspace first declines because it is still mid-task, then a later pass succeeds after that transient block ends. Just before any keep-or-discard prompt is considered, which lifecycle signal is emitted to announce the upcoming final closure gate?",
+    "answer": "SfxEventHintId::PrepareCloseDoc",
+    "acceptableAnswers": ["SfxEventHintId::PrepareCloseDoc", "PrepareCloseDoc"]
+  },
+  {
+    "id": "lo_13",
+    "project": "libreoffice",
+    "question": "During a table-copy assistant run, the source is a saved data request with unresolved fill-in blanks, so a value-entry prompt appears before transfer. If the operator dismisses that prompt without supplying any values, the run is treated as an intentional stop and returns a cancel-style outcome instead of showing an error dialog. What exact internal error-code token marks this edge-case path?",
+    "answer": "ParameterInteractionCancelled",
+    "acceptableAnswers": [
+      "ParameterInteractionCancelled",
+      "::dbtools::ParameterInteractionCancelled",
+      "1"
+    ]
+  },
+  {
+    "id": "lo_14",
+    "project": "libreoffice",
+    "question": "In the embedded macro scripting engine, a continue-from-failure instruction is issued even though execution is not currently in a failure-handling state. Which internal runtime error token is raised for that edge case?",
+    "answer": "ERRCODE_BASIC_BAD_RESUME",
+    "acceptableAnswers": ["ERRCODE_BASIC_BAD_RESUME", "37"]
+  },
+  {
+    "id": "lo_15",
+    "project": "libreoffice",
+    "question": "During foreign slide-file loading, a linking line is told to dock to an extra user-made anchor index (not one of the first four default sides). If that anchor index cannot be found on the destination shape, the docking-index update exits without applying the new index. What exact internal token denotes this \"anchor index not found\" state?",
+    "answer": "SDRGLUEPOINT_NOTFOUND",
+    "acceptableAnswers": ["SDRGLUEPOINT_NOTFOUND", "0xFFFF", "65535"]
+  },
+  {
+    "id": "lo_16",
+    "project": "libreoffice",
+    "question": "In the long document composer, when a bottom margin note gets split across pages and a middle text chunk is removed or reattached, the neighboring chunk inside that same note well is told to rebuild the carry over text that points back to the prior page. What single internal cue word names that instruction?",
+    "answer": "ErgoSum",
+    "acceptableAnswers": ["ErgoSum", "PrepareHint::ErgoSum"]
+  },
+  {
+    "id": "lo_17",
+    "project": "libreoffice",
+    "question": "During table ingest, a cell packet enters the number lane (marker plus comma), but the payload is not a valid quantity. The reader still consumes the next line and then downgrades that entry into a visible error-labeled text cell. What exact internal state tag marks that failure at detection time?",
+    "answer": "D_SYNT_ERROR",
+    "acceptableAnswers": ["D_SYNT_ERROR"]
+  },
+  {
+    "id": "lo_18",
+    "project": "libreoffice",
+    "question": "When printing multiple document pages onto one physical sheet, the user enables the quality option that forces every faded-ink mark to be baked into opaque output before the stored stroke log is replayed. Which internal painter-state flag is OR-ed in to suppress faded-ink drawing during that page re-run?",
+    "answer": "DrawModeFlags::NoTransparency",
+    "acceptableAnswers": ["DrawModeFlags::NoTransparency", "NoTransparency", "0x00200000"]
+  },
+  {
+    "id": "lo_19",
+    "project": "libreoffice",
+    "question": "In the slide presentation engine, when someone runs a single-card dress rehearsal from the editor, the card still runs its inner motion sequence but the between-card visual handoff is forcibly muted, even if that card inherited handoff style details from another card copy. Which exact property key is turned on to force that mute?",
+    "answer": "NoSlideTransitions",
+    "acceptableAnswers": ["NoSlideTransitions"]
+  },
+  {
+    "id": "lo_20",
+    "project": "libreoffice",
+    "question": "During slide-package export, a closed shape uses a crossed-stroke texture where the lines run in both slanted directions, and the spacing falls into the wider bucket rather than the tight bucket. In that specific fallback path, what preset text label is written for the texture style?",
+    "answer": "openDmnd",
+    "acceptableAnswers": ["openDmnd", "\"openDmnd\""]
+  },
+  {
+    "id": "lo_21",
+    "project": "libreoffice",
+    "question": "During legacy document translation, a note’s inner timestamp text is folded into a field on its parent record; if that timestamp carries an old fractional-separator mark, the converter rewrites the mark before attaching the flattened value. Which exact element-action token controls that fold-and-rewrite path?",
+    "answer": "XML_ETACTION_MOVE_TO_ATTR_RNG2ISO_DATETIME",
+    "acceptableAnswers": ["XML_ETACTION_MOVE_TO_ATTR_RNG2ISO_DATETIME"]
+  },
+  {
+    "id": "lo_22",
+    "project": "libreoffice",
+    "question": "When a document is being written out and, in that same interval, a close request arrives with ownership handoff, the close is vetoed immediately but attempted again once the write guard unwinds. Which internal latch member marks that delayed second close attempt?",
+    "answer": "m_bSuicide",
+    "acceptableAnswers": ["m_bSuicide", "m_pData->m_bSuicide"]
+  },
+  {
+    "id": "lo_23",
+    "project": "libreoffice",
+    "question": "In the built-in automation language, a recovery jump command is issued even though no fault-handling episode is currently active. Which internal runtime error constant is raised for that invalid recovery jump?",
+    "answer": "ERRCODE_BASIC_BAD_RESUME",
+    "acceptableAnswers": ["ERRCODE_BASIC_BAD_RESUME", "37"]
+  },
+  {
+    "id": "lo_24",
+    "project": "libreoffice",
+    "question": "In the data-grid filter strip, a user leaves a handwritten stencil pattern in a criterion cell bound to a quantity-only column; after focus-out, the bridge normalizes that cell and runs predicate checking. Which parse-context enum marks this mismatch?",
+    "answer": "FieldNoLike",
+    "acceptableAnswers": ["FieldNoLike", "IParseContext::ErrorCode::FieldNoLike"]
+  },
+  {
+    "id": "lo_25",
+    "project": "libreoffice",
+    "question": "When a connector is being rerouted and one end has no anchored shape or lands exactly at a shape's geometric midpoint, the router must temporarily permit every cardinal departure before comparing candidate paths. Which internal direction-mask token represents that unrestricted state?",
+    "answer": "SdrEscapeDirection::ALL",
+    "acceptableAnswers": ["SdrEscapeDirection::ALL", "ALL", "0x00ff"]
+  },
+  {
+    "id": "pg_1",
+    "project": "postgres",
+    "question": "During standby recovery, if settings are reloaded and primary connection inputs change while the receiver side is already active, what is the internal receiver state label used to mark a reconnect path instead of a first start or a full stop path?",
+    "answer": "WALRCV_RESTARTING",
+    "acceptableAnswers": ["WALRCV_RESTARTING"]
+  },
+  {
+    "id": "pg_2",
+    "project": "postgres",
+    "question": "During a team packing job into numbered bins, when repeated reshuffling still leaves almost everything in one family and another split could exceed safe size limits, what internal state label means no more resizing rounds are allowed?",
+    "answer": "PHJ_GROWTH_DISABLED",
+    "acceptableAnswers": ["PHJ_GROWTH_DISABLED"]
+  },
+  {
+    "id": "pg_3",
+    "project": "postgres",
+    "question": "During btree page growth, a freshly extended page can momentarily be blank before it is initialized, which creates a race with maintenance scanning. Which read mode is used so the page is not read from disk and is handed back already locked for safe first initialization?",
+    "answer": "RBM_ZERO_AND_LOCK",
+    "acceptableAnswers": ["RBM_ZERO_AND_LOCK"]
+  },
+  {
+    "id": "pg_4",
+    "project": "postgres",
+    "question": "When someone tries to attach a new uniqueness promise to a data sheet by reusing an old lock, but that lock is already tied to another promise, which all caps internal failure label is raised?",
+    "answer": "ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE",
+    "acceptableAnswers": [
+      "ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE",
+      "55000",
+      "object_not_in_prerequisite_state"
+    ]
+  },
+  {
+    "id": "pg_5",
+    "project": "postgres",
+    "question": "In the startup to login handoff, when a client reaches authentication but matches zero host based access records, which hidden internal authentication method marker is assigned before the no entry rejection path runs?",
+    "answer": "uaImplicitReject",
+    "acceptableAnswers": ["uaImplicitReject"]
+  },
+  {
+    "id": "pg_6",
+    "project": "postgres",
+    "question": "During standby replay, a parameter change can make logical decoding no longer valid and trigger slot invalidation; if the conflicting slot is still owned, startup uses a recovery conflict interrupt path instead of a plain termination signal. What exact internal reason name is sent for that conflict?",
+    "answer": "PROCSIG_RECOVERY_CONFLICT_LOGICALSLOT",
+    "acceptableAnswers": ["PROCSIG_RECOVERY_CONFLICT_LOGICALSLOT"]
+  },
+  {
+    "id": "pg_7",
+    "project": "postgres",
+    "question": "When the wraparound failsafe builds its transaction age cutoff and that cutoff is not a normal transaction id, which named baseline transaction id constant does it fall back to before comparing table age?",
+    "answer": "FirstNormalTransactionId",
+    "acceptableAnswers": ["FirstNormalTransactionId"]
+  },
+  {
+    "id": "pg_8",
+    "project": "postgres",
+    "question": "A client opens a no-edit transaction and asks to delay its first view until risky neighbors clear out. During that brief parked phase while it waits, what exact internal flag token marks that parked state?",
+    "answer": "SXACT_FLAG_DEFERRABLE_WAITING",
+    "acceptableAnswers": ["SXACT_FLAG_DEFERRABLE_WAITING", "0x00000040"]
+  },
+  {
+    "id": "pg_9",
+    "project": "postgres",
+    "question": "When a user deliberately links an otherwise standalone database object to an add-on package so removing that package later also removes the linked object, while keeping it out of the package's core membership list, which dependency flavor token represents that opt-in link?",
+    "answer": "DEPENDENCY_AUTO_EXTENSION",
+    "acceptableAnswers": ["DEPENDENCY_AUTO_EXTENSION", "x"]
+  },
+  {
+    "id": "pg_10",
+    "project": "postgres",
+    "question": "A lookup filter asks whether each row's collection covers every item in a request basket. When that request basket is actually empty, the condition becomes broadly true, but the bitmap walk still needs a synthetic driver term if that attribute has no positive term at all. Which internal category marker is injected for that synthetic term?",
+    "answer": "GIN_CAT_EMPTY_QUERY",
+    "acceptableAnswers": ["GIN_CAT_EMPTY_QUERY", "-1"]
+  },
+  {
+    "id": "pg_11",
+    "project": "postgres",
+    "question": "During a client-driven bulk load over the live connection, the sender accidentally injects the tiny packet whose only purpose is to demand immediate outbound drain in the middle of row payload traffic. The receiver explicitly tolerates that packet and keeps ingesting rows instead of aborting the transfer. What exact internal request token names that tolerated packet?",
+    "answer": "PqMsg_Flush",
+    "acceptableAnswers": ["PqMsg_Flush", "H", "'H'"]
+  },
+  {
+    "id": "pg_12",
+    "project": "postgres",
+    "question": "When someone imports a saved \"who-is-still-active\" view at the very start of a session, the file can be structurally valid but still rejected because one boundary number is in the tiny reserved ID range used before normal work begins. In another branch, if the child list was too large to keep, the system walks upward through parent links before checking activity. What exact internal threshold name marks the first ID treated as normal work?",
+    "answer": "FirstNormalTransactionId",
+    "acceptableAnswers": ["FirstNormalTransactionId", "3"]
+  },
+  {
+    "id": "pg_13",
+    "project": "postgres",
+    "question": "When a big ledger is divided into many drawers and one drawer is being peeled away in a two-stage operation, the engine enforces three simultaneous rules: only one drawer can be in that halfway state, drawer-roster reads may skip it once stage one is visible to the reader, and lineage walks treat that drawer as no longer on the family chain. What is the exact yes/no column name in the linkage catalog row that marks this halfway state?",
+    "answer": "inhdetachpending",
+    "acceptableAnswers": ["inhdetachpending", "pg_inherits.inhdetachpending"]
+  },
+  {
+    "id": "pg_14",
+    "project": "postgres",
+    "question": "A backend waits for a helper process to report that it has started, but while waiting, the cluster supervisor disappears, so no further lifecycle notices can arrive. Which status value is returned to indicate that this wait can no longer resolve normally?",
+    "answer": "BGWH_POSTMASTER_DIED",
+    "acceptableAnswers": ["BGWH_POSTMASTER_DIED"]
+  },
+  {
+    "id": "pg_15",
+    "project": "postgres",
+    "question": "During a locked-channel network sign-in, a rulebook line demands both a secret check and an identity-document check. The operator can compare either a short label or the document's full identity line; when they choose the full line and mapping misses, what internal selector value marks that choice?",
+    "answer": "clientCertDN",
+    "acceptableAnswers": ["clientCertDN"]
+  },
+  {
+    "id": "pg_16",
+    "project": "postgres",
+    "question": "During the final shutdown lap of log streaming, the sender may still pause even after its own durable bytes are available, because nominated downstream partners have not yet proven they durably stored the handoff checkpoint needed for takeover continuity. Which internal wait event token names that pause?",
+    "answer": "WAIT_EVENT_WAIT_FOR_STANDBY_CONFIRMATION",
+    "acceptableAnswers": [
+      "WAIT_EVENT_WAIT_FOR_STANDBY_CONFIRMATION",
+      "WAIT_FOR_STANDBY_CONFIRMATION"
+    ]
+  },
+  {
+    "id": "pg_17",
+    "project": "postgres",
+    "question": "In a two-person change relay on the receiving side, repeated mailbox backpressure makes the coordinator spill the rest of one transaction into side files. After spill-writing finishes, there is an intermediate shared flag set for one loop pass before the helper is allowed to replay those side files, because mailbox messages may still remain. What is the exact internal token for that in-between flag?",
+    "answer": "FS_SERIALIZE_DONE",
+    "acceptableAnswers": ["FS_SERIALIZE_DONE"]
+  },
+  {
+    "id": "pg_18",
+    "project": "postgres",
+    "question": "When the key-to-drawer directory grows and one crowded drawer is divided into two, some moved records can still leave stale copies in the original drawer. If that original drawer cannot be tidied right away because extra hands are still holding it, the engine leaves a one-bit reminder on it so a later maintenance pass must remove those leftovers before future growth from that same drawer. What is the exact reminder-bit constant name?",
+    "answer": "LH_BUCKET_NEEDS_SPLIT_CLEANUP",
+    "acceptableAnswers": ["LH_BUCKET_NEEDS_SPLIT_CLEANUP"]
+  },
+  {
+    "id": "pg_19",
+    "project": "postgres",
+    "question": "During a janitor pass, a zone summary card can represent a zone with zero surviving entries. What exact internal flag name is flipped to encode that \"no occupants\" zone state?",
+    "answer": "BRIN_EMPTY_RANGE_MASK",
+    "acceptableAnswers": ["BRIN_EMPTY_RANGE_MASK", "0x20"]
+  },
+  {
+    "id": "pg_20",
+    "project": "postgres",
+    "question": "In the SQL terminal, an operator tries to rewire a built-in ticket dispenser that was auto-attached to a table field during setup. The system can still discover where that dispenser is linked, but it rejects changing the link when that bond belongs to the stricter system-managed class. What is the exact dependency tag used for that stricter class?",
+    "answer": "DEPENDENCY_INTERNAL",
+    "acceptableAnswers": ["DEPENDENCY_INTERNAL", "i", "'i'"]
+  },
+  {
+    "id": "pg_21",
+    "project": "postgres",
+    "question": "During a bundle-upgrade work session, a throwaway object stamped as belonging to that same bundle can be removed without first detaching it; outside that session, the same stamp makes removal climb to the owner container instead of deleting the piece directly. What is the exact relationship-stamp token for that membership link?",
+    "answer": "DEPENDENCY_EXTENSION",
+    "acceptableAnswers": ["DEPENDENCY_EXTENSION", "e", "'e'"]
+  },
+  {
+    "id": "pg_22",
+    "project": "postgres",
+    "question": "During an in-server routine that tries to cross a ledger boundary, the engine first attempts to preserve any hand-held row stream so it can survive the boundary. If that stream comes from a shape that might still mutate data, the preservation path is rejected before spill-space persistence begins. Which internal strategy label must already be present for that preservation conversion to be allowed?",
+    "answer": "PORTAL_ONE_SELECT",
+    "acceptableAnswers": ["PORTAL_ONE_SELECT", "portal_one_select", "0"]
+  },
+  {
+    "id": "pg_23",
+    "project": "postgres",
+    "question": "A downstream mirror is configured to eventually support split-signature commits, but at enrollment time it has zero tracked tables. Later, operators widen the upstream feed to include additional tables and then ask the downstream side to do a full backfill pass for those newcomers (not a metadata-only refresh). Which internal tri-state catalog token must still represent that mirror profile during this window, before the background catch-up workers finish and the mode is promoted?",
+    "answer": "LOGICALREP_TWOPHASE_STATE_PENDING",
+    "acceptableAnswers": ["LOGICALREP_TWOPHASE_STATE_PENDING", "p", "'p'"]
+  },
+  {
+    "id": "pg_24",
+    "project": "postgres",
+    "question": "A coordinator parks a named work packet, leaves it around long enough for housekeeping to move its dossier out of the rolling journal and into shelf storage, then later issues the one-shot \"finish it now\" order. At the moment the server blocks to open and read that shelf copy back, which exact internal wait label is raised?",
+    "answer": "WAIT_EVENT_TWOPHASE_FILE_READ",
+    "acceptableAnswers": ["WAIT_EVENT_TWOPHASE_FILE_READ", "wait_event_twophase_file_read"]
+  },
+  {
+    "id": "pg_25",
+    "project": "postgres",
+    "question": "During a mass \"copy the remote aisle map into local stand-ins\" operation, the destination and access rights are valid, and the adapter's doorway function exists, but that adapter does not provide the inventory-listing hook required for this operation type. Which internal SQLSTATE macro is emitted on that failure path?",
+    "answer": "ERRCODE_FDW_NO_SCHEMAS",
+    "acceptableAnswers": ["ERRCODE_FDW_NO_SCHEMAS", "HV00P", "fdw_no_schemas"]
   }
 ]

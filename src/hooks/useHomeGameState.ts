@@ -65,6 +65,13 @@ export function useHomeGameState({
 }: UseHomeGameStateArgs) {
   const [screen, setScreen] = useState<Screen>("landing");
   const [pendingLevel, setPendingLevel] = useState<number | null>(null);
+  const [level2Preview, setLevel2Preview] = useState<Array<{
+    key: string;
+    label: string;
+    commit: string;
+  }> | null>(null);
+  const [level2PreviewLoading, setLevel2PreviewLoading] = useState(false);
+  const [level2PreviewError, setLevel2PreviewError] = useState<string | null>(null);
   const [level3Preview, setLevel3Preview] = useState<{
     challengeId: string;
     taskName: string;
@@ -251,6 +258,9 @@ export function useHomeGameState({
     clearStoredFlowScreen();
     clearStoredResults();
     setPendingLevel(null);
+    setLevel2Preview(null);
+    setLevel2PreviewLoading(false);
+    setLevel2PreviewError(null);
     setLevel3Preview(null);
     setLevel3PreviewError(null);
     setSubmittedLead(false);
@@ -492,7 +502,7 @@ export function useHomeGameState({
   }, [currentLevel, expiresAt, finishGame, screen, sessionId]);
 
   const launchLevel = useCallback(
-    async (level: number, level3ChallengeId?: string) => {
+    async (level: number, level3ChallengeId?: string, level2Projects?: string[]) => {
       if (!isAuthenticated) return;
       if (!isLocalDev && level > unlockedLevel) return;
 
@@ -501,7 +511,7 @@ export function useHomeGameState({
         const res = await clientFetch("/api/session", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ level, isDev: isLocalDev, level3ChallengeId }),
+          body: JSON.stringify({ level, isDev: isLocalDev, level3ChallengeId, level2Projects }),
         });
         if (!res.ok) throw new Error(`session creation failed: ${res.status}`);
         const data = await res.json();
@@ -541,6 +551,8 @@ export function useHomeGameState({
       clearStoredResults();
       if (level === 2) {
         setPendingLevel(2);
+        setLevel2Preview(null);
+        setLevel2PreviewError(null);
         persistFlowScreen("level2-prereq", 2);
         setScreen("level2-prereq");
         return;
@@ -640,6 +652,37 @@ export function useHomeGameState({
     persistActiveSession,
     persistSessionSnapshot,
   ]);
+
+  useEffect(() => {
+    if (screen !== "level2-prereq") return;
+    let cancelled = false;
+
+    async function loadLevel2Preview() {
+      setLevel2PreviewLoading(true);
+      setLevel2PreviewError(null);
+      try {
+        const res = await clientFetch("/api/level2-preview", { method: "GET" });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to load Level 2 preview");
+        }
+        if (cancelled) return;
+        setLevel2Preview(Array.isArray(data.projects) ? data.projects : null);
+      } catch (err) {
+        if (cancelled) return;
+        setLevel2PreviewError(
+          err instanceof Error ? err.message : "Failed to load Level 2 preview",
+        );
+      } finally {
+        if (!cancelled) setLevel2PreviewLoading(false);
+      }
+    }
+
+    void loadLevel2Preview();
+    return () => {
+      cancelled = true;
+    };
+  }, [screen]);
 
   useEffect(() => {
     if (screen !== "level3-prereq") return;
@@ -744,6 +787,9 @@ export function useHomeGameState({
     level1PassRef.current = null;
     setScreen("landing");
     setPendingLevel(null);
+    setLevel2Preview(null);
+    setLevel2PreviewLoading(false);
+    setLevel2PreviewError(null);
     setLevel3Preview(null);
     setLevel3PreviewError(null);
     setSessionId(null);
@@ -957,6 +1003,9 @@ export function useHomeGameState({
     setScreen,
     pendingLevel,
     setPendingLevel,
+    level2Preview,
+    level2PreviewLoading,
+    level2PreviewError,
     level3Preview,
     setLevel3Preview,
     level3PreviewLoading,

@@ -36,6 +36,7 @@ export const createInternal = internalMutation({
     github: v.string(),
     requestedLevel: v.optional(v.number()),
     requestedLevel3ChallengeId: v.optional(v.string()),
+    requestedLevel2Projects: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const ghResult = validateGithub(args.github);
@@ -99,7 +100,7 @@ export const createInternal = internalMutation({
 
     if (level === 2) {
       expiresAt = startedAt + ROUND_DURATION_L2_MS;
-      const picked = selectLevel2SessionProblems();
+      const picked = selectLevel2SessionProblems(args.requestedLevel2Projects);
       problemIds = picked.map((problem) => problem.id);
       problemsToReturn = picked.map((p) => ({
         id: p.id,
@@ -170,6 +171,7 @@ export const create = action({
     github: v.string(),
     requestedLevel: v.optional(v.number()),
     requestedLevel3ChallengeId: v.optional(v.string()),
+    requestedLevel2Projects: v.optional(v.array(v.string())),
   },
   handler: async (
     ctx,
@@ -188,6 +190,7 @@ export const create = action({
       github: args.github,
       requestedLevel: args.requestedLevel,
       requestedLevel3ChallengeId: args.requestedLevel3ChallengeId,
+      requestedLevel2Projects: args.requestedLevel2Projects,
     });
   },
 });

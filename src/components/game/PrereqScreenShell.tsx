@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { FIRECRAWL_FLAME_SVG } from "@/components/game/firecrawl-flame";
+import { AnimatedLandingDecor } from "./decor";
 
 export function PrereqScreenShell({
   width,
@@ -56,23 +57,25 @@ export function PrereqScreenShell({
         }}
       />
 
+      <AnimatedLandingDecor />
+
       <div
         style={{
           width,
           background: "#ffffff",
           border: "1px solid #e8e8e8",
-          borderRadius: 16,
-          padding: "28px 28px 24px",
+          borderRadius: 20,
+          padding: "32px 32px 28px",
           boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.02)",
           position: "relative",
-          zIndex: 1,
+          zIndex: 10,
         }}
       >
         {/* Title with flame */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
           <svg
-            width="22"
-            height="22"
+            width="24"
+            height="24"
             viewBox="0 0 600 600"
             preserveAspectRatio="xMidYMid meet"
             style={{ display: "inline-block", flexShrink: 0 }}
@@ -82,9 +85,9 @@ export function PrereqScreenShell({
             style={{
               margin: 0,
               color: "#262626",
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: 500,
-              letterSpacing: -0.3,
+              letterSpacing: -0.4,
               fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             }}
           >
@@ -92,7 +95,7 @@ export function PrereqScreenShell({
           </h2>
         </div>
         {children}
-        <div style={{ marginTop: 20, display: "flex", gap: 8 }}>{actions}</div>
+        <div style={{ marginTop: 24, display: "flex", gap: 10 }}>{actions}</div>
       </div>
     </div>
   );

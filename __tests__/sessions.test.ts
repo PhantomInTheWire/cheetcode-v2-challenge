@@ -5,7 +5,14 @@ import {
   selectSessionProblems,
   stripSolution,
 } from "../server/level1/problems";
-import { LEVEL2_PROBLEM_SET_SIZE, selectLevel2SessionProblems } from "../server/level2/problems";
+import {
+  LEVEL2_PROBLEM_SET_SIZE,
+  LEVEL2_PROJECTS,
+  LEVEL2_PROJECTS_PER_SESSION,
+  LEVEL2_QUESTIONS_PER_PROJECT,
+  selectLevel2SessionProblemsFromBank,
+  selectLevel2SessionProblems,
+} from "../server/level2/problems";
 
 describe("sessions", () => {
   it("selects the configured number of level 1 problems by tier", () => {
@@ -49,5 +56,44 @@ describe("sessions", () => {
     const selected = selectLevel2SessionProblems();
     expect(selected).toHaveLength(LEVEL2_PROBLEM_SET_SIZE);
     expect(new Set(selected.map((problem) => problem.id)).size).toBe(selected.length);
+    const projectCounts = selected.reduce(
+      (acc, problem) => ({ ...acc, [problem.project]: (acc[problem.project] ?? 0) + 1 }),
+      {} as Record<string, number>,
+    );
+    expect(Object.keys(projectCounts)).toHaveLength(LEVEL2_PROJECTS_PER_SESSION);
+    expect(Object.values(projectCounts)).toEqual(
+      Array(LEVEL2_PROJECTS_PER_SESSION).fill(LEVEL2_QUESTIONS_PER_PROJECT),
+    );
+  });
+
+  it("throws when one project has fewer than the required 5 questions", () => {
+    const bank = LEVEL2_PROJECTS.flatMap((project) => {
+      const count = project === "chromium" ? LEVEL2_QUESTIONS_PER_PROJECT - 1 : 10;
+      return Array.from({ length: count }, (_, idx) => ({
+        id: `${project}_${idx}`,
+        project,
+        question: `q-${project}-${idx}`,
+        answer: `a-${project}-${idx}`,
+      }));
+    });
+
+    expect(() => selectLevel2SessionProblemsFromBank(bank)).toThrow(
+      "insufficient level2 problems for project 'chromium'",
+    );
+  });
+
+  it("honors an explicitly requested level 2 project pair", () => {
+    const bank = LEVEL2_PROJECTS.flatMap((project) =>
+      Array.from({ length: 10 }, (_, idx) => ({
+        id: `${project}_${idx}`,
+        project,
+        question: `q-${project}-${idx}`,
+        answer: `a-${project}-${idx}`,
+      })),
+    );
+    const selected = selectLevel2SessionProblemsFromBank(bank, ["firefox", "postgres"]);
+
+    const projects = new Set(selected.map((problem) => problem.project));
+    expect(projects).toEqual(new Set(["firefox", "postgres"]));
   });
 });

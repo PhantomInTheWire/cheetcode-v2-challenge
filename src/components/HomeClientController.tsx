@@ -324,6 +324,9 @@ function renderHomeScreen(params: {
   setPendingLevel: HomeGameState["setPendingLevel"];
   setScreen: HomeGameState["setScreen"];
   level3Preview: HomeGameState["level3Preview"];
+  level2Preview: HomeGameState["level2Preview"];
+  level2PreviewLoading: HomeGameState["level2PreviewLoading"];
+  level2PreviewError: HomeGameState["level2PreviewError"];
   level3PreviewLoading: HomeGameState["level3PreviewLoading"];
   level3PreviewError: HomeGameState["level3PreviewError"];
   results: HomeGameState["results"];
@@ -438,6 +441,9 @@ function renderHomeScreen(params: {
     return (
       <Level2PrereqScreen
         pendingLevel={params.pendingLevel}
+        level2Preview={params.level2Preview}
+        level2PreviewLoading={params.level2PreviewLoading}
+        level2PreviewError={params.level2PreviewError}
         onCopy={params.copyToClipboard}
         onStart={params.launchLevel}
         onBack={() =>
@@ -540,6 +546,9 @@ export function HomeClientController({
     setScreen,
     pendingLevel,
     setPendingLevel,
+    level2Preview,
+    level2PreviewLoading,
+    level2PreviewError,
     level3Preview,
     level3PreviewLoading,
     level3PreviewError,
@@ -624,6 +633,9 @@ export function HomeClientController({
     clearStoredFlowScreen,
     setPendingLevel,
     setScreen,
+    level2Preview,
+    level2PreviewLoading,
+    level2PreviewError,
     level3Preview,
     level3PreviewLoading,
     level3PreviewError,

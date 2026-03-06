@@ -44,15 +44,6 @@ type ResultsScreenProps = {
   startGame: (level: number) => void;
 };
 
-/* ── Firecrawl button shadow ── */
-const HEAT_SHADOW = `
-  inset 0px -6px 12px 0px rgba(250,25,25,0.2),
-  0px 2px 4px 0px rgba(250,93,25,0.12),
-  0px 1px 1px 0px rgba(250,93,25,0.12),
-  0px 0.5px 0.5px 0px rgba(250,93,25,0.16),
-  0px 0.25px 0.25px 0px rgba(250,93,25,0.2)
-`;
-
 export function ResultsScreen({
   results,
   displayedSolveTarget,
@@ -123,7 +114,7 @@ export function ResultsScreen({
         background: "#f9f9f9",
         padding: "80px 24px",
         position: "relative",
-        overflow: "hidden",
+        overflowY: "auto",
       }}
     >
       {/* ── Background Elements ── */}
@@ -555,6 +546,7 @@ export function ResultsScreen({
 
             <div style={{ marginTop: 32 }}>
               <button
+                className="btn-heat"
                 disabled={!email.trim()}
                 onClick={submitLeadForm}
                 style={{
@@ -564,13 +556,9 @@ export function ResultsScreen({
                   fontSize: 14,
                   fontWeight: 500,
                   fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                  background: "#ff4c00",
-                  color: "#ffffff",
                   border: "none",
                   cursor: !email.trim() ? "not-allowed" : "pointer",
                   opacity: !email.trim() ? 0.4 : 1,
-                  boxShadow: HEAT_SHADOW,
-                  transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
                 }}
               >
                 VERIFY & SHIP
@@ -609,6 +597,7 @@ export function ResultsScreen({
           {isProgressionOnly && canAdvance ? (
             <button
               onClick={() => startGame(nextLevel)}
+              className="btn-heat"
               style={{
                 width: "100%",
                 maxWidth: 400,
@@ -617,12 +606,8 @@ export function ResultsScreen({
                 fontSize: 16,
                 fontWeight: 500,
                 fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                background: "#ff4c00",
-                color: "#ffffff",
                 border: "none",
                 cursor: "pointer",
-                boxShadow: HEAT_SHADOW,
-                transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
               }}
             >
               CONTINUE TO LEVEL {nextLevel}
@@ -633,6 +618,7 @@ export function ResultsScreen({
                 <>
                   <button
                     onClick={shareScore}
+                    className="btn-heat"
                     style={{
                       flex: 1,
                       height: 48,
@@ -640,12 +626,8 @@ export function ResultsScreen({
                       fontSize: 14,
                       fontWeight: 500,
                       fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                      background: "#ff4c00",
-                      color: "#ffffff",
                       border: "none",
                       cursor: "pointer",
-                      boxShadow: HEAT_SHADOW,
-                      transition: "all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)",
                     }}
                   >
                     SHARE ON X
@@ -705,9 +687,9 @@ export function ResultsScreen({
           zIndex: 10,
         }}
       >
-        <span>FIRE_CTF_PROD</span>
+        <span>[ FIRE_CTF_PROD ]</span>
         <span>·</span>
-        <span>AUTH_SYNCED</span>
+        <span>[ AUTH_SYNCED ]</span>
         <span>·</span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
           <BrailleSpinner /> v2.0

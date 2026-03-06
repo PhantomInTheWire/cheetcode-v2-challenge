@@ -7,7 +7,7 @@ import { recordBuiltTelemetry } from "../../../lib/attempt-telemetry";
 
 /**
  * POST /api/validate-l2
- * Validates Level 2 (Chromium search) answers.
+ * Validates Level 2 (multi-project source challenge) answers.
  * Body: { sessionId: string, answers: Record<string, string> } - problemId -> answer
  * Returns: { results: Array<{ problemId: string, correct: boolean }> }
  */
