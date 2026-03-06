@@ -38,6 +38,7 @@ export const recordResultsInternal = internalMutation({
     const maxTime =
       level === 2 ? ROUND_DURATION_L2_MS : level === 3 ? ROUND_DURATION_L3_MS : ROUND_DURATION_MS;
     const clampedTime = Math.max(0, Math.min(maxTime, args.timeElapsedMs));
+    const finishedAt = Date.now();
 
     const solvedCount = validSolvedIds.length;
     const timeRemainingSecs = Math.max(0, Math.floor((maxTime - clampedTime) / 1000));
@@ -169,6 +170,10 @@ export const recordResultsInternal = internalMutation({
     const userAttempts = nextAttempts;
     // calculateRank needs to check the totalElo against sorted list
     const rank = calculateRank(sorted, totalElo, userAttempts);
+
+    if (session.expiresAt > finishedAt) {
+      await ctx.db.patch(args.sessionId, { expiresAt: finishedAt });
+    }
 
     // Return the AGGREGATE solved/elo so the UI shows the massive combined score
     return { elo: totalElo, solved: totalSolved, rank, timeRemaining: timeRemainingSecs };

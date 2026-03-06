@@ -16,6 +16,7 @@ export type Level3TaskTemplate = {
   title?: string;
   enabled: boolean;
   languages: Level3SupportedLanguage[];
+  originTags?: string[];
   checks: Level3TaskCheckTemplate[];
 };
 
@@ -26,6 +27,7 @@ const RAW_LEVEL3_TASK_CATALOG: Level3TaskTemplate[] = [
     title: "Level 3 Systems Spec",
     enabled: true,
     languages: ["C", "C++", "Rust"],
+    originTags: ["back_end_knowledge", "performance_knowledge", "core_feat"],
     checks: [
       { key: "abi_reset", name: "Reset state semantics", exportName: "cpu_reset" },
       {
@@ -106,6 +108,148 @@ const RAW_LEVEL3_TASK_CATALOG: Level3TaskTemplate[] = [
       },
     ],
   },
+  {
+    id: "identity-bundle-auth-resolver",
+    name: "Identity Bundle Auth Resolver",
+    title: "Level 3 Systems Spec",
+    enabled: true,
+    languages: ["C", "C++", "Rust"],
+    originTags: [
+      "authentication_authorization_knowledge",
+      "security_knowledge",
+      "major_bug",
+      "integration_bug",
+      "edge_case_bug",
+      "data_bug",
+    ],
+    checks: [
+      {
+        key: "behavior_source_resolution",
+        name: "Behavior Bucket 1",
+        exportName: "auth_check",
+      },
+      {
+        key: "behavior_time_and_perm_contract",
+        name: "Behavior Bucket 2",
+        exportName: "auth_check",
+      },
+      {
+        key: "behavior_delegation_and_ancestors",
+        name: "Behavior Bucket 3",
+        exportName: "auth_check",
+      },
+      {
+        key: "behavior_audit_count_error_contract",
+        name: "Behavior Bucket 4",
+        exportName: "auth_audit_get",
+      },
+      {
+        key: "update_revoke_read_consistency",
+        name: "Update Bucket 1",
+        exportName: "auth_revoke",
+      },
+      {
+        key: "update_key_attach_read_consistency",
+        name: "Update Bucket 2",
+        exportName: "auth_attach_bundle_key",
+      },
+      {
+        key: "update_independent_chain_isolation",
+        name: "Update Bucket 3",
+        exportName: "auth_revoke",
+      },
+      {
+        key: "update_small_trace_equivalence",
+        name: "Update Bucket 4",
+        exportName: "auth_check",
+      },
+      {
+        key: "scale_grant_id_lookup_ratio",
+        name: "Scale Budget 1",
+        exportName: "auth_effective_mask",
+      },
+      {
+        key: "scale_audit_lookup_ratio",
+        name: "Scale Budget 2",
+        exportName: "auth_audit_get",
+      },
+      {
+        key: "scale_effective_mask_lookup_ratio",
+        name: "Scale Budget 3",
+        exportName: "auth_effective_mask",
+      },
+      {
+        key: "scale_auto_bundle_presence_other_subject_noise",
+        name: "Scale Budget 4",
+        exportName: "auth_check",
+      },
+      {
+        key: "scale_auto_bundle_presence_same_subject_noise",
+        name: "Scale Budget 5",
+        exportName: "auth_check",
+      },
+      {
+        key: "scale_hot_auth_lookup_ratio",
+        name: "Scale Budget 6",
+        exportName: "auth_check",
+      },
+      {
+        key: "scale_same_subject_irrelevant_resource_ratio",
+        name: "Scale Budget 7",
+        exportName: "auth_check",
+      },
+      {
+        key: "scale_other_subject_noise_ratio",
+        name: "Scale Budget 8",
+        exportName: "auth_check",
+      },
+      {
+        key: "scale_count_usable_hot_subject_ratio",
+        name: "Scale Budget 9",
+        exportName: "auth_count_usable",
+      },
+      {
+        key: "scale_count_usable_mode_mix_ratio",
+        name: "Scale Budget 10",
+        exportName: "auth_count_usable",
+      },
+      {
+        key: "scale_mixed_read_loop_ratio",
+        name: "Scale Budget 11",
+        exportName: "auth_check",
+      },
+      {
+        key: "scale_deep_chain_hot_read_ratio",
+        name: "Scale Budget 12",
+        exportName: "auth_check",
+      },
+      {
+        key: "scale_bundle_heavy_hotset_ratio",
+        name: "Scale Budget 13",
+        exportName: "auth_check",
+      },
+      {
+        key: "scale_local_heavy_hotset_ratio",
+        name: "Scale Budget 14",
+        exportName: "auth_check",
+      },
+      {
+        key: "scale_mixed_source_hotset_ratio",
+        name: "Scale Budget 15",
+        exportName: "auth_check",
+      },
+      {
+        key: "scale_large_read_budget",
+        name: "Scale Budget 16",
+        exportName: "auth_check",
+      },
+      {
+        key: "scale_large_trace_equivalence_budget",
+        name: "Scale Budget 17",
+        exportName: "auth_check",
+      },
+    ],
+  },
 ];
 
 function assertNonEmptyString(value: unknown, message: string): asserts value is string {
@@ -182,6 +326,23 @@ export function validateLevel3TaskCatalog(rawCatalog: unknown): Level3TaskTempla
       return language;
     });
 
+    if (task.originTags !== undefined) {
+      if (!Array.isArray(task.originTags)) {
+        throw new Error(`Invalid level3 task '${taskId}': originTags must be an array`);
+      }
+      const seenOriginTags = new Set<string>();
+      for (const tag of task.originTags) {
+        assertNonEmptyString(
+          tag,
+          `Invalid level3 task '${taskId}': originTags entries must be non-empty strings`,
+        );
+        if (seenOriginTags.has(tag)) {
+          throw new Error(`Invalid level3 task '${taskId}': duplicate origin tag '${tag}'`);
+        }
+        seenOriginTags.add(tag);
+      }
+    }
+
     if (!Array.isArray(task.checks) || task.checks.length === 0) {
       throw new Error(`Invalid level3 task '${taskId}': checks must be a non-empty array`);
     }
@@ -230,6 +391,7 @@ export function validateLevel3TaskCatalog(rawCatalog: unknown): Level3TaskTempla
       title: task.title,
       enabled: taskEnabled,
       languages,
+      originTags: task.originTags ? [...task.originTags] : undefined,
       checks,
     };
   });

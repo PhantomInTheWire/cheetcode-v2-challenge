@@ -24,4 +24,14 @@ describe("level3 sandbox runner", () => {
     expect(native).toContain('fs.writeFileSync("harness.c", HARNESS_SOURCE, "utf8")');
     expect(native).toContain('fs.writeFileSync("support.rs", SUPPORT_SOURCE_0, "utf8")');
   });
+
+  it("omits support assets for tasks without auxiliary sources", () => {
+    const runtime = buildLevel3SandboxRuntimeRunner("identity-bundle-auth-resolver", "C");
+    expect(runtime).toContain("const supportFilenames = [];");
+    expect(runtime).toContain('["main.c", ...supportFilenames, "harness.c", "-o", "harness"]');
+
+    const native = buildLevel3NativeSandboxRunner("identity-bundle-auth-resolver", "Rust");
+    expect(native).toContain('fs.writeFileSync("harness.c", HARNESS_SOURCE, "utf8")');
+    expect(native).not.toContain("SUPPORT_SOURCE_0");
+  });
 });
