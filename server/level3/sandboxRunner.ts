@@ -14,7 +14,7 @@ const supportFilenames = ${JSON.stringify(supportFilenames)};
 ${bootstrapSource}
 
 function run(cmd, args) {
-  return spawnSync(cmd, args, { encoding: "utf8", timeout: 10_000, killSignal: "SIGKILL" });
+  return spawnSync(cmd, args, { encoding: "utf8", timeout: 30_000, killSignal: "SIGKILL" });
 }
 
 function compileAndRun() {
