@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import Image from "next/image";
-import { FIRECRAWL_FLAME_SVG } from "@/components/game/firecrawl-flame";
 
 export default function Error({
   error,
@@ -67,15 +66,7 @@ export default function Error({
           zIndex: 1,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 600 600"
-            preserveAspectRatio="xMidYMid meet"
-            style={{ display: "inline-block", flexShrink: 0 }}
-            dangerouslySetInnerHTML={{ __html: FIRECRAWL_FLAME_SVG }}
-          />
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 20 }}>
           <Image
             src="/images/errors/route-error.svg"
             alt="Route Error Illustration"

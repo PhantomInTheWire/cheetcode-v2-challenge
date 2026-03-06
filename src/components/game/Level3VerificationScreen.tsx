@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { FIRECRAWL_FLAME_SVG } from "@/components/game/firecrawl-flame";
-import { BrailleSpinner, AnimatedLandingDecor } from "@/components/game/decor";
+import { AnimatedLandingDecor } from "@/components/game/decor";
 import { type ResultsData } from "@/lib/gameTypes";
 
 type Level3VerificationScreenProps = {
@@ -322,9 +322,7 @@ export function Level3VerificationScreen({ results, onContinue }: Level3Verifica
           zIndex: 10,
         }}
       >
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-          <BrailleSpinner /> v2.0
-        </span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>v2.0</span>
       </div>
     </div>
   );

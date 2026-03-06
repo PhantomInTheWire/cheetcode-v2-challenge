@@ -99,9 +99,9 @@ body {
 
 /* ─── Firecrawl primary button ─── */
 .btn-heat {
-  background: #ff4c00;
+  background: #fa5d19;
   color: white;
-  border: 1px solid #f25515;
+  border: 1px solid #e65416;
   cursor: pointer;
   transition:
     all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
@@ -115,6 +115,8 @@ body {
     0px 0.25px 0.25px 0px rgba(250, 93, 25, 0.2);
 }
 .btn-heat:hover {
+  background: #e65416;
+  border-color: #d94e14;
   box-shadow:
     inset 0px -6px 12px 0px rgba(250, 25, 25, 0.2),
     0px 4px 8px 0px rgba(250, 93, 25, 0.18),
@@ -124,6 +126,8 @@ body {
 }
 .btn-heat:active {
   transform: scale(0.995);
+  background: #d94e14;
+  border-color: #d94e14;
 }
 .btn-heat:disabled {
   opacity: 0.4;

@@ -70,9 +70,9 @@ export function LandingScreen({
     unlockedLevel < 2 && !isLocalDev ? [1] : unlockedLevel < 3 && !isLocalDev ? [1, 2] : [1, 2, 3];
 
   const levelMeta: Record<number, { desc: string; time: string }> = {
-    1: { desc: "Algo", time: `${ROUND_DURATION_SECONDS}s` },
-    2: { desc: "Source", time: "60s" },
-    3: { desc: "Systems", time: "120s" },
+    1: { desc: "Orchestrate", time: `${ROUND_DURATION_SECONDS}s` },
+    2: { desc: "Explore", time: "60s" },
+    3: { desc: "Build", time: "120s" },
   };
 
   return (
@@ -239,7 +239,7 @@ export function LandingScreen({
               fontFamily: "var(--font-geist-sans), system-ui, -apple-system, sans-serif",
             }}
           >
-            Design, Orchestrate, and Ship Systems.
+            Orchestrate, Explore and Build systems.
           </p>
 
           {/* ── Stats row ──────────────────────────────────────── */}
@@ -551,31 +551,8 @@ export function LandingScreen({
               />
             </div>
           )}
-
-          {/* ── Footer ─────────────────────────────────────────── */}
-          <div
-            style={{
-              marginTop: 40,
-              paddingTop: 20,
-              borderTop: "1px solid rgba(0,0,0,0.05)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: 8,
-              fontSize: 12,
-              color: "rgba(0,0,0,0.16)",
-              fontFamily: "var(--font-geist-mono), monospace",
-            }}
-          >
-            <span>firecrawl</span>
-            <span>·</span>
-            <span>cheetcode ctf</span>
-            <span>·</span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <BrailleSpinner /> v2.0
-            </span>
-          </div>
         </div>
+
         <style jsx>{`
           @keyframes landing-screen-enter {
             from {
@@ -588,6 +565,32 @@ export function LandingScreen({
             }
           }
         `}</style>
+      </div>
+
+      {/* ── Footer ─────────────────────────────────────────── */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 32,
+          left: "50%",
+          transform: "translateX(-50%)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: 8,
+          fontSize: 12,
+          color: "rgba(0,0,0,0.16)",
+          fontFamily: "var(--font-geist-mono), monospace",
+          zIndex: 10,
+          pointerEvents: "none",
+          userSelect: "none",
+        }}
+      >
+        <span>firecrawl</span>
+        <span>·</span>
+        <span>cheetcode ctf</span>
+        <span>·</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>v2.0</span>
       </div>
     </div>
   );
