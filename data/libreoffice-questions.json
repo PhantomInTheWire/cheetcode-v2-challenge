@@ -1,0 +1,32 @@
+[
+  {
+    "id": "lo_1",
+    "question": "In a long-document composition engine, a sealed-delivery cleanup pass strips camouflage-only text fragments and conditional regions before outbound transfer, and a follow-up phase rolls that change back only when the last reversal ledger entry carries the same cleanup stamp. What exact reversal-label token marks that cleanup transaction?",
+    "answer": "UI_DELETE_INVISIBLECNTNT",
+    "acceptableAnswers": ["UI_DELETE_INVISIBLECNTNT", "SwUndoId::UI_DELETE_INVISIBLECNTNT"]
+  },
+  {
+    "id": "lo_2",
+    "question": "In the tabular computation engine, consider the import path for a proprietary spreadsheet interchange stream where a cached result slot is explicitly marked as an error/boolean payload, and the payload byte indicates the null-intersection fault rather than divide-by-zero or missing-reference. When that imported state is later classified by the standards-oriented error-type routine that returns small integer categories, what is the exact internal error token name carried through this path?",
+    "answer": "FormulaError::NoCode",
+    "acceptableAnswers": ["FormulaError::NoCode", "NoCode"]
+  },
+  {
+    "id": "lo_3",
+    "question": "When a page with stacked see through drawing layers is flattened into picture tiles during fixed layout export because direct blending for those recorded drawing steps cannot be trusted, which internal warning label is logged for that tile conversion path instead of the warnings that only discard blending?",
+    "answer": "Warning_Transparency_Converted",
+    "acceptableAnswers": ["Warning_Transparency_Converted", "vcl::PDFWriter::Warning_Transparency_Converted"]
+  },
+  {
+    "id": "lo_4",
+    "question": "When only a motion path editor tag is selected and no normal drawing object is selected, the close shape control is treated as unavailable. If code still asks for the internal open or closed state in that edge case, which exact token is returned?",
+    "answer": "SdrObjClosedKind::Open",
+    "acceptableAnswers": ["SdrObjClosedKind::Open"]
+  },
+  {
+    "id": "lo_5",
+    "question": "In text package detection, when the relationship type points to the strict office document family and a later decision routes that strict flavor through the same modern path as ISO transitional because strict is not supported, which internal variant label is set at the detection moment?",
+    "answer": "OOXMLVariant::ISO_Strict",
+    "acceptableAnswers": ["OOXMLVariant::ISO_Strict", "ISO_Strict"]
+  }
+]
