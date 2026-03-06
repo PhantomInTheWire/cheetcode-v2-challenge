@@ -41,6 +41,7 @@ type Level3FinishResult = {
   solved: number;
   rank: number;
   timeRemaining: number;
+  expiresAt?: number;
   validation?: {
     compiled: boolean;
     error: string;
@@ -55,6 +56,7 @@ type Level3GameProps = {
   expiresAt: number;
   initialCode?: string;
   onCodeChangeAction?: (code: string) => void;
+  onExpiresAtChangeAction?: (expiresAt: number) => void;
   onFinishAction: (results: Level3FinishResult) => void;
 };
 
@@ -68,6 +70,7 @@ type Level3ValidationPayload = {
   compiled: boolean;
   error: string;
   staleSession?: boolean;
+  expiresAt?: number;
   results: Level3ValidationRow[];
 };
 
@@ -116,6 +119,7 @@ export function Level3Game({
   expiresAt,
   initialCode,
   onCodeChangeAction,
+  onExpiresAtChangeAction,
   onFinishAction,
 }: Level3GameProps) {
   const canAutoSolve = isClientDevMode();
@@ -133,6 +137,8 @@ export function Level3Game({
   const [leftPaneWidth, setLeftPaneWidth] = useState(48);
   const [editorHeightRatio, setEditorHeightRatio] = useState(0.75);
   const lockedTimeElapsedMsRef = useRef<number | null>(null);
+  const pausedDurationMsRef = useRef(0);
+  const pauseStartedAtRef = useRef<number | null>(null);
   const autoSubmittedRef = useRef(false);
   const dragStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const verticalDragStateRef = useRef<{ startY: number; startRatio: number } | null>(null);
@@ -206,9 +212,12 @@ export function Level3Game({
           throw new Error(data.error || "stale Level 3 session");
         }
       }
+      if (typeof data.expiresAt === "number" && Number.isFinite(data.expiresAt)) {
+        onExpiresAtChangeAction?.(data.expiresAt);
+      }
       applySmokeResults(data);
     },
-    [applySmokeResults],
+    [applySmokeResults, onExpiresAtChangeAction],
   );
 
   useEffect(() => {
@@ -242,6 +251,8 @@ export function Level3Game({
       }
     }
     lockedTimeElapsedMsRef.current = null;
+    pausedDurationMsRef.current = 0;
+    pauseStartedAtRef.current = null;
     autoSubmittedRef.current = false;
     runCacheRef.current.clear();
     runInFlightRef.current = false;
@@ -299,6 +310,20 @@ export function Level3Game({
   }, [isChecking, isSubmitting, prefersReducedMotion]);
 
   useEffect(() => {
+    const isBusy = isChecking || isSubmitting;
+    if (isBusy) {
+      if (pauseStartedAtRef.current === null) {
+        pauseStartedAtRef.current = Date.now();
+      }
+      return;
+    }
+    if (pauseStartedAtRef.current !== null) {
+      pausedDurationMsRef.current += Date.now() - pauseStartedAtRef.current;
+      pauseStartedAtRef.current = null;
+    }
+  }, [isChecking, isSubmitting]);
+
+  useEffect(() => {
     return () => {
       clearRunPhaseTimer();
       clearRunCachedTimer();
@@ -315,6 +340,7 @@ export function Level3Game({
   );
   const totalChecks = challenge.checks.length;
   const timeUp = timeLeftMs === 0;
+  const timerPaused = isChecking || isSubmitting;
   const sourceExtension = useMemo(
     () => extensionForLanguage(challenge.language),
     [challenge.language],
@@ -344,7 +370,7 @@ export function Level3Game({
         className="l3-code-editor"
         value={code}
         height="100%"
-        editable={!(timeUp || isSubmitting)}
+        editable={!(timeUp || isSubmitting || isChecking)}
         basicSetup={{
           lineNumbers: true,
           foldGutter: true,
@@ -470,6 +496,9 @@ export function Level3Game({
         throw new Error(errorData.error || `finish failed: ${finishRes.status}`);
       }
       const data = (await finishRes.json()) as Level3FinishResult;
+      if (typeof data.expiresAt === "number" && Number.isFinite(data.expiresAt)) {
+        onExpiresAtChangeAction?.(data.expiresAt);
+      }
       if (data.validation?.results) {
         const nextState: Record<string, boolean | null> = {};
         for (const result of data.validation.results) {
@@ -484,7 +513,7 @@ export function Level3Game({
     } finally {
       setIsSubmitting(false);
     }
-  }, [sessionId, github, timeLeftMs, isSubmitting, onFinishAction, code]);
+  }, [sessionId, github, timeLeftMs, isSubmitting, onExpiresAtChangeAction, onFinishAction, code]);
 
   useEffect(() => {
     if (timeUp && !autoSubmittedRef.current) {
@@ -701,6 +730,23 @@ export function Level3Game({
                 ? "TIME"
                 : `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`}
             </span>
+            {timerPaused && (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 500,
+                  color: "#8a3d14",
+                  background: "rgba(250, 93, 25, 0.12)",
+                  border: "1px solid rgba(250, 93, 25, 0.25)",
+                  borderRadius: 999,
+                  padding: "4px 8px",
+                  letterSpacing: 0.2,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Timer paused
+              </span>
+            )}
           </div>
 
           <button

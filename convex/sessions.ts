@@ -191,3 +191,45 @@ export const create = action({
     });
   },
 });
+
+export const extendExpiryInternal = internalMutation({
+  args: {
+    sessionId: v.id("sessions"),
+    github: v.string(),
+    extendMs: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) throw new Error("session not found");
+    if (session.github !== args.github) throw new Error("github mismatch");
+    if ((session.level ?? 1) !== 3) throw new Error("session is not level 3");
+
+    const extendMs = Math.max(0, Math.min(30_000, Math.floor(args.extendMs)));
+    if (extendMs === 0) {
+      return { expiresAt: session.expiresAt };
+    }
+
+    const nextExpiresAt = session.expiresAt + extendMs;
+    await ctx.db.patch(args.sessionId, { expiresAt: nextExpiresAt });
+    return { expiresAt: nextExpiresAt };
+  },
+});
+
+export const extendExpiry = action({
+  args: {
+    secret: v.string(),
+    sessionId: v.id("sessions"),
+    github: v.string(),
+    extendMs: v.number(),
+  },
+  handler: async (ctx, args): Promise<{ expiresAt: number }> => {
+    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
+      throw new Error("unauthorized");
+    }
+    return await ctx.runMutation(internal.sessions.extendExpiryInternal, {
+      sessionId: args.sessionId,
+      github: args.github,
+      extendMs: args.extendMs,
+    });
+  },
+});

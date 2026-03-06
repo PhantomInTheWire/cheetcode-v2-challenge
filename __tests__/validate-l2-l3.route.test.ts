@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { resetLevel3InflightLocksForTests } from "../src/lib/abuse/guard";
 
 const hoisted = vi.hoisted(() => ({
   requireAuthMock: vi.fn(async () => ({ ok: true, github: "tester" })),
@@ -40,12 +41,17 @@ vi.mock("../server/level3/validation", () => ({
 
 describe("validate l2/l3 routes", () => {
   beforeEach(() => {
+    resetLevel3InflightLocksForTests();
     hoisted.requireAuthMock.mockReset();
     hoisted.actionMock.mockReset();
     hoisted.requireOwnedSessionMock.mockReset();
     hoisted.validateL3Mock.mockClear();
     hoisted.sanitizeL3Mock.mockClear();
     hoisted.requireAuthMock.mockResolvedValue({ ok: true, github: "tester" });
+    hoisted.actionMock.mockImplementation(async (_ref: unknown, args: { eventType?: string }) => {
+      if (args?.eventType) return { ok: true };
+      return { expiresAt: 123_456 };
+    });
     hoisted.requireOwnedSessionMock.mockResolvedValue({
       session: {
         github: "tester",
@@ -113,15 +119,24 @@ describe("validate l2/l3 routes", () => {
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { compiled: boolean; results: Array<{ correct: boolean }> };
+    const body = (await res.json()) as {
+      compiled: boolean;
+      expiresAt: number;
+      results: Array<{ correct: boolean }>;
+    };
     expect(body.compiled).toBe(true);
+    expect(body.expiresAt).toBe(123_456);
     expect(body.results[0]?.correct).toBe(true);
-    expect(hoisted.actionMock).toHaveBeenCalledTimes(1);
+    expect(hoisted.actionMock).toHaveBeenCalledTimes(2);
     const telemetryCall = hoisted.actionMock.mock.calls[0]?.[1] as
       | { eventType: string; status: string }
       | undefined;
     expect(telemetryCall?.eventType).toBe("validate_l3");
     expect(telemetryCall?.status).toBe("passed");
+    const extensionCall = hoisted.actionMock.mock.calls[1]?.[1] as
+      | { extendMs: number }
+      | undefined;
+    expect(extensionCall?.extendMs).toBeTypeOf("number");
   });
 
   it("/api/validate-l3 redacts compile errors from client response", async () => {
@@ -150,8 +165,13 @@ describe("validate l2/l3 routes", () => {
 
     const res = await POST(req);
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { error: string; results: Array<{ message: string }> };
+    const body = (await res.json()) as {
+      error: string;
+      expiresAt: number;
+      results: Array<{ message: string }>;
+    };
     expect(body.error).toBe("redacted");
+    expect(body.expiresAt).toBe(123_456);
     expect(body.results[0]?.message).toBe("fail");
   });
 
@@ -181,5 +201,63 @@ describe("validate l2/l3 routes", () => {
     const res = await POST(req);
     expect(res.status).toBe(400);
     expect(hoisted.validateL3Mock).not.toHaveBeenCalled();
+  });
+
+  it("/api/validate-l3 rejects concurrent inflight submissions for the same identity", async () => {
+    hoisted.requireOwnedSessionMock.mockResolvedValue({
+      session: {
+        github: "tester",
+        level: 3,
+        startedAt: 1_000,
+        expiresAt: 121_000,
+        problemIds: ["p1"],
+      },
+      convex: { action: hoisted.actionMock },
+    });
+    let resolveValidation: ((value: {
+      compiled: boolean;
+      error: string;
+      results: Array<{ problemId: string; correct: boolean; message: string }>;
+    }) => void) | null = null;
+    hoisted.validateL3Mock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveValidation = resolve;
+        }),
+    );
+
+    const { POST } = await import("../src/app/api/validate-l3/route");
+    const body = JSON.stringify({
+      sessionId: "s3",
+      challengeId: "p1",
+      code: "int main(){return 0;}",
+    });
+    const req1 = new Request("http://localhost/api/validate-l3", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-ctf-fingerprint": "fp-a" },
+      body,
+    });
+    const req2 = new Request("http://localhost/api/validate-l3", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-ctf-fingerprint": "fp-a" },
+      body,
+    });
+
+    const pending = POST(req1);
+    await Promise.resolve();
+
+    const conflict = await POST(req2);
+    expect(conflict.status).toBe(409);
+    await expect(conflict.json()).resolves.toEqual({
+      error: "level3 submission already in flight",
+    });
+
+    resolveValidation?.({
+      compiled: true,
+      error: "",
+      results: [{ problemId: "p1", correct: true, message: "ok" }],
+    });
+    const first = await pending;
+    expect(first.status).toBe(200);
   });
 });

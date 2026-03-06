@@ -203,6 +203,7 @@ function renderPlayingScreen(params: {
   l3Challenge: HomeGameState["l3Challenge"];
   l3CodeDraft: HomeGameState["l3CodeDraft"];
   setL3CodeDraft: HomeGameState["setL3CodeDraft"];
+  updateActiveSessionExpiry: HomeGameState["updateActiveSessionExpiry"];
   clearStoredSession: HomeGameState["clearStoredSession"];
   setResults: HomeGameState["setResults"];
   setScreen: HomeGameState["setScreen"];
@@ -247,6 +248,7 @@ function renderPlayingScreen(params: {
         expiresAt={params.expiresAt}
         initialCode={params.l3CodeDraft}
         onCodeChangeAction={params.setL3CodeDraft}
+        onExpiresAtChangeAction={params.updateActiveSessionExpiry}
         onFinishAction={finishAndShowResults}
       />
     );
@@ -539,6 +541,7 @@ export function HomeClientController({
     l3Challenge,
     l3CodeDraft,
     setL3CodeDraft,
+    updateActiveSessionExpiry,
     solvedLocal,
     finishGame,
     startGame,
@@ -614,6 +617,7 @@ export function HomeClientController({
     l3Challenge,
     l3CodeDraft,
     setL3CodeDraft,
+    updateActiveSessionExpiry,
     clearStoredSession,
     setResults,
     autoSolve,

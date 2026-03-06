@@ -184,6 +184,23 @@ export function useHomeGameState({
     window.localStorage.setItem(SESSION_SNAPSHOT_STORAGE_KEY, JSON.stringify(snapshot));
   }, []);
 
+  const updateActiveSessionExpiry = useCallback(
+    (nextExpiresAt: number) => {
+      if (!sessionId || currentLevel !== 3 || !Number.isFinite(nextExpiresAt)) return;
+      setExpiresAt(nextExpiresAt);
+      persistActiveSession(sessionId, currentLevel, nextExpiresAt);
+      if (l3Challenge) {
+        persistSessionSnapshot({
+          sessionId,
+          level: currentLevel,
+          expiresAt: nextExpiresAt,
+          problems: [l3Challenge],
+        });
+      }
+    },
+    [currentLevel, l3Challenge, persistActiveSession, persistSessionSnapshot, sessionId],
+  );
+
   const persistFlowScreen = useCallback((nextScreen: StoredFlowScreen["screen"], level: 2 | 3) => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(
@@ -952,6 +969,7 @@ export function useHomeGameState({
     hasStoredActiveSession,
     sessionId,
     expiresAt,
+    updateActiveSessionExpiry,
     problems,
     codes,
     setCodes,

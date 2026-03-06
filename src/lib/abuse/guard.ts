@@ -77,7 +77,11 @@ export const API_ROUTE_TO_ABUSE_ROUTE: Record<string, AbuseRoute> = {
 
 const eventsByKey = new Map<string, number[]>();
 const shadowBans = new Map<string, number>();
+const inflightLevel3Requests = new Map<string, { token: symbol; expiresAt: number }>();
 let lastSweepAt = 0;
+let lastInflightSweepAt = 0;
+
+const INFLIGHT_LEVEL3_TTL_MS = 30_000;
 
 function sweepExpired(now: number): void {
   if (now - lastSweepAt < SWEEP_INTERVAL_MS) return;
@@ -103,6 +107,17 @@ function sweepExpired(now: number): void {
       eventsByKey.delete(key);
       removed++;
       if (removed >= overflow) break;
+    }
+  }
+}
+
+function sweepInflightExpired(now: number): void {
+  if (now - lastInflightSweepAt < 1_000) return;
+  lastInflightSweepAt = now;
+
+  for (const [key, entry] of inflightLevel3Requests) {
+    if (entry.expiresAt <= now) {
+      inflightLevel3Requests.delete(key);
     }
   }
 }
@@ -162,4 +177,54 @@ export function checkAndTrackAbuse(request: Request, route: AbuseRoute): AbuseDe
     retryAfterSeconds,
     shadowBanned,
   };
+}
+
+export type Level3InflightLock = {
+  token: symbol;
+  keys: string[];
+};
+
+function getLevel3InflightKeys(request: Request, github: string): string[] {
+  const keys = new Set<string>(getIdentityKeys(request));
+  keys.add(`gh:${github.trim().toLowerCase()}`);
+  return [...keys];
+}
+
+export function acquireLevel3InflightLock(
+  request: Request,
+  github: string,
+): { ok: true; lock: Level3InflightLock } | { ok: false } {
+  const now = Date.now();
+  sweepInflightExpired(now);
+  const keys = getLevel3InflightKeys(request, github);
+
+  for (const key of keys) {
+    const active = inflightLevel3Requests.get(key);
+    if (active && active.expiresAt > now) {
+      return { ok: false };
+    }
+  }
+
+  const token = Symbol("level3-inflight");
+  const expiresAt = now + INFLIGHT_LEVEL3_TTL_MS;
+  for (const key of keys) {
+    inflightLevel3Requests.set(key, { token, expiresAt });
+  }
+
+  return { ok: true, lock: { token, keys } };
+}
+
+export function releaseLevel3InflightLock(lock: Level3InflightLock): void {
+  sweepInflightExpired(Date.now());
+  for (const key of lock.keys) {
+    const active = inflightLevel3Requests.get(key);
+    if (active?.token === lock.token) {
+      inflightLevel3Requests.delete(key);
+    }
+  }
+}
+
+export function resetLevel3InflightLocksForTests(): void {
+  inflightLevel3Requests.clear();
+  lastInflightSweepAt = 0;
 }

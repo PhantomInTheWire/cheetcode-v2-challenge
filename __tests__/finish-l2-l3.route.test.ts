@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getLevel3ChallengeFromId } from "../server/level3/problems";
+import { resetLevel3InflightLocksForTests } from "../src/lib/abuse/guard";
 
 const l3Challenge = getLevel3ChallengeFromId("l3:cpu-16bit-emulator:c");
 if (!l3Challenge) throw new Error("missing level 3 challenge fixture");
@@ -50,6 +51,7 @@ describe("finish l2/l3 routes", () => {
   let dateNowSpy: ReturnType<typeof vi.spyOn> | null = null;
 
   beforeEach(() => {
+    resetLevel3InflightLocksForTests();
     dateNowSpy?.mockRestore();
     dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(10_000);
     hoisted.queryMock.mockReset();
@@ -68,11 +70,15 @@ describe("finish l2/l3 routes", () => {
       expiresAt: 121_000,
       problemIds: L3_CHECK_IDS,
     });
-    hoisted.actionMock.mockResolvedValue({
-      elo: 123,
-      solved: 1,
-      rank: 1,
-      timeRemaining: 1,
+    hoisted.actionMock.mockImplementation(async (_ref: unknown, args: { eventType?: string }) => {
+      if (args?.eventType) return { ok: true };
+      if ("extendMs" in (args ?? {})) return { expiresAt: 130_000 };
+      return {
+        elo: 123,
+        solved: 1,
+        rank: 1,
+        timeRemaining: 1,
+      };
     });
   });
 
@@ -262,12 +268,16 @@ describe("finish l2/l3 routes", () => {
     const body = (await res.json()) as { rank: number };
     expect(body.rank).toBe(9999);
     expect(hoisted.validateL3Mock).not.toHaveBeenCalled();
-    expect(hoisted.actionMock).toHaveBeenCalledTimes(1);
+    expect(hoisted.actionMock).toHaveBeenCalledTimes(2);
     const telemetryCall = hoisted.actionMock.mock.calls[0]?.[1] as
       | { eventType: string; status: string }
       | undefined;
     expect(telemetryCall?.eventType).toBe("finish_l3");
     expect(telemetryCall?.status).toBe("shadow_banned");
+    const extensionCall = hoisted.actionMock.mock.calls[1]?.[1] as
+      | { extendMs: number }
+      | undefined;
+    expect(extensionCall?.extendMs).toBeTypeOf("number");
   });
 
   it("/api/finish-l3 redacts compile errors in response", async () => {
@@ -294,7 +304,56 @@ describe("finish l2/l3 routes", () => {
 
     const res = await POST(req);
     expect(res.status).toBe(503);
-    const body = (await res.json()) as { error: string };
+    const body = (await res.json()) as { error: string; expiresAt: number };
     expect(body.error).toBe("redacted");
+    expect(body.expiresAt).toBe(130_000);
+  });
+
+  it("/api/finish-l3 rejects concurrent inflight submissions for the same identity", async () => {
+    let resolveValidation: ((value: {
+      compiled: boolean;
+      error: string;
+      results: Array<{ problemId: string; correct: boolean; message: string }>;
+    }) => void) | null = null;
+    hoisted.validateL3Mock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveValidation = resolve;
+        }),
+    );
+
+    const { POST } = await import("../src/app/api/finish-l3/route");
+    const body = JSON.stringify({
+      sessionId: "s3",
+      code: "int main(){return 0;}",
+      timeElapsed: 5000,
+    });
+    const req1 = new Request("http://localhost/api/finish-l3", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-ctf-fingerprint": "fp-a" },
+      body,
+    });
+    const req2 = new Request("http://localhost/api/finish-l3", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-ctf-fingerprint": "fp-a" },
+      body,
+    });
+
+    const pending = POST(req1);
+    await Promise.resolve();
+
+    const conflict = await POST(req2);
+    expect(conflict.status).toBe(409);
+    await expect(conflict.json()).resolves.toEqual({
+      error: "level3 submission already in flight",
+    });
+
+    resolveValidation?.({
+      compiled: true,
+      error: "",
+      results: L3_CHECK_IDS.map((id) => ({ problemId: id, correct: true, message: "ok" })),
+    });
+    const first = await pending;
+    expect(first.status).toBe(200);
   });
 });
