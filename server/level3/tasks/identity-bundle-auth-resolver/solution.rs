@@ -195,7 +195,10 @@ unsafe fn set_error(code: i32) {
 }
 
 fn key_attached_value(grant: Grant) -> i32 {
-    if grant.source != AUTH_SOURCE_IDENTITY_BUNDLE || grant.requires_key == 0 || grant.key_attached != 0 {
+    if grant.source != AUTH_SOURCE_IDENTITY_BUNDLE
+        || grant.requires_key == 0
+        || grant.key_attached != 0
+    {
         1
     } else {
         0
@@ -279,7 +282,12 @@ unsafe fn get_subject_slot(subject_id: i32, create: bool) -> *mut SubjectSlot {
     core::ptr::null_mut()
 }
 
-unsafe fn get_bucket_slot(subject_id: i32, source: i32, resource_id: i32, create: bool) -> *mut BucketSlot {
+unsafe fn get_bucket_slot(
+    subject_id: i32,
+    source: i32,
+    resource_id: i32,
+    create: bool,
+) -> *mut BucketSlot {
     let mut idx = (hash3(subject_id, source, resource_id) as usize) & (AUTH_BUCKET_INDEX_CAP - 1);
     let mut probe = 0usize;
     while probe < AUTH_BUCKET_INDEX_CAP {
@@ -295,7 +303,8 @@ unsafe fn get_bucket_slot(subject_id: i32, source: i32, resource_id: i32, create
             slot.head = -1;
             return slot;
         }
-        if slot.subject_id == subject_id && slot.source == source && slot.resource_id == resource_id {
+        if slot.subject_id == subject_id && slot.source == source && slot.resource_id == resource_id
+        {
             return slot;
         }
         idx = (idx + 1) & (AUTH_BUCKET_INDEX_CAP - 1);
@@ -304,7 +313,11 @@ unsafe fn get_bucket_slot(subject_id: i32, source: i32, resource_id: i32, create
     core::ptr::null_mut()
 }
 
-unsafe fn get_subject_source_slot(subject_id: i32, source: i32, create: bool) -> *mut SubjectSourceSlot {
+unsafe fn get_subject_source_slot(
+    subject_id: i32,
+    source: i32,
+    create: bool,
+) -> *mut SubjectSourceSlot {
     let mut idx = (hash2(subject_id, source) as usize) & (AUTH_SUBJECT_SOURCE_CAP - 1);
     let mut probe = 0usize;
     while probe < AUTH_SUBJECT_SOURCE_CAP {
@@ -739,7 +752,11 @@ pub unsafe extern "C" fn auth_audit_get(
         disabled_by_ancestor: disabled_by_ancestor(index, ts),
         usable: 0,
     };
-    (*out_view).usable = if (*out_view).effective_mask != 0 { 1 } else { 0 };
+    (*out_view).usable = if (*out_view).effective_mask != 0 {
+        1
+    } else {
+        0
+    };
     set_error(AUTH_OK);
     1
 }

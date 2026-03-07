@@ -1,6 +1,6 @@
 "use client";
 
-import { LeaderboardTable } from "@/components/LeaderboardTable";
+import { LeaderboardTable } from "@/components/home/LeaderboardTable";
 import { FIRECRAWL_FLAME_SVG } from "@/components/game/firecrawl-flame";
 import { AnimatedLandingDecor } from "./decor";
 

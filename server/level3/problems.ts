@@ -1,7 +1,6 @@
 import {
   type Level3Check,
   type Level3ChallengeMeta,
-  generateLevel3ChallengeMeta,
   getLevel3ChallengeMetaFromId,
 } from "./catalog";
 import { resolveLevel3TaskAssets } from "./taskAssets";
@@ -28,10 +27,6 @@ function hydrateChallenge(meta: Level3ChallengeMeta): Level3Challenge {
     spec: renderSpec(assets.specTemplate, meta.language, assets.ext),
     starterCode: assets.starterCode,
   };
-}
-
-export function generateLevel3Challenge(): Level3Challenge {
-  return hydrateChallenge(generateLevel3ChallengeMeta());
 }
 
 export function getLevel3ChallengeFromId(challengeId: string): Level3Challenge | null {

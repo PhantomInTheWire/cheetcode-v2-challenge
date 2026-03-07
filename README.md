@@ -32,12 +32,11 @@ Required:
 
 - `NEXT_PUBLIC_CONVEX_URL`
 - `CONVEX_MUTATION_SECRET`
+- `NEXT_PUBLIC_SITE_URL`
 - `AUTH_GITHUB_ID`
 - `AUTH_GITHUB_SECRET`
 - `AUTH_SECRET`
 - `MY_ENV`
-
-Recommended for abuse/rate-limit persistence:
 
 - `KV_REST_API_URL`
 - `KV_REST_API_TOKEN`
@@ -73,7 +72,7 @@ If Convex type generation or typecheck fails, fix the reported TypeScript errors
 
 ### 3. Fill the rest of `.env.local`
 
-Set the required app/auth values plus `MY_ENV=development`. If you want shared abuse-rate-limit, shadow-ban state, and shared generated sandbox snapshot ids across instances, also set `KV_REST_API_URL` and `KV_REST_API_TOKEN`. For Level 3, also set Vercel Sandbox credentials when not using Vercel OIDC.
+Set the required app/auth values plus `MY_ENV=development`. `KV_REST_API_URL` and `KV_REST_API_TOKEN` are required for protected POST routes outside tests because the proxy enforces shared abuse/rate-limit state and Level 3 inflight locks through Upstash KV. For Level 3, also set Vercel Sandbox credentials when not using Vercel OIDC.
 
 ### 4. Start the app
 
@@ -141,9 +140,10 @@ openssl rand -base64 32
 Import the repo into Vercel and set:
 
 - `NEXT_PUBLIC_CONVEX_URL`, `CONVEX_MUTATION_SECRET`
+- `NEXT_PUBLIC_SITE_URL`
 - `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `AUTH_SECRET`
 - `MY_ENV`
 - `KV_REST_API_URL`, `KV_REST_API_TOKEN`
 - `VERCEL_TOKEN`, `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID`
 
-Level 3 depends on `@vercel/sandbox`, and each validation now runs in a fresh sandbox created from a reusable snapshot. Production should use Vercel OIDC auth when available, otherwise provide `VERCEL_TOKEN`, `VERCEL_TEAM_ID`, and `VERCEL_PROJECT_ID`. Snapshot ids are stored in Upstash KV, so without `KV_REST_API_URL` and `KV_REST_API_TOKEN`, abuse controls and generated snapshot-id reuse fall back to per-instance memory.
+Level 3 depends on `@vercel/sandbox`, and each validation now runs in a fresh sandbox created from a reusable snapshot. Production should use Vercel OIDC auth when available, otherwise provide `VERCEL_TOKEN`, `VERCEL_TEAM_ID`, and `VERCEL_PROJECT_ID`. Upstash KV is required for protected POST routes in non-test environments, and it also stores abuse controls plus generated snapshot ids for reuse across instances.

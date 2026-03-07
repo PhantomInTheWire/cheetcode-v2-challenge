@@ -1,24 +1,11 @@
-export type ProblemTier = "easy" | "medium" | "hard" | "competitive";
-import { normalizeTestCasesWithArgs } from "../../src/lib/testcaseArgs";
+import { normalizeTestCasesWithArgs } from "../../src/lib/game/testcaseArgs";
+import type { GameProblem, ProblemTier } from "../../src/lib/game/gameTypes";
 
-type ProblemTestCase = {
-  input: Record<string, unknown>;
-  expected: unknown;
-  args?: unknown[];
-};
-
-type Problem = {
-  id: string;
-  title: string;
-  tier: ProblemTier;
-  description: string;
-  signature: string;
-  starterCode: string;
-  testCases: ProblemTestCase[];
+type Problem = GameProblem & {
   solution: string;
 };
 
-type PublicProblem = Omit<Problem, "solution">;
+type PublicProblem = GameProblem;
 
 import problemsData from "../../data/level1-questions.json";
 

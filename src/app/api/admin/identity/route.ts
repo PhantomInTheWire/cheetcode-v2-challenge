@@ -1,7 +1,7 @@
 import { ConvexHttpClient } from "convex/browser";
 import { NextResponse } from "next/server";
 import { api } from "../../../../../convex/_generated/api";
-import { adminForbiddenResponse, isAdminGithub } from "../../../../lib/admin-auth";
+import { recordAdminActionAudit } from "../../../../lib/admin/admin-action-audit";
 import {
   clearShadowBanForIdentityKey,
   isIdentityKeyShadowBanned,
@@ -10,11 +10,13 @@ import {
 import {
   clearKvShadowBan,
   getKvShadowBanStates,
-  getKvClient,
+  isKvConfigured,
   setKvShadowBan,
 } from "../../../../lib/abuse/kv";
-import { ENV } from "../../../../lib/env-vars";
-import { requireAuthenticatedGithub } from "../../../../lib/request-auth";
+import { ENV } from "../../../../lib/config/env";
+import { withAdminConvexRoute } from "../../../../lib/routes/admin-route";
+
+type ConvexQueryReference = Parameters<ConvexHttpClient["query"]>[0];
 
 type IdentityLinkRow = {
   _id: string;
@@ -60,7 +62,10 @@ type IdentityNode = {
 };
 
 function isValidIdentityKey(identityKey: string): boolean {
-  return /^(ip|fp):[a-f0-9]{16,}$/i.test(identityKey);
+  return (
+    /^ip:[a-f0-9]{16,}$/i.test(identityKey) ||
+    /^fp:(?:[a-z]+:)?[a-z0-9._:-]{8,160}$/i.test(identityKey)
+  );
 }
 
 function sortByLastSeenDesc<T extends { lastSeenAt: number }>(rows: T[]): T[] {
@@ -68,7 +73,7 @@ function sortByLastSeenDesc<T extends { lastSeenAt: number }>(rows: T[]): T[] {
 }
 
 async function getShadowBanStateMap(identityKeys: string[]): Promise<Record<string, boolean>> {
-  if (getKvClient()) {
+  if (isKvConfigured()) {
     return await getKvShadowBanStates(identityKeys);
   }
   return Object.fromEntries(
@@ -80,7 +85,7 @@ async function applyIdentityAction(
   action: "shadow_ban" | "unshadow_ban",
   identityKeys: string[],
 ): Promise<void> {
-  if (getKvClient()) {
+  if (isKvConfigured()) {
     if (action === "shadow_ban") {
       await Promise.all(identityKeys.map((identityKey) => setKvShadowBan(identityKey)));
     } else {
@@ -253,60 +258,88 @@ function buildIdentityGraph(links: IdentityLinkRow[], shadowBanStates: Record<st
   });
 }
 
+function isAbuseBackendUnavailable(error: unknown): boolean {
+  return error instanceof Error && error.message === "abuse protection backend unavailable";
+}
+
 export async function GET(request: Request) {
-  const authResult = await requireAuthenticatedGithub(request);
-  if ("response" in authResult) return authResult.response;
-  if (!isAdminGithub(authResult.github)) return adminForbiddenResponse();
+  return withAdminConvexRoute(request, async ({ convex }) => {
+    const url = new URL(request.url);
+    const rawLimit = url.searchParams.get("limit");
+    const parsedLimit = rawLimit ? Number(rawLimit) : Number.NaN;
+    const normalizedLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 1200;
 
-  const url = new URL(request.url);
-  const rawLimit = url.searchParams.get("limit");
-  const parsedLimit = rawLimit ? Number(rawLimit) : Number.NaN;
-  const normalizedLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 1200;
+    try {
+      const getRecentLinks = (
+        api as typeof api & { sessionIdentity: { getRecentLinks: ConvexQueryReference } }
+      ).sessionIdentity.getRecentLinks;
+      const links = (await convex.query(getRecentLinks, {
+        secret: ENV.CONVEX_MUTATION_SECRET,
+        limit: normalizedLimit,
+      })) as IdentityLinkRow[];
 
-  try {
-    const convex = new ConvexHttpClient(ENV.NEXT_PUBLIC_CONVEX_URL);
-    const links = (await convex.query(
-      (api as typeof api & { sessionIdentity: { getRecentLinks: unknown } }).sessionIdentity
-        .getRecentLinks,
-      { limit: normalizedLimit },
-    )) as IdentityLinkRow[];
+      const shadowBanStates = await getShadowBanStateMap(links.map((link) => link.identityKey));
+      const clusters = buildIdentityGraph(links, shadowBanStates);
 
-    const shadowBanStates = await getShadowBanStateMap(links.map((link) => link.identityKey));
-    const clusters = buildIdentityGraph(links, shadowBanStates);
-
-    return NextResponse.json({
-      capturedIdentityLinks: links.length,
-      graphWindowLimited: links.length >= normalizedLimit,
-      clusters,
-    });
-  } catch (error) {
-    console.error("/api/admin/identity GET error:", error);
-    return NextResponse.json({ error: "Failed to load identity graph" }, { status: 500 });
-  }
+      return NextResponse.json({
+        capturedIdentityLinks: links.length,
+        graphWindowLimited: links.length >= normalizedLimit,
+        clusters,
+      });
+    } catch (error) {
+      console.error("/api/admin/identity GET error:", error);
+      return NextResponse.json(
+        {
+          error: isAbuseBackendUnavailable(error)
+            ? "abuse protection backend unavailable"
+            : "Failed to load identity graph",
+        },
+        { status: isAbuseBackendUnavailable(error) ? 503 : 500 },
+      );
+    }
+  });
 }
 
 export async function POST(request: Request) {
-  const authResult = await requireAuthenticatedGithub(request);
-  if ("response" in authResult) return authResult.response;
-  if (!isAdminGithub(authResult.github)) return adminForbiddenResponse();
+  return withAdminConvexRoute(request, async ({ github: actorGithub }) => {
+    const body = (await request.json().catch(() => ({}))) as AdminIdentityActionBody;
+    const action = body.action;
+    const identityKeys = [...new Set((body.identityKeys ?? []).filter(isValidIdentityKey))];
 
-  const body = (await request.json().catch(() => ({}))) as AdminIdentityActionBody;
-  const action = body.action;
-  const identityKeys = [...new Set((body.identityKeys ?? []).filter(isValidIdentityKey))];
+    if (!isAdminIdentityAction(action) || identityKeys.length === 0) {
+      return NextResponse.json(
+        { error: "valid action and identityKeys are required" },
+        { status: 400 },
+      );
+    }
 
-  if (!isAdminIdentityAction(action) || identityKeys.length === 0) {
-    return NextResponse.json(
-      { error: "valid action and identityKeys are required" },
-      { status: 400 },
-    );
-  }
-
-  try {
-    await applyIdentityAction(action, identityKeys);
-    const shadowBanStates = await getShadowBanStateMap(identityKeys);
-    return NextResponse.json({ ok: true, shadowBanStates });
-  } catch (error) {
-    console.error("/api/admin/identity POST error:", error);
-    return NextResponse.json({ error: "Failed to update shadow ban state" }, { status: 500 });
-  }
+    try {
+      await applyIdentityAction(action, identityKeys);
+      const shadowBanStates = await getShadowBanStateMap(identityKeys);
+      recordAdminActionAudit({
+        actorGithub,
+        action: `admin.identity.${action}`,
+        outcome: "succeeded",
+        request: { identityKeys },
+      });
+      return NextResponse.json({ ok: true, shadowBanStates });
+    } catch (error) {
+      recordAdminActionAudit({
+        actorGithub,
+        action: `admin.identity.${action}`,
+        outcome: "failed",
+        request: { identityKeys },
+        error: error instanceof Error ? error.message : "unknown error",
+      });
+      console.error("/api/admin/identity POST error:", error);
+      return NextResponse.json(
+        {
+          error: isAbuseBackendUnavailable(error)
+            ? "abuse protection backend unavailable"
+            : "Failed to update shadow ban state",
+        },
+        { status: isAbuseBackendUnavailable(error) ? 503 : 500 },
+      );
+    }
+  });
 }

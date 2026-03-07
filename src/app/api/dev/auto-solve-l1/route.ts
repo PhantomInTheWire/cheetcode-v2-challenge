@@ -1,38 +1,35 @@
 import { NextResponse } from "next/server";
 import { PROBLEM_BANK } from "../../../../../server/level1/problems";
-import { isServerDevMode } from "../../../../lib/myEnv";
-import { requireAuthenticatedGithub } from "../../../../lib/request-auth";
+import { withDevRoute } from "../../../../lib/routes/dev-route";
+
+const PROBLEM_BANK_BY_ID = new Map(PROBLEM_BANK.map((problem) => [problem.id, problem]));
 
 export async function POST(request: Request) {
-  // Dev-only gate
-  if (!isServerDevMode()) {
-    return NextResponse.json({ error: "not found" }, { status: 404 });
-  }
-
-  // Auth gate — even in dev, don't expose solutions without authentication
-  const authResult = await requireAuthenticatedGithub(request);
-  if ("response" in authResult) return authResult.response;
-
-  try {
-    const body = (await request.json()) as { problemIds?: string[] };
-    if (!body.problemIds || !body.problemIds.length) {
-      return NextResponse.json({ error: "problemIds required" }, { status: 400 });
-    }
-
-    const byId = new Map(PROBLEM_BANK.map((p) => [p.id, p]));
-    const solutions: Record<string, string> = {};
-    for (const id of body.problemIds) {
-      const problem = byId.get(id);
-      if (problem) {
-        solutions[id] = problem.solution;
+  return withDevRoute<{ problemIds: string[] }>(
+    request,
+    {
+      validateBody: (body): body is { problemIds: string[] } => {
+        if (!body || typeof body !== "object") return false;
+        const { problemIds } = body as { problemIds?: unknown };
+        return (
+          Array.isArray(problemIds) &&
+          problemIds.length > 0 &&
+          problemIds.every((problemId) => typeof problemId === "string")
+        );
+      },
+      invalidBodyMessage: "problemIds required",
+      errorMessage: "auto solve failed",
+    },
+    async ({ body }) => {
+      const solutions: Record<string, string> = {};
+      for (const id of body.problemIds) {
+        const problem = PROBLEM_BANK_BY_ID.get(id);
+        if (problem) {
+          solutions[id] = problem.solution;
+        }
       }
-    }
 
-    return NextResponse.json({ solutions });
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "auto solve failed" },
-      { status: 400 },
-    );
-  }
+      return NextResponse.json({ solutions });
+    },
+  );
 }

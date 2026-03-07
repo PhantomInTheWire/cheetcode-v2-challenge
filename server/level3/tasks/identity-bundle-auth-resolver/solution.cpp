@@ -108,29 +108,34 @@ int normalize_mask(int mask) {
   return mask & (AUTH_PERM_READ | AUTH_PERM_WRITE | AUTH_PERM_ADMIN);
 }
 
-void set_error(int code) {
-  last_error = code;
-}
+void set_error(int code) { last_error = code; }
 
-int key_attached_value(const Grant& grant) {
-  if (grant.source != AUTH_SOURCE_IDENTITY_BUNDLE) return 1;
-  if (!grant.requires_key) return 1;
+int key_attached_value(const Grant &grant) {
+  if (grant.source != AUTH_SOURCE_IDENTITY_BUNDLE)
+    return 1;
+  if (!grant.requires_key)
+    return 1;
   return grant.key_attached ? 1 : 0;
 }
 
-int self_usable(const Grant& grant, std::int64_t ts) {
-  if (!grant.used || grant.revoked) return 0;
-  if (ts < grant.not_before_ts) return 0;
-  if (ts >= grant.expires_ts) return 0;
+int self_usable(const Grant &grant, std::int64_t ts) {
+  if (!grant.used || grant.revoked)
+    return 0;
+  if (ts < grant.not_before_ts)
+    return 0;
+  if (ts >= grant.expires_ts)
+    return 0;
   return key_attached_value(grant);
 }
 
 int find_id_slot(int grant_id) {
   std::uint32_t idx = hash1(grant_id) & (AUTH_ID_INDEX_CAP - 1);
   for (int probe = 0; probe < AUTH_ID_INDEX_CAP; ++probe) {
-    IdSlot& slot = id_slots[idx];
-    if (!slot.used) return -1;
-    if (slot.grant_id == grant_id) return static_cast<int>(idx);
+    IdSlot &slot = id_slots[idx];
+    if (!slot.used)
+      return -1;
+    if (slot.grant_id == grant_id)
+      return static_cast<int>(idx);
     idx = (idx + 1U) & (AUTH_ID_INDEX_CAP - 1);
   }
   return -1;
@@ -144,42 +149,48 @@ int lookup_index(int grant_id) {
 int insert_id_slot(int grant_id, int index) {
   std::uint32_t idx = hash1(grant_id) & (AUTH_ID_INDEX_CAP - 1);
   for (int probe = 0; probe < AUTH_ID_INDEX_CAP; ++probe) {
-    IdSlot& slot = id_slots[idx];
+    IdSlot &slot = id_slots[idx];
     if (!slot.used) {
       slot.used = 1;
       slot.grant_id = grant_id;
       slot.index = index;
       return 1;
     }
-    if (slot.grant_id == grant_id) return 0;
+    if (slot.grant_id == grant_id)
+      return 0;
     idx = (idx + 1U) & (AUTH_ID_INDEX_CAP - 1);
   }
   return 0;
 }
 
-SubjectSlot* get_subject_slot(int subject_id, int create) {
+SubjectSlot *get_subject_slot(int subject_id, int create) {
   std::uint32_t idx = hash1(subject_id) & (AUTH_SUBJECT_INDEX_CAP - 1);
   for (int probe = 0; probe < AUTH_SUBJECT_INDEX_CAP; ++probe) {
-    SubjectSlot& slot = subject_slots[idx];
+    SubjectSlot &slot = subject_slots[idx];
     if (!slot.used) {
-      if (!create) return nullptr;
+      if (!create)
+        return nullptr;
       slot.used = 1;
       slot.subject_id = subject_id;
       slot.bundle_count = 0;
       return &slot;
     }
-    if (slot.subject_id == subject_id) return &slot;
+    if (slot.subject_id == subject_id)
+      return &slot;
     idx = (idx + 1U) & (AUTH_SUBJECT_INDEX_CAP - 1);
   }
   return nullptr;
 }
 
-BucketSlot* get_bucket_slot(int subject_id, int source, int resource_id, int create) {
-  std::uint32_t idx = hash3(subject_id, source, resource_id) & (AUTH_BUCKET_INDEX_CAP - 1);
+BucketSlot *get_bucket_slot(int subject_id, int source, int resource_id,
+                            int create) {
+  std::uint32_t idx =
+      hash3(subject_id, source, resource_id) & (AUTH_BUCKET_INDEX_CAP - 1);
   for (int probe = 0; probe < AUTH_BUCKET_INDEX_CAP; ++probe) {
-    BucketSlot& slot = bucket_slots[idx];
+    BucketSlot &slot = bucket_slots[idx];
     if (!slot.used) {
-      if (!create) return nullptr;
+      if (!create)
+        return nullptr;
       slot.used = 1;
       slot.subject_id = subject_id;
       slot.source = source;
@@ -187,11 +198,8 @@ BucketSlot* get_bucket_slot(int subject_id, int source, int resource_id, int cre
       slot.head = -1;
       return &slot;
     }
-    if (
-      slot.subject_id == subject_id &&
-      slot.source == source &&
-      slot.resource_id == resource_id
-    ) {
+    if (slot.subject_id == subject_id && slot.source == source &&
+        slot.resource_id == resource_id) {
       return &slot;
     }
     idx = (idx + 1U) & (AUTH_BUCKET_INDEX_CAP - 1);
@@ -199,19 +207,22 @@ BucketSlot* get_bucket_slot(int subject_id, int source, int resource_id, int cre
   return nullptr;
 }
 
-SubjectSourceSlot* get_subject_source_slot(int subject_id, int source, int create) {
+SubjectSourceSlot *get_subject_source_slot(int subject_id, int source,
+                                           int create) {
   std::uint32_t idx = hash2(subject_id, source) & (AUTH_SUBJECT_SOURCE_CAP - 1);
   for (int probe = 0; probe < AUTH_SUBJECT_SOURCE_CAP; ++probe) {
-    SubjectSourceSlot& slot = subject_source_slots[idx];
+    SubjectSourceSlot &slot = subject_source_slots[idx];
     if (!slot.used) {
-      if (!create) return nullptr;
+      if (!create)
+        return nullptr;
       slot.used = 1;
       slot.subject_id = subject_id;
       slot.source = source;
       slot.head = -1;
       return &slot;
     }
-    if (slot.subject_id == subject_id && slot.source == source) return &slot;
+    if (slot.subject_id == subject_id && slot.source == source)
+      return &slot;
     idx = (idx + 1U) & (AUTH_SUBJECT_SOURCE_CAP - 1);
   }
   return nullptr;
@@ -221,8 +232,9 @@ int effective_mask_for_index(int index, std::int64_t ts) {
   int mask = AUTH_PERM_READ | AUTH_PERM_WRITE | AUTH_PERM_ADMIN;
   int current = index;
   while (current >= 0) {
-    const Grant& grant = grants[current];
-    if (!self_usable(grant, ts)) return 0;
+    const Grant &grant = grants[current];
+    if (!self_usable(grant, ts))
+      return 0;
     mask &= normalize_mask(grant.stored_mask);
     current = grant.parent_index;
   }
@@ -232,59 +244,59 @@ int effective_mask_for_index(int index, std::int64_t ts) {
 int disabled_by_ancestor(int index, std::int64_t ts) {
   int parent = grants[index].parent_index;
   while (parent >= 0) {
-    const Grant& grant = grants[parent];
-    if (!self_usable(grant, ts)) return 1;
+    const Grant &grant = grants[parent];
+    if (!self_usable(grant, ts))
+      return 1;
     parent = grant.parent_index;
   }
   return 0;
 }
 
 int select_source_for_subject(int subject_id, int resolve_mode) {
-  if (resolve_mode == AUTH_MODE_LOCAL_ONLY) return AUTH_SOURCE_LOCAL_PROFILE;
-  if (resolve_mode == AUTH_MODE_BUNDLE_ONLY) return AUTH_SOURCE_IDENTITY_BUNDLE;
-  SubjectSlot* subject = get_subject_slot(subject_id, 0);
-  if (subject && subject->bundle_count > 0) return AUTH_SOURCE_IDENTITY_BUNDLE;
+  if (resolve_mode == AUTH_MODE_LOCAL_ONLY)
+    return AUTH_SOURCE_LOCAL_PROFILE;
+  if (resolve_mode == AUTH_MODE_BUNDLE_ONLY)
+    return AUTH_SOURCE_IDENTITY_BUNDLE;
+  SubjectSlot *subject = get_subject_slot(subject_id, 0);
+  if (subject && subject->bundle_count > 0)
+    return AUTH_SOURCE_IDENTITY_BUNDLE;
   return AUTH_SOURCE_LOCAL_PROFILE;
 }
 
 int register_grant_indices(int index) {
-  Grant& grant = grants[index];
-  if (!insert_id_slot(grant.id, index)) return 0;
-  BucketSlot* bucket = get_bucket_slot(grant.subject_id, grant.source, grant.resource_id, 1);
-  SubjectSourceSlot* subject_source =
-    get_subject_source_slot(grant.subject_id, grant.source, 1);
-  if (!bucket || !subject_source) return 0;
+  Grant &grant = grants[index];
+  if (!insert_id_slot(grant.id, index))
+    return 0;
+  BucketSlot *bucket =
+      get_bucket_slot(grant.subject_id, grant.source, grant.resource_id, 1);
+  SubjectSourceSlot *subject_source =
+      get_subject_source_slot(grant.subject_id, grant.source, 1);
+  if (!bucket || !subject_source)
+    return 0;
   grant.next_bucket = bucket->head;
   bucket->head = index;
   grant.next_subject_source = subject_source->head;
   subject_source->head = index;
   if (grant.source == AUTH_SOURCE_IDENTITY_BUNDLE) {
-    SubjectSlot* subject = get_subject_slot(grant.subject_id, 1);
-    if (!subject) return 0;
+    SubjectSlot *subject = get_subject_slot(grant.subject_id, 1);
+    if (!subject)
+      return 0;
     subject->bundle_count += 1;
   }
   return 1;
 }
 
 int alloc_index() {
-  if (grant_count >= AUTH_MAX_GRANTS) return -1;
+  if (grant_count >= AUTH_MAX_GRANTS)
+    return -1;
   return grant_count++;
 }
 
-int write_grant(
-  int index,
-  int grant_id,
-  int parent_index,
-  int subject_id,
-  int resource_id,
-  int source,
-  int perms_mask,
-  std::int64_t not_before_ts,
-  std::int64_t expires_ts,
-  int delegatable,
-  int requires_key
-) {
-  Grant& grant = grants[index];
+int write_grant(int index, int grant_id, int parent_index, int subject_id,
+                int resource_id, int source, int perms_mask,
+                std::int64_t not_before_ts, std::int64_t expires_ts,
+                int delegatable, int requires_key) {
+  Grant &grant = grants[index];
   std::memset(&grant, 0, sizeof(grant));
   grant.used = 1;
   grant.id = grant_id;
@@ -295,7 +307,7 @@ int write_grant(
   grant.stored_mask = normalize_mask(perms_mask);
   grant.delegatable = delegatable ? 1 : 0;
   grant.requires_key =
-    source == AUTH_SOURCE_IDENTITY_BUNDLE && requires_key ? 1 : 0;
+      source == AUTH_SOURCE_IDENTITY_BUNDLE && requires_key ? 1 : 0;
   grant.key_attached = grant.requires_key ? 0 : 1;
   grant.next_bucket = -1;
   grant.next_subject_source = -1;
@@ -304,7 +316,7 @@ int write_grant(
   return register_grant_indices(index);
 }
 
-}  // namespace
+} // namespace
 
 extern "C" {
 
@@ -332,15 +344,10 @@ __attribute__((visibility("default"))) void auth_reset(void) {
   last_error = AUTH_OK;
 }
 
-__attribute__((visibility("default"))) int auth_create_local_grant(
-  int grant_id,
-  int subject_id,
-  int resource_id,
-  int perms_mask,
-  std::int64_t not_before_ts,
-  std::int64_t expires_ts,
-  int delegatable
-) {
+__attribute__((visibility("default"))) int
+auth_create_local_grant(int grant_id, int subject_id, int resource_id,
+                        int perms_mask, std::int64_t not_before_ts,
+                        std::int64_t expires_ts, int delegatable) {
   if (lookup_index(grant_id) >= 0) {
     set_error(AUTH_ERR_DUPLICATE_ID);
     return 0;
@@ -350,21 +357,9 @@ __attribute__((visibility("default"))) int auth_create_local_grant(
     set_error(AUTH_ERR_CAPACITY);
     return 0;
   }
-  if (
-    !write_grant(
-      index,
-      grant_id,
-      -1,
-      subject_id,
-      resource_id,
-      AUTH_SOURCE_LOCAL_PROFILE,
-      perms_mask,
-      not_before_ts,
-      expires_ts,
-      delegatable,
-      0
-    )
-  ) {
+  if (!write_grant(index, grant_id, -1, subject_id, resource_id,
+                   AUTH_SOURCE_LOCAL_PROFILE, perms_mask, not_before_ts,
+                   expires_ts, delegatable, 0)) {
     set_error(AUTH_ERR_CAPACITY);
     return 0;
   }
@@ -372,16 +367,11 @@ __attribute__((visibility("default"))) int auth_create_local_grant(
   return 1;
 }
 
-__attribute__((visibility("default"))) int auth_import_bundle_grant(
-  int grant_id,
-  int subject_id,
-  int resource_id,
-  int perms_mask,
-  std::int64_t not_before_ts,
-  std::int64_t expires_ts,
-  int delegatable,
-  int requires_key
-) {
+__attribute__((visibility("default"))) int
+auth_import_bundle_grant(int grant_id, int subject_id, int resource_id,
+                         int perms_mask, std::int64_t not_before_ts,
+                         std::int64_t expires_ts, int delegatable,
+                         int requires_key) {
   if (lookup_index(grant_id) >= 0) {
     set_error(AUTH_ERR_DUPLICATE_ID);
     return 0;
@@ -391,21 +381,9 @@ __attribute__((visibility("default"))) int auth_import_bundle_grant(
     set_error(AUTH_ERR_CAPACITY);
     return 0;
   }
-  if (
-    !write_grant(
-      index,
-      grant_id,
-      -1,
-      subject_id,
-      resource_id,
-      AUTH_SOURCE_IDENTITY_BUNDLE,
-      perms_mask,
-      not_before_ts,
-      expires_ts,
-      delegatable,
-      requires_key
-    )
-  ) {
+  if (!write_grant(index, grant_id, -1, subject_id, resource_id,
+                   AUTH_SOURCE_IDENTITY_BUNDLE, perms_mask, not_before_ts,
+                   expires_ts, delegatable, requires_key)) {
     set_error(AUTH_ERR_CAPACITY);
     return 0;
   }
@@ -413,7 +391,8 @@ __attribute__((visibility("default"))) int auth_import_bundle_grant(
   return 1;
 }
 
-__attribute__((visibility("default"))) int auth_attach_bundle_key(int grant_id) {
+__attribute__((visibility("default"))) int
+auth_attach_bundle_key(int grant_id) {
   const int index = lookup_index(grant_id);
   if (index < 0) {
     set_error(AUTH_ERR_UNKNOWN_GRANT);
@@ -428,17 +407,10 @@ __attribute__((visibility("default"))) int auth_attach_bundle_key(int grant_id) 
   return 1;
 }
 
-__attribute__((visibility("default"))) int auth_delegate(
-  int parent_grant_id,
-  int child_grant_id,
-  int subject_id,
-  int resource_id,
-  int perms_mask,
-  std::int64_t not_before_ts,
-  std::int64_t expires_ts,
-  int delegatable,
-  int requires_key
-) {
+__attribute__((visibility("default"))) int
+auth_delegate(int parent_grant_id, int child_grant_id, int subject_id,
+              int resource_id, int perms_mask, std::int64_t not_before_ts,
+              std::int64_t expires_ts, int delegatable, int requires_key) {
   if (lookup_index(child_grant_id) >= 0) {
     set_error(AUTH_ERR_DUPLICATE_ID);
     return 0;
@@ -448,7 +420,7 @@ __attribute__((visibility("default"))) int auth_delegate(
     set_error(AUTH_ERR_UNKNOWN_GRANT);
     return 0;
   }
-  Grant& parent = grants[parent_index];
+  Grant &parent = grants[parent_index];
   if (parent.revoked) {
     set_error(AUTH_ERR_PARENT_REVOKED);
     return 0;
@@ -474,21 +446,10 @@ __attribute__((visibility("default"))) int auth_delegate(
     set_error(AUTH_ERR_CAPACITY);
     return 0;
   }
-  if (
-    !write_grant(
-      child_index,
-      child_grant_id,
-      parent_index,
-      subject_id,
-      resource_id,
-      parent.source,
-      perms_mask,
-      not_before_ts,
-      expires_ts,
-      delegatable,
-      parent.source == AUTH_SOURCE_IDENTITY_BUNDLE ? requires_key : 0
-    )
-  ) {
+  if (!write_grant(
+          child_index, child_grant_id, parent_index, subject_id, resource_id,
+          parent.source, perms_mask, not_before_ts, expires_ts, delegatable,
+          parent.source == AUTH_SOURCE_IDENTITY_BUNDLE ? requires_key : 0)) {
     set_error(AUTH_ERR_CAPACITY);
     return 0;
   }
@@ -507,25 +468,22 @@ __attribute__((visibility("default"))) int auth_revoke(int grant_id) {
   return 1;
 }
 
-__attribute__((visibility("default"))) int auth_check(
-  int subject_id,
-  int resource_id,
-  int perm_bit,
-  std::int64_t ts,
-  int resolve_mode
-) {
+__attribute__((visibility("default"))) int
+auth_check(int subject_id, int resource_id, int perm_bit, std::int64_t ts,
+           int resolve_mode) {
   const int requested = normalize_mask(perm_bit);
   if (requested == 0) {
     set_error(AUTH_OK);
     return 0;
   }
   const int source = select_source_for_subject(subject_id, resolve_mode);
-  BucketSlot* bucket = get_bucket_slot(subject_id, source, resource_id, 0);
+  BucketSlot *bucket = get_bucket_slot(subject_id, source, resource_id, 0);
   if (!bucket) {
     set_error(AUTH_OK);
     return 0;
   }
-  for (int index = bucket->head; index >= 0; index = grants[index].next_bucket) {
+  for (int index = bucket->head; index >= 0;
+       index = grants[index].next_bucket) {
     if ((effective_mask_for_index(index, ts) & requested) == requested) {
       set_error(AUTH_OK);
       return 1;
@@ -535,7 +493,8 @@ __attribute__((visibility("default"))) int auth_check(
   return 0;
 }
 
-__attribute__((visibility("default"))) int auth_effective_mask(int grant_id, std::int64_t ts) {
+__attribute__((visibility("default"))) int
+auth_effective_mask(int grant_id, std::int64_t ts) {
   const int index = lookup_index(grant_id);
   if (index < 0) {
     set_error(AUTH_ERR_UNKNOWN_GRANT);
@@ -545,11 +504,8 @@ __attribute__((visibility("default"))) int auth_effective_mask(int grant_id, std
   return effective_mask_for_index(index, ts);
 }
 
-__attribute__((visibility("default"))) int auth_audit_get(
-  int grant_id,
-  std::int64_t ts,
-  AuthAuditView* out_view
-) {
+__attribute__((visibility("default"))) int
+auth_audit_get(int grant_id, std::int64_t ts, AuthAuditView *out_view) {
   if (!out_view) {
     set_error(AUTH_ERR_OUT_PARAM);
     return 0;
@@ -560,14 +516,14 @@ __attribute__((visibility("default"))) int auth_audit_get(
     set_error(AUTH_ERR_UNKNOWN_GRANT);
     return 0;
   }
-  Grant& grant = grants[index];
+  Grant &grant = grants[index];
   out_view->exists = 1;
   out_view->source = grant.source;
   out_view->stored_mask = normalize_mask(grant.stored_mask);
   out_view->effective_mask = effective_mask_for_index(index, ts);
   out_view->revoked = grant.revoked ? 1 : 0;
   out_view->requires_key =
-    grant.source == AUTH_SOURCE_IDENTITY_BUNDLE && grant.requires_key ? 1 : 0;
+      grant.source == AUTH_SOURCE_IDENTITY_BUNDLE && grant.requires_key ? 1 : 0;
   out_view->key_attached = key_attached_value(grant);
   out_view->not_yet_valid = ts < grant.not_before_ts ? 1 : 0;
   out_view->expired = ts >= grant.expires_ts ? 1 : 0;
@@ -577,20 +533,19 @@ __attribute__((visibility("default"))) int auth_audit_get(
   return 1;
 }
 
-__attribute__((visibility("default"))) int auth_count_usable(
-  int subject_id,
-  std::int64_t ts,
-  int resolve_mode
-) {
+__attribute__((visibility("default"))) int
+auth_count_usable(int subject_id, std::int64_t ts, int resolve_mode) {
   const int source = select_source_for_subject(subject_id, resolve_mode);
-  SubjectSourceSlot* slot = get_subject_source_slot(subject_id, source, 0);
+  SubjectSourceSlot *slot = get_subject_source_slot(subject_id, source, 0);
   int count = 0;
   if (!slot) {
     set_error(AUTH_OK);
     return 0;
   }
-  for (int index = slot->head; index >= 0; index = grants[index].next_subject_source) {
-    if (effective_mask_for_index(index, ts) != 0) ++count;
+  for (int index = slot->head; index >= 0;
+       index = grants[index].next_subject_source) {
+    if (effective_mask_for_index(index, ts) != 0)
+      ++count;
   }
   set_error(AUTH_OK);
   return count;
@@ -600,4 +555,4 @@ __attribute__((visibility("default"))) int auth_last_error(void) {
   return last_error;
 }
 
-}  // extern "C"
+} // extern "C"

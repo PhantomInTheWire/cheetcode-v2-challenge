@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { action, internalMutation, query } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 function parseJsonField(value: string | undefined) {
   if (!value) return null;
@@ -172,6 +172,7 @@ export const recordEventInternal = internalMutation({
 
 export const recordEvent = action({
   args: {
+    secret: v.string(),
     sessionId: v.id("sessions"),
     github: v.string(),
     level: v.number(),
@@ -190,13 +191,48 @@ export const recordEvent = action({
     artifactJson: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<string> => {
-    return await ctx.runMutation(internal.attemptTelemetry.recordEventInternal, args);
+    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
+      throw new Error("unauthorized");
+    }
+
+    const session = await ctx.runQuery(api.sessions.getSession, {
+      secret: args.secret,
+      sessionId: args.sessionId,
+    });
+    if (!session) {
+      throw new Error("session not found");
+    }
+    if (session.github !== args.github) {
+      throw new Error("github mismatch");
+    }
+
+    return await ctx.runMutation(internal.attemptTelemetry.recordEventInternal, {
+      sessionId: args.sessionId,
+      github: args.github,
+      level: args.level,
+      eventType: args.eventType,
+      createdAt: args.createdAt,
+      elapsedMs: args.elapsedMs,
+      route: args.route,
+      status: args.status,
+      errorType: args.errorType,
+      solvedCount: args.solvedCount,
+      passCount: args.passCount,
+      failCount: args.failCount,
+      artifactHash: args.artifactHash,
+      artifactSize: args.artifactSize,
+      summaryJson: args.summaryJson,
+      artifactJson: args.artifactJson,
+    });
   },
 });
 
 export const getSessionTimeline = query({
-  args: { sessionId: v.id("sessions") },
+  args: { secret: v.string(), sessionId: v.id("sessions") },
   handler: async (ctx, args) => {
+    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
+      throw new Error("unauthorized");
+    }
     const session = await ctx.db.get(args.sessionId);
     const rollup = await ctx.db
       .query("sessionTelemetryRollups")
@@ -229,10 +265,14 @@ export const getSessionTimeline = query({
 
 export const getGithubTelemetry = query({
   args: {
+    secret: v.string(),
     github: v.string(),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
+      throw new Error("unauthorized");
+    }
     const rows = await ctx.db
       .query("attemptTelemetry")
       .withIndex("by_github", (q) => q.eq("github", args.github))
@@ -247,8 +287,11 @@ export const getGithubTelemetry = query({
 });
 
 export const getSessionRollup = query({
-  args: { sessionId: v.id("sessions") },
+  args: { secret: v.string(), sessionId: v.id("sessions") },
   handler: async (ctx, args) => {
+    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
+      throw new Error("unauthorized");
+    }
     return await ctx.db
       .query("sessionTelemetryRollups")
       .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
@@ -258,9 +301,13 @@ export const getSessionRollup = query({
 
 export const getFlaggedSessions = query({
   args: {
+    secret: v.string(),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
+      throw new Error("unauthorized");
+    }
     const rows = await ctx.db.query("sessionTelemetryRollups").collect();
     return rows
       .filter(
@@ -273,9 +320,13 @@ export const getFlaggedSessions = query({
 
 export const getSessionsWithLandmines = query({
   args: {
+    secret: v.string(),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
+      throw new Error("unauthorized");
+    }
     const rows = await ctx.db.query("attemptTelemetry").collect();
     return rows
       .filter((row) => {
@@ -294,9 +345,13 @@ export const getSessionsWithLandmines = query({
 
 export const getSessionsNeedingReview = query({
   args: {
+    secret: v.string(),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
+      throw new Error("unauthorized");
+    }
     const rows = await ctx.db.query("sessionTelemetryRollups").collect();
     return rows
       .filter(

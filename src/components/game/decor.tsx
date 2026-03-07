@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 // ── Firecrawl-style ASCII flame texture ───────────────────────────────
 // Matches firecrawl.dev: 9px font, 11px leading, rgba(0,0,0,0.2), ~783px wide
-export const FIRE_TEXTURE_FRAMES = [
+const FIRE_TEXTURE_FRAMES = [
   `                                                                                                                                                 
                                                                                                                                                  
                                                                                                                                                  
@@ -74,7 +74,7 @@ export const FIRE_TEXTURE_FRAMES = [
 ];
 
 // ── Animated side ASCII art frames (small orange blocks, firecrawl style) ──
-export const SIDE_ASCII_FRAMES = [
+const SIDE_ASCII_FRAMES = [
   `  <++++>
  ++XXXXX++
  +XXXXXXX+
@@ -98,7 +98,7 @@ X*XXXXX+X*
   <+++*>`,
 ];
 
-export const BRAILLE_SPINNER_FRAMES = [
+const BRAILLE_SPINNER_FRAMES = [
   "\u28FE",
   "\u28FD",
   "\u28FB",
@@ -230,79 +230,6 @@ export function AnimatedLandingDecor() {
           }}
         >
           {FIRE_TEXTURE_FRAMES[flameFrame]}
-        </div>
-      </div>
-    </>
-  );
-}
-
-export function VictoryDecor() {
-  const [frame, setFrame] = useState(0);
-
-  useEffect(() => {
-    const t = setInterval(() => setFrame((p) => (p + 1) % 4), 120);
-    return () => clearInterval(t);
-  }, []);
-
-  const glyphs = ["+", "x", "*", "#"];
-  const glyph = glyphs[frame];
-
-  return (
-    <>
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          background:
-            "radial-gradient(circle at 50% 50%, rgba(250,93,25,0.08) 0%, transparent 60%)",
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
-      <div
-        style={{
-          position: "fixed",
-          top: 20,
-          left: 20,
-          right: 20,
-          bottom: 20,
-          border: "1px solid rgba(250,93,25,0.15)",
-          borderRadius: 32,
-          pointerEvents: "none",
-          zIndex: 1,
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: -1,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "#f9f9f9",
-            padding: "0 12px",
-            color: "#fa5d19",
-            fontSize: 10,
-            fontFamily: "var(--font-geist-mono), monospace",
-            letterSpacing: "0.1em",
-          }}
-        >
-          RESULTS
-        </div>
-        <div
-          style={{
-            position: "absolute",
-            bottom: -1,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "#f9f9f9",
-            padding: "0 12px",
-            color: "#fa5d19",
-            fontSize: 10,
-            fontFamily: "var(--font-geist-mono), monospace",
-            letterSpacing: "0.1em",
-          }}
-        >
-          {glyph} END_OF_LINE {glyph}
         </div>
       </div>
     </>

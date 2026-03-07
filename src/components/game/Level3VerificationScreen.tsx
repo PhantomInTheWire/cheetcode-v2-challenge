@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { FIRECRAWL_FLAME_SVG } from "@/components/game/firecrawl-flame";
 import { AnimatedLandingDecor } from "@/components/game/decor";
-import { type ResultsData } from "@/lib/gameTypes";
+import { type ResultsData } from "@/lib/game/gameTypes";
 
 type Level3VerificationScreenProps = {
   results: ResultsData;
@@ -144,7 +144,7 @@ export function Level3VerificationScreen({ results, onContinue }: Level3Verifica
               fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             }}
           >
-            {allPassed ? "VALIDATED" : validation?.compiled ? "PARTIAL PASS" : "FAILED"}
+            {allPassed ? "CLEARED" : validation?.compiled ? "PARTIAL PASS" : "FAILED"}
           </h1>
         </div>
 

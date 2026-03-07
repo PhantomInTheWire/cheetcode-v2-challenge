@@ -1,6 +1,8 @@
 import { v } from "convex/values";
-import { internalMutation, action } from "./_generated/server";
+import { internalMutation, action, query } from "./_generated/server";
 import { internal } from "./_generated/api";
+import type { MutationCtx } from "./_generated/server";
+import { calculateRank, sortByEloAndAttempts } from "./helpers";
 import {
   PROBLEM_BANK,
   selectSessionProblems,
@@ -14,12 +16,17 @@ import {
   getLevel3ChallengeMetaFromId,
 } from "../server/level3/catalog";
 import { validateGithub } from "../src/lib/validation";
-import { ROUND_DURATION_MS } from "../src/lib/constants";
-import { isServerDevMode } from "../src/lib/myEnv";
+import { ROUND_DURATION_MS } from "../src/lib/config/constants";
+import { isServerDevMode } from "../src/lib/config/env";
 import { selectLevel2SessionProblems } from "../server/level2/problems";
 
 export const ROUND_DURATION_L2_MS = 60_000;
 export const ROUND_DURATION_L3_MS = 120_000;
+export const MAX_SESSION_PAUSE_EXTENSION_MS = 30_000;
+
+export function clampSessionPauseExtension(extendMs: number): number {
+  return Math.max(0, Math.min(MAX_SESSION_PAUSE_EXTENSION_MS, Math.floor(extendMs)));
+}
 
 function parsePublicPayloadJson(payload: string | undefined): Record<string, unknown>[] {
   if (!payload) return [];
@@ -29,6 +36,25 @@ function parsePublicPayloadJson(payload: string | undefined): Record<string, unk
   } catch {
     return [];
   }
+}
+
+async function getScoreSnapshot(
+  ctx: MutationCtx,
+  github: string,
+): Promise<{ elo: number; solved: number; rank: number } | null> {
+  const record = await ctx.db
+    .query("leaderboard")
+    .withIndex("by_github", (q) => q.eq("github", github))
+    .first();
+  if (!record) return null;
+
+  const records = await ctx.db.query("leaderboard").withIndex("by_elo").order("desc").take(100);
+  const sorted = sortByEloAndAttempts(records);
+  return {
+    elo: record.elo,
+    solved: record.solved,
+    rank: calculateRank(sorted, record.elo, record.attempts ?? 1),
+  };
 }
 
 export const createInternal = internalMutation({
@@ -89,6 +115,7 @@ export const createInternal = internalMutation({
         expiresAt: recent.expiresAt,
         problems: restoredProblems,
         level: recentLevel,
+        scoreSnapshot: await getScoreSnapshot(ctx, github),
       };
     }
     const startedAt = Date.now();
@@ -112,7 +139,10 @@ export const createInternal = internalMutation({
       let challenge: Level3ChallengeMeta;
       if (args.requestedLevel3ChallengeId) {
         const selected = getLevel3ChallengeMetaFromId(args.requestedLevel3ChallengeId);
-        challenge = selected ?? generateLevel3ChallengeMeta();
+        if (!selected) {
+          throw new Error("invalid requestedLevel3ChallengeId");
+        }
+        challenge = selected;
       } else {
         challenge = generateLevel3ChallengeMeta();
       }
@@ -162,6 +192,7 @@ export const createInternal = internalMutation({
       expiresAt,
       problems: problemsToReturn,
       level,
+      scoreSnapshot: await getScoreSnapshot(ctx, github),
     };
   },
 });
@@ -174,7 +205,7 @@ export const create = action({
     requestedLevel3ChallengeId: v.optional(v.string()),
     requestedLevel2Projects: v.optional(v.array(v.string())),
   },
-  handler: async (
+  handler: (
     ctx,
     args,
   ): Promise<{
@@ -183,11 +214,12 @@ export const create = action({
     expiresAt: number;
     problems: Record<string, unknown>[];
     level: number;
+    scoreSnapshot: { elo: number; solved: number; rank: number } | null;
   }> => {
     if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
       throw new Error("unauthorized");
     }
-    return await ctx.runMutation(internal.sessions.createInternal, {
+    return ctx.runMutation(internal.sessions.createInternal, {
       github: args.github,
       requestedLevel: args.requestedLevel,
       requestedLevel3ChallengeId: args.requestedLevel3ChallengeId,
@@ -204,18 +236,21 @@ export const extendExpiryInternal = internalMutation({
   },
   handler: async (ctx, args) => {
     const session = await ctx.db.get(args.sessionId);
-    if (!session) throw new Error("session not found");
-    if (session.github !== args.github) throw new Error("github mismatch");
-    if ((session.level ?? 1) !== 3) throw new Error("session is not level 3");
-
-    const extendMs = Math.max(0, Math.min(30_000, Math.floor(args.extendMs)));
-    if (extendMs === 0) {
-      return { expiresAt: session.expiresAt };
+    if (!session) {
+      throw new Error("session not found");
+    }
+    if (session.github !== args.github) {
+      throw new Error("github mismatch");
     }
 
+    const extendMs = clampSessionPauseExtension(args.extendMs);
     const nextExpiresAt = session.expiresAt + extendMs;
     await ctx.db.patch(args.sessionId, { expiresAt: nextExpiresAt });
-    return { expiresAt: nextExpiresAt };
+
+    return {
+      sessionId: args.sessionId,
+      expiresAt: nextExpiresAt,
+    };
   },
 });
 
@@ -226,14 +261,30 @@ export const extendExpiry = action({
     github: v.string(),
     extendMs: v.number(),
   },
-  handler: async (ctx, args): Promise<{ expiresAt: number }> => {
+  handler: (
+    ctx,
+    args,
+  ): Promise<{
+    sessionId: string;
+    expiresAt: number;
+  }> => {
     if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
       throw new Error("unauthorized");
     }
-    return await ctx.runMutation(internal.sessions.extendExpiryInternal, {
+    return ctx.runMutation(internal.sessions.extendExpiryInternal, {
       sessionId: args.sessionId,
       github: args.github,
       extendMs: args.extendMs,
     });
+  },
+});
+
+export const getSession = query({
+  args: { secret: v.string(), sessionId: v.id("sessions") },
+  handler: (ctx, args) => {
+    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
+      throw new Error("unauthorized");
+    }
+    return ctx.db.get(args.sessionId);
   },
 });

@@ -1,9 +1,9 @@
 import { v } from "convex/values";
-import { internalMutation, query, action } from "./_generated/server";
+import { internalMutation, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { PROBLEM_BANK } from "../server/level1/problems";
-import { computeElo, getDifficultyBonus } from "../src/lib/scoring";
-import { ROUND_DURATION_MS } from "../src/lib/constants";
+import { computeElo, getDifficultyBonus } from "../src/lib/game/scoring";
+import { ROUND_DURATION_MS } from "../src/lib/config/constants";
 import { sortByEloAndAttempts, calculateRank } from "./helpers";
 import { ROUND_DURATION_L2_MS, ROUND_DURATION_L3_MS } from "./sessions";
 
@@ -79,7 +79,14 @@ export const recordResultsInternal = internalMutation({
     const nextAttempts = existing?.attempts === undefined ? 1 : existing.attempts + 1;
 
     if (!existing && solvedCount === 0 && elo <= 0) {
-      return { elo: 0, solved: 0, rank: 0, timeRemaining: timeRemainingSecs };
+      return {
+        elo: 0,
+        solved: 0,
+        rank: 0,
+        timeRemaining: timeRemainingSecs,
+        totalElo: 0,
+        totalSolved: 0,
+      };
     }
 
     let currentL1Solved = existing?.level1BestSolved ?? 0;
@@ -93,9 +100,12 @@ export const recordResultsInternal = internalMutation({
     let shouldUpdateBests = false;
 
     if (level === 1) {
+      if (solvedCount > currentL1Solved) {
+        currentL1Solved = solvedCount;
+        shouldUpdateBests = true;
+      }
       if (elo > currentL1Elo) {
         currentL1Elo = elo;
-        currentL1Solved = solvedCount;
         shouldUpdateBests = true;
       }
       if (solvedCount === 25) {
@@ -103,9 +113,12 @@ export const recordResultsInternal = internalMutation({
         shouldUpdateBests = true;
       }
     } else if (level === 2) {
+      if (solvedCount > currentL2Solved) {
+        currentL2Solved = solvedCount;
+        shouldUpdateBests = true;
+      }
       if (elo > currentL2Elo) {
         currentL2Elo = elo;
-        currentL2Solved = solvedCount;
         shouldUpdateBests = true;
       }
       if (solvedCount === 10) {
@@ -113,9 +126,12 @@ export const recordResultsInternal = internalMutation({
         shouldUpdateBests = true;
       }
     } else if (level === 3) {
+      if (solvedCount > currentL3Solved) {
+        currentL3Solved = solvedCount;
+        shouldUpdateBests = true;
+      }
       if (elo > currentL3Elo) {
         currentL3Elo = elo;
-        currentL3Solved = solvedCount;
         shouldUpdateBests = true;
       }
     }
@@ -175,8 +191,14 @@ export const recordResultsInternal = internalMutation({
       await ctx.db.patch(args.sessionId, { expiresAt: finishedAt });
     }
 
-    // Return the AGGREGATE solved/elo so the UI shows the massive combined score
-    return { elo: totalElo, solved: totalSolved, rank, timeRemaining: timeRemainingSecs };
+    return {
+      elo,
+      solved: solvedCount,
+      rank,
+      timeRemaining: timeRemainingSecs,
+      totalElo,
+      totalSolved,
+    };
   },
 });
 
@@ -192,7 +214,14 @@ export const recordResults = action({
   handler: async (
     ctx,
     args,
-  ): Promise<{ elo: number; solved: number; rank: number; timeRemaining: number }> => {
+  ): Promise<{
+    elo: number;
+    solved: number;
+    rank: number;
+    timeRemaining: number;
+    totalElo: number;
+    totalSolved: number;
+  }> => {
     if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
       throw new Error("unauthorized");
     }
@@ -203,12 +232,5 @@ export const recordResults = action({
       timeElapsedMs: args.timeElapsedMs,
       exploitBonus: args.exploitBonus,
     });
-  },
-});
-
-export const getSession = query({
-  args: { sessionId: v.id("sessions") },
-  handler: async (ctx, args) => {
-    return await ctx.db.get(args.sessionId);
   },
 });

@@ -1,5 +1,5 @@
 import { AdminReplayDashboard } from "@/components/admin/AdminReplayDashboard";
-import { requireAdminPageGithub } from "@/lib/admin-auth";
+import { requireAdminPageGithub } from "@/lib/auth/admin-auth";
 
 export const dynamic = "force-dynamic";
 

@@ -18,12 +18,16 @@ extern "C" {
 
 #[no_mangle]
 pub extern "C" fn cpu_reset() {
-    unsafe { ct_reset_state(); }
+    unsafe {
+        ct_reset_state();
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn cpu_load_word(addr: i32, word: i32) {
-    unsafe { ct_load_word(addr, word); }
+    unsafe {
+        ct_load_word(addr, word);
+    }
 }
 
 #[no_mangle]
@@ -40,7 +44,9 @@ pub extern "C" fn cpu_assemble(
 
 #[no_mangle]
 pub extern "C" fn cpu_set_reg(idx: i32, value: i32) {
-    unsafe { ct_set_reg(idx, value); }
+    unsafe {
+        ct_set_reg(idx, value);
+    }
 }
 
 #[no_mangle]

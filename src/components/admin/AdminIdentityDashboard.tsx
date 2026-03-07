@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useCallback, useEffect, useState } from "react";
+import { formatRelative } from "./time-format";
 
 const REFRESH_MS = 4_000;
 
@@ -38,20 +39,31 @@ type GraphPayload = {
   clusters: Cluster[];
 };
 
-function formatRelative(timestamp: number) {
-  const deltaMs = Date.now() - timestamp;
-  if (deltaMs < 1_000) return "now";
-  const seconds = Math.round(deltaMs / 1_000);
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  return `${hours}h ago`;
-}
-
 function labelIdentity(identity: IdentityNode) {
-  const short = identity.identityKey.slice(0, 19);
-  return `${identity.identityKind.toUpperCase()} · ${short}…`;
+  if (identity.identityKind === "ip") {
+    const short = identity.identityKey.slice(0, 19);
+    return `${identity.identityKind.toUpperCase()} · ${short}…`;
+  }
+
+  const [, subtype = "fp", rawValue = ""] = identity.identityKey.split(":", 3);
+  const short = rawValue.slice(0, 24);
+  const label =
+    subtype === "id"
+      ? "Fingerprint ID"
+      : subtype === "profile"
+        ? "Profile Hash"
+        : subtype === "environment"
+          ? "Environment Hash"
+          : subtype === "display"
+            ? "Display Hash"
+            : subtype === "rendering"
+              ? "Render Hash"
+              : subtype === "device"
+                ? "Device Cluster"
+                : subtype === "locale"
+                  ? "Locale Cluster"
+                  : "Fingerprint";
+  return `${label} · ${short}${rawValue.length > short.length ? "…" : ""}`;
 }
 
 export function AdminIdentityDashboard({ adminGithub }: { adminGithub: string }) {

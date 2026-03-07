@@ -1,13 +1,9 @@
 import level2Questions from "../../data/level2-questions.json";
+import type { Level2Problem, Level2Project } from "../../src/lib/game/gameTypes";
 
 export const LEVEL2_PROJECTS = ["chromium", "firefox", "libreoffice", "postgres"] as const;
-export type Level2Project = (typeof LEVEL2_PROJECTS)[number];
-export type Level2ProjectPair = [Level2Project, Level2Project];
-
-export type Level2Problem = {
-  id: string;
-  project: Level2Project;
-  question: string;
+type Level2ProjectPair = [Level2Project, Level2Project];
+type StoredLevel2Problem = Level2Problem & {
   answer: string;
   acceptableAnswers?: string[];
 };
@@ -16,7 +12,7 @@ export const LEVEL2_PROBLEM_SET_SIZE = 10;
 export const LEVEL2_PROJECTS_PER_SESSION = 2;
 export const LEVEL2_QUESTIONS_PER_PROJECT = LEVEL2_PROBLEM_SET_SIZE / LEVEL2_PROJECTS_PER_SESSION;
 
-function parseLevel2Problems(raw: unknown): Level2Problem[] {
+function parseLevel2Problems(raw: unknown): StoredLevel2Problem[] {
   if (!Array.isArray(raw)) {
     throw new Error("Invalid Level 2 question bank: expected an array");
   }
@@ -83,8 +79,8 @@ function parseLevel2Problems(raw: unknown): Level2Problem[] {
  * Bank includes Chromium, Firefox, LibreOffice, and Postgres prompts.
  * Each session draws exactly 2 projects and serves a 5+5 split.
  */
-export const LEVEL2_PROBLEMS: Level2Problem[] = parseLevel2Problems(level2Questions);
-export const LEVEL2_PROBLEMS_BY_ID = new Map(
+export const LEVEL2_PROBLEMS: StoredLevel2Problem[] = parseLevel2Problems(level2Questions);
+const LEVEL2_PROBLEMS_BY_ID = new Map(
   LEVEL2_PROBLEMS.map((problem) => [problem.id, problem] as const),
 );
 
@@ -126,21 +122,21 @@ export function pickLevel2ProjectPair(requestedProjects?: string[]): Level2Proje
   return pickRandomPair(LEVEL2_PROJECTS);
 }
 
-export function selectLevel2SessionProblems(requestedProjects?: string[]): Level2Problem[] {
+export function selectLevel2SessionProblems(requestedProjects?: string[]): StoredLevel2Problem[] {
   return selectLevel2SessionProblemsFromBank(LEVEL2_PROBLEMS, requestedProjects);
 }
 
 export function selectLevel2SessionProblemsFromBank(
-  problems: Level2Problem[],
+  problems: StoredLevel2Problem[],
   requestedProjects?: string[],
-): Level2Problem[] {
+): StoredLevel2Problem[] {
   if (problems.length < LEVEL2_PROBLEM_SET_SIZE) {
     throw new Error(
       `insufficient level2 problems: need ${LEVEL2_PROBLEM_SET_SIZE}, have ${problems.length}`,
     );
   }
 
-  const problemsByProject = new Map<Level2Project, Level2Problem[]>();
+  const problemsByProject = new Map<Level2Project, StoredLevel2Problem[]>();
   for (const project of LEVEL2_PROJECTS) {
     problemsByProject.set(
       project,
@@ -165,6 +161,6 @@ export function selectLevel2SessionProblemsFromBank(
   return shuffle(selected);
 }
 
-export function getLevel2ProblemById(id: string): Level2Problem | undefined {
+export function getLevel2ProblemById(id: string): StoredLevel2Problem | undefined {
   return LEVEL2_PROBLEMS_BY_ID.get(id);
 }

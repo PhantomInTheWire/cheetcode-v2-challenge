@@ -1,39 +1,44 @@
 import { NextResponse } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
-import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import type { Id } from "../../../../convex/_generated/dataModel";
+import { ENV } from "../../../lib/config/env";
+import { withOwnedSessionRoute } from "../../../lib/routes/route-handler";
 
-/**
- * POST /api/leads
- * Submit lead/contact info after scoring 3+.
- * Auth: GitHub PAT or OAuth session.
- */
+type LeadRequestBody = {
+  email: string;
+  flag?: string;
+  sessionId: string;
+  xHandle?: string;
+};
+
 export async function POST(request: Request) {
-  const authResult = await requireAuthenticatedGithub(request);
-  if ("response" in authResult) return authResult.response;
-  const { github } = authResult;
-  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-  const convexSecret = process.env.CONVEX_MUTATION_SECRET;
-
-  if (!convexUrl || !convexSecret) {
-    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
-  }
-
-  try {
-    const body = await request.json();
-    const convex = new ConvexHttpClient(convexUrl);
-    const result = await convex.action(api.leads.submit, {
-      secret: convexSecret,
-      github,
-      email: body.email,
-      xHandle: body.xHandle,
-      flag: body.flag,
-      sessionId: body.sessionId as Id<"sessions">,
-    });
-    return NextResponse.json(result);
-  } catch (err) {
-    console.error("/api/leads error:", err);
-    return NextResponse.json({ error: "Lead submission failed" }, { status: 400 });
-  }
+  return withOwnedSessionRoute<LeadRequestBody>(
+    request,
+    {
+      validateBody: (body): body is LeadRequestBody => {
+        if (!body || typeof body !== "object") return false;
+        const candidate = body as Partial<LeadRequestBody>;
+        return (
+          typeof candidate.sessionId === "string" &&
+          typeof candidate.email === "string" &&
+          (candidate.xHandle === undefined || typeof candidate.xHandle === "string") &&
+          (candidate.flag === undefined || typeof candidate.flag === "string")
+        );
+      },
+      errorLabel: "/api/leads error",
+      invalidBodyResponse: NextResponse.json({ error: "invalid request" }, { status: 400 }),
+      errorResponse: NextResponse.json({ error: "Lead submission failed" }, { status: 500 }),
+    },
+    async ({ body, convex, github }) => {
+      const result = await convex.action(api.leads.submit, {
+        secret: ENV.CONVEX_MUTATION_SECRET,
+        github,
+        email: body.email,
+        xHandle: body.xHandle,
+        flag: body.flag,
+        sessionId: body.sessionId as Id<"sessions">,
+      });
+      return NextResponse.json(result);
+    },
+  );
 }

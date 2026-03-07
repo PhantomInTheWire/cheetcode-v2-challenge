@@ -169,4 +169,37 @@ export default defineSchema({
     .index("by_identity", ["identityKey", "lastSeenAt"])
     .index("by_github", ["github", "lastSeenAt"])
     .index("by_last_seen", ["lastSeenAt"]),
+
+  sessionFingerprintProfiles: defineTable({
+    sessionId: v.id("sessions"),
+    github: v.string(),
+    level: v.number(),
+    sourceTrust: v.string(),
+    fingerprintId: v.optional(v.string()),
+    fingerprintSource: v.optional(v.string()),
+    automationVerdict: v.optional(v.string()),
+    automationConfidence: v.optional(v.string()),
+    profileHash: v.optional(v.string()),
+    environmentHash: v.optional(v.string()),
+    displayHash: v.optional(v.string()),
+    hardwareHash: v.optional(v.string()),
+    capabilityHash: v.optional(v.string()),
+    renderingHash: v.optional(v.string()),
+    permissionHash: v.optional(v.string()),
+    deviceClusterKey: v.optional(v.string()),
+    renderClusterKey: v.optional(v.string()),
+    localeClusterKey: v.optional(v.string()),
+    baselineSummaryJson: v.string(),
+    latestSummaryJson: v.string(),
+    driftFlagsJson: v.string(),
+    firstSeenAt: v.number(),
+    lastSeenAt: v.number(),
+    changeCount: v.number(),
+    lastRoute: v.optional(v.string()),
+    lastScreen: v.optional(v.string()),
+  })
+    .index("by_session", ["sessionId"])
+    .index("by_github", ["github", "lastSeenAt"])
+    .index("by_last_seen", ["lastSeenAt"])
+    .index("by_fingerprint_id", ["fingerprintId", "lastSeenAt"]),
 });

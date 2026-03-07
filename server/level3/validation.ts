@@ -5,7 +5,7 @@ import { buildLevel3SandboxRuntimeRunner } from "./sandboxRunner";
 import { languageToExt, resolveLevel3TaskAssets } from "./taskAssets";
 import { getKvClient, getKvJson, setKvJson } from "@/lib/abuse/kv";
 
-export type Level3ValidationResult = {
+type Level3ValidationResult = {
   compiled: boolean;
   staleSession?: boolean;
   error: string;

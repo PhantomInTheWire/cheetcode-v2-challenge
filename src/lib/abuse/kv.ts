@@ -1,20 +1,33 @@
 import { Redis } from "@upstash/redis";
-import { type AbuseDecision, type AbuseRoute, getRouteConfig } from "./guard";
+import { type AbuseRoute, getRouteConfig } from "./config";
 import { getIdentityKeys } from "./identity";
 
 const SHADOW_BAN_DURATION_SECONDS = 24 * 60 * 60;
 const KEY_PREFIX = "ctf:abuse:v1";
+const LEVEL3_INFLIGHT_PREFIX = `${KEY_PREFIX}:level3-inflight`;
+const RELEASE_LEVEL3_INFLIGHT_LOCK_SCRIPT =
+  "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+const TEST_LEVEL3_LOCKS = new Map<string, string>();
 let redisClient: Redis | null | undefined;
+
+type AbuseDecision = {
+  limited: boolean;
+  retryAfterSeconds: number;
+  shadowBanned: boolean;
+};
 
 function getShadowBanStorageKey(identityKey: string): string {
   return `${KEY_PREFIX}:ban:${identityKey}`;
 }
 
+function getLevel3InflightKey(scopeKey: string): string {
+  return `${LEVEL3_INFLIGHT_PREFIX}:${scopeKey.trim().toLowerCase()}`;
+}
+
 function getRedisClient(): Redis | null {
-  if (redisClient !== undefined) return redisClient;
+  if (redisClient) return redisClient;
   if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-    redisClient = null;
-    return redisClient;
+    return null;
   }
   redisClient = Redis.fromEnv();
   return redisClient;
@@ -22,6 +35,10 @@ function getRedisClient(): Redis | null {
 
 export function getKvClient(): Redis | null {
   return getRedisClient();
+}
+
+export function isKvConfigured(): boolean {
+  return getRedisClient() !== null;
 }
 
 export async function getKvJson<T>(key: string): Promise<T | null> {
@@ -142,4 +159,56 @@ export async function checkAndTrackAbuseInKv(
     retryAfterSeconds: limited ? Math.min(60, Math.max(1, overflow)) : 0,
     shadowBanned,
   };
+}
+
+export async function acquireKvLevel3InflightLock(
+  scopeKey: string,
+  ttlMs: number,
+): Promise<{ ok: true; token: string } | { ok: false; reason: "busy" | "unavailable" }> {
+  if (process.env.NODE_ENV === "test") {
+    const key = getLevel3InflightKey(scopeKey);
+    if (TEST_LEVEL3_LOCKS.has(key)) {
+      return { ok: false, reason: "busy" };
+    }
+    const token = crypto.randomUUID();
+    TEST_LEVEL3_LOCKS.set(key, token);
+    return { ok: true, token };
+  }
+
+  const redis = getRedisClient();
+  if (!redis) {
+    return { ok: false, reason: "unavailable" };
+  }
+
+  const token = crypto.randomUUID();
+  const result = await redis.set(getLevel3InflightKey(scopeKey), token, {
+    nx: true,
+    px: Math.max(1, Math.floor(ttlMs)),
+  });
+
+  if (result !== "OK") {
+    return { ok: false, reason: "busy" };
+  }
+
+  return { ok: true, token };
+}
+
+export async function releaseKvLevel3InflightLock(scopeKey: string, token: string): Promise<void> {
+  if (process.env.NODE_ENV === "test") {
+    const key = getLevel3InflightKey(scopeKey);
+    if (TEST_LEVEL3_LOCKS.get(key) === token) {
+      TEST_LEVEL3_LOCKS.delete(key);
+    }
+    return;
+  }
+
+  const redis = getRedisClient();
+  if (!redis) return;
+
+  const key = getLevel3InflightKey(scopeKey);
+  await redis.eval(RELEASE_LEVEL3_INFLIGHT_LOCK_SCRIPT, [key], [token]);
+}
+
+export function resetKvLevel3InflightLocksForTests(): void {
+  TEST_LEVEL3_LOCKS.clear();
 }

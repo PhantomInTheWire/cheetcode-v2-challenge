@@ -1,11 +1,11 @@
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../convex/_generated/api";
-import { HomeClient } from "@/components/HomeClient";
-import { ENV } from "@/lib/env-vars";
-import { auth } from "../../../auth";
+import { HomeClient } from "@/components/home/HomeClient";
+import { ENV } from "@/lib/config/env";
+import { getServerSession } from "@/lib/session/server-session";
 
 export default async function HomePage() {
-  const session = await auth();
+  const session = await getServerSession();
   const initialGithub =
     (session?.user as { githubUsername?: string } | undefined)?.githubUsername ?? "";
   const initialAuthStatus = initialGithub ? "authenticated" : "unauthenticated";

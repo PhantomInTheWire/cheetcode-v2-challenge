@@ -1,9 +1,10 @@
-import { requireAdminPageGithub } from "@/lib/admin-auth";
+import { IdentityPill } from "@/components/shared/IdentityPill";
+import { requireAdminPageIdentity } from "@/lib/auth/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const github = await requireAdminPageGithub();
+  const admin = await requireAdminPageIdentity();
 
   return (
     <div
@@ -89,44 +90,13 @@ export default async function AdminPage() {
             Monitor sessions, manage abuse, review performance
           </p>
 
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "4px 12px 4px 4px",
-              background: "rgba(0,0,0,0.04)",
-              borderRadius: 999,
-              marginTop: 24,
-            }}
-          >
-            <div
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: "50%",
-                background: "rgba(250,93,25,0.12)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 11,
-                fontWeight: 600,
-                color: "#fa5d19",
-              }}
-            >
-              {github[0]?.toUpperCase()}
-            </div>
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 450,
-                color: "#262626",
-                fontFamily: "var(--font-geist-mono), monospace",
-              }}
-            >
-              {github}
-            </span>
-          </div>
+          <IdentityPill
+            github={admin.github}
+            image={admin.image}
+            name={admin.name}
+            showHandle
+            marginTop={24}
+          />
 
           <div
             style={{

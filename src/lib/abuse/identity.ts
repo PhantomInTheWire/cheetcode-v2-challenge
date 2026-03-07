@@ -1,8 +1,8 @@
 import { isIP } from "is-ip";
+import { TRUSTED_FINGERPRINT_HEADER } from "../fingerprint/fingerprint-contract";
+export { TRUSTED_FINGERPRINT_HEADER };
 
 const DEFAULT_IDENTITY = "anon";
-export const TRUSTED_FINGERPRINT_HEADER = "x-ctf-fingerprint";
-const CLIENT_FINGERPRINT_HEADER = "x-client-fingerprint";
 
 function hashIdentity(raw: string): string {
   let h1 = 0x811c9dc5;
@@ -50,7 +50,7 @@ function extractIpAddress(request: Request): string {
       .split(",")
       .map((part) => part.trim())
       .filter(Boolean);
-    const trustedIp = pickValidIp([...chain].reverse());
+    const trustedIp = pickValidIp(chain);
     if (trustedIp) return trustedIp;
   }
 
@@ -71,10 +71,7 @@ function extractIpAddress(request: Request): string {
 
 export function getIdentityKeys(request: Request): string[] {
   const ip = extractIpAddress(request);
-  const fingerprint =
-    request.headers.get(TRUSTED_FINGERPRINT_HEADER)?.trim() ||
-    request.headers.get(CLIENT_FINGERPRINT_HEADER)?.trim() ||
-    DEFAULT_IDENTITY;
+  const fingerprint = request.headers.get(TRUSTED_FINGERPRINT_HEADER)?.trim() || DEFAULT_IDENTITY;
 
   const keys = new Set<string>();
   keys.add(`ip:${hashIdentity(ip)}`);

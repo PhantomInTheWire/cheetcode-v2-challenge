@@ -6,8 +6,10 @@ import {
   useEffect,
   useEffectEvent,
   useMemo,
+  useRef,
   useState,
 } from "react";
+import { formatRelative } from "./time-format";
 
 const LIST_REFRESH_MS = 2_500;
 const DETAIL_REFRESH_MS = 1_500;
@@ -68,6 +70,27 @@ type ReplayDetail = {
     summary?: Record<string, unknown> | null;
     snapshotPreview?: Record<string, unknown> | null;
   } | null;
+  fingerprintProfile?: {
+    sourceTrust: string;
+    fingerprintId?: string;
+    fingerprintSource?: string;
+    automationVerdict?: string;
+    automationConfidence?: string;
+    changeCount: number;
+    firstSeenAt: number;
+    lastSeenAt: number;
+    baselineSummary?: Record<string, unknown> | null;
+    latestSummary?: Record<string, unknown> | null;
+  } | null;
+  identityLinks?: Array<{
+    _id: string;
+    identityKey: string;
+    identityKind: string;
+    route: string;
+    screen?: string;
+    firstSeenAt: number;
+    lastSeenAt: number;
+  }>;
   replayEvents: ReplayEventRow[];
   attemptEvents: AttemptEventRow[];
 };
@@ -78,17 +101,6 @@ function formatTime(timestamp: number) {
     minute: "2-digit",
     second: "2-digit",
   });
-}
-
-function formatRelative(timestamp: number) {
-  const deltaMs = Date.now() - timestamp;
-  if (deltaMs < 1_000) return "now";
-  const seconds = Math.round(deltaMs / 1_000);
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  return `${hours}h ago`;
 }
 
 function codeBlocksFromSnapshot(snapshot: Record<string, unknown> | null | undefined) {
@@ -121,6 +133,8 @@ export function AdminReplayDashboard({ adminGithub }: { adminGithub: string }) {
   const [detail, setDetail] = useState<ReplayDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const deferredSessionId = useDeferredValue(selectedSessionId);
+  const detailControllerRef = useRef<AbortController | null>(null);
+  const detailRequestIdRef = useRef(0);
 
   const loadSessions = useEffectEvent(async () => {
     try {
@@ -143,18 +157,25 @@ export function AdminReplayDashboard({ adminGithub }: { adminGithub: string }) {
   });
 
   const loadDetail = useEffectEvent(async (sessionId: string) => {
+    detailControllerRef.current?.abort();
+    const controller = new AbortController();
+    detailControllerRef.current = controller;
+    const requestId = ++detailRequestIdRef.current;
     try {
       const res = await fetch(
         `/api/admin/replays?sessionId=${encodeURIComponent(sessionId)}&limit=180`,
-        { cache: "no-store" },
+        { cache: "no-store", signal: controller.signal },
       );
+      if (controller.signal.aborted || requestId !== detailRequestIdRef.current) return;
       const data = (await res.json()) as ReplayDetail & { error?: string };
       if (!res.ok) throw new Error(data.error || "Failed to load session detail");
+      if (controller.signal.aborted || requestId !== detailRequestIdRef.current) return;
       startTransition(() => {
         setDetail(data);
       });
       setError(null);
     } catch (nextError) {
+      if (controller.signal.aborted || requestId !== detailRequestIdRef.current) return;
       setError(nextError instanceof Error ? nextError.message : "Failed to load session detail");
     }
   });
@@ -169,6 +190,9 @@ export function AdminReplayDashboard({ adminGithub }: { adminGithub: string }) {
 
   useEffect(() => {
     if (!deferredSessionId) {
+      detailRequestIdRef.current += 1;
+      detailControllerRef.current?.abort();
+      detailControllerRef.current = null;
       setDetail(null);
       return;
     }
@@ -176,7 +200,11 @@ export function AdminReplayDashboard({ adminGithub }: { adminGithub: string }) {
     const intervalId = window.setInterval(() => {
       void loadDetail(deferredSessionId);
     }, DETAIL_REFRESH_MS);
-    return () => window.clearInterval(intervalId);
+    return () => {
+      window.clearInterval(intervalId);
+      detailControllerRef.current?.abort();
+      detailControllerRef.current = null;
+    };
   }, [deferredSessionId]);
 
   const currentSnapshot = useMemo(
@@ -184,6 +212,19 @@ export function AdminReplayDashboard({ adminGithub }: { adminGithub: string }) {
     [detail],
   );
   const codeBlocks = useMemo(() => codeBlocksFromSnapshot(currentSnapshot), [currentSnapshot]);
+  const fingerprintSummary = (detail?.presence?.summary?.fingerprint ?? null) as {
+    fingerprintSource?: string;
+    environment?: { language?: string; languages?: string[]; timezone?: string };
+    display?: { screenWidth?: number; screenHeight?: number; devicePixelRatio?: number };
+    rendering?: { webGlVendor?: string; webGlRenderer?: string };
+    automation?: {
+      automationVerdict?: string;
+      automationConfidence?: string;
+      reasonCodes?: string[];
+    };
+  } | null;
+  const fingerprintProfile = detail?.fingerprintProfile ?? null;
+  const trustedIdentityLinks = detail?.identityLinks ?? [];
 
   return (
     <div
@@ -451,6 +492,195 @@ export function AdminReplayDashboard({ adminGithub }: { adminGithub: string }) {
                           </pre>
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {fingerprintSummary && (
+                    <div style={{ marginBottom: 24 }}>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          textTransform: "uppercase",
+                          color: "rgba(0,0,0,0.4)",
+                          marginBottom: 12,
+                          fontFamily: "var(--font-geist-mono), monospace",
+                        }}
+                      >
+                        Unverified Client Hints
+                      </div>
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: 8,
+                          padding: 12,
+                          background: "rgba(255,255,255,0.6)",
+                          border: "1px solid rgba(0,0,0,0.06)",
+                          borderRadius: 10,
+                          fontSize: 12,
+                          fontFamily: "var(--font-geist-mono), monospace",
+                        }}
+                      >
+                        <div>
+                          client_unverified ·{" "}
+                          {fingerprintSummary.automation?.automationVerdict ?? "unknown"} ·{" "}
+                          {fingerprintSummary.automation?.automationConfidence ?? "n/a"} ·{" "}
+                          {fingerprintSummary.fingerprintSource ?? "unknown"}
+                        </div>
+                        <div>
+                          {fingerprintSummary.environment?.language ?? "lang?"} ·{" "}
+                          {fingerprintSummary.environment?.timezone ?? "tz?"}
+                        </div>
+                        <div>
+                          {fingerprintSummary.display?.screenWidth ?? "?"}x
+                          {fingerprintSummary.display?.screenHeight ?? "?"} · dpr{" "}
+                          {fingerprintSummary.display?.devicePixelRatio ?? "?"}
+                        </div>
+                        <div>
+                          {fingerprintSummary.rendering?.webGlVendor || "no-webgl-vendor"} ·{" "}
+                          {fingerprintSummary.rendering?.webGlRenderer || "no-webgl-renderer"}
+                        </div>
+                        {fingerprintSummary.automation?.reasonCodes?.length ? (
+                          <div>{fingerprintSummary.automation.reasonCodes.join(", ")}</div>
+                        ) : null}
+                      </div>
+                    </div>
+                  )}
+
+                  {fingerprintProfile && (
+                    <div style={{ marginBottom: 24 }}>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          textTransform: "uppercase",
+                          color: "rgba(0,0,0,0.4)",
+                          marginBottom: 12,
+                          fontFamily: "var(--font-geist-mono), monospace",
+                        }}
+                      >
+                        Stored Client Hints
+                      </div>
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: 8,
+                          padding: 12,
+                          background: "rgba(15,23,42,0.03)",
+                          border: "1px solid rgba(15,23,42,0.08)",
+                          borderRadius: 10,
+                          fontSize: 12,
+                          fontFamily: "var(--font-geist-mono), monospace",
+                        }}
+                      >
+                        <div>
+                          {fingerprintProfile.sourceTrust} ·{" "}
+                          {fingerprintProfile.automationVerdict ?? "unknown"} ·{" "}
+                          {fingerprintProfile.automationConfidence ?? "n/a"}
+                        </div>
+                        <div>
+                          {fingerprintProfile.fingerprintSource ?? "unknown"} · first{" "}
+                          {formatTime(fingerprintProfile.firstSeenAt)} · last{" "}
+                          {formatTime(fingerprintProfile.lastSeenAt)}
+                        </div>
+                        {fingerprintProfile.fingerprintId ? (
+                          <div>id {fingerprintProfile.fingerprintId}</div>
+                        ) : null}
+                      </div>
+                    </div>
+                  )}
+
+                  {trustedIdentityLinks.length > 0 && (
+                    <div style={{ marginBottom: 24 }}>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          textTransform: "uppercase",
+                          color: "rgba(0,0,0,0.4)",
+                          marginBottom: 12,
+                          fontFamily: "var(--font-geist-mono), monospace",
+                        }}
+                      >
+                        Trusted Server Identity
+                      </div>
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: 8,
+                          padding: 12,
+                          background: "rgba(255,255,255,0.6)",
+                          border: "1px solid rgba(0,0,0,0.06)",
+                          borderRadius: 10,
+                          fontSize: 12,
+                          fontFamily: "var(--font-geist-mono), monospace",
+                        }}
+                      >
+                        {trustedIdentityLinks.map((identity) => (
+                          <div key={identity._id}>
+                            {identity.identityKind} · {identity.identityKey} · {identity.route}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {fingerprintProfile?.baselineSummary && (
+                    <div style={{ marginBottom: 24 }}>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          textTransform: "uppercase",
+                          color: "rgba(0,0,0,0.4)",
+                          marginBottom: 12,
+                          fontFamily: "var(--font-geist-mono), monospace",
+                        }}
+                      >
+                        First Client Hint Payload
+                      </div>
+                      <pre
+                        style={{
+                          margin: 0,
+                          padding: 12,
+                          background: "rgba(255,255,255,0.6)",
+                          border: "1px solid rgba(0,0,0,0.06)",
+                          borderRadius: 10,
+                          fontSize: 12,
+                          overflow: "auto",
+                          maxHeight: 240,
+                          fontFamily: "var(--font-geist-mono), monospace",
+                        }}
+                      >
+                        {renderJson(fingerprintProfile.baselineSummary)}
+                      </pre>
+                    </div>
+                  )}
+
+                  {fingerprintProfile?.latestSummary && (
+                    <div style={{ marginBottom: 24 }}>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          textTransform: "uppercase",
+                          color: "rgba(0,0,0,0.4)",
+                          marginBottom: 12,
+                          fontFamily: "var(--font-geist-mono), monospace",
+                        }}
+                      >
+                        Latest Client Hint Payload
+                      </div>
+                      <pre
+                        style={{
+                          margin: 0,
+                          padding: 12,
+                          background: "rgba(255,255,255,0.6)",
+                          border: "1px solid rgba(0,0,0,0.06)",
+                          borderRadius: 10,
+                          fontSize: 12,
+                          overflow: "auto",
+                          maxHeight: 240,
+                          fontFamily: "var(--font-geist-mono), monospace",
+                        }}
+                      >
+                        {renderJson(fingerprintProfile.latestSummary)}
+                      </pre>
                     </div>
                   )}
 

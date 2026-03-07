@@ -1,6 +1,10 @@
-**Goal**: Implement an in-memory identity resolver that enforces mission-critical authorization semantics under source precedence, delegation, revocation, time windows, and bundle key activation.
+# Identity Bundle Auth Resolver
 
-**Interface**: Your submission must provide the following exported functions and C-compatible struct:
+> **Goal**: Implement an in-memory identity resolver that enforces mission-critical authorization semantics under source precedence, delegation, revocation, time windows, and bundle key activation.
+
+## Interface
+
+Your submission must provide the following exported functions and C-compatible struct:
 
 ```c
 typedef struct AuthAuditView {
@@ -57,19 +61,19 @@ int auth_count_usable(int subject_id, int64_t ts, int resolve_mode);
 int auth_last_error(void);
 ```
 
-Starter Template Note
+## Starter Template Note
 
 - The starter is intentionally minimal and includes only light scaffolding.
 - Full conformance is required: hidden validation checks the full behavior in this specification.
 
-Constants
+## Constants
 
 - Permission bits: `READ=1`, `WRITE=2`, `ADMIN=4`.
 - `ADMIN` is independent. It does not imply `READ` or `WRITE`.
 - Sources: `LOCAL_PROFILE=1`, `IDENTITY_BUNDLE=2`.
 - Resolution modes: `LOCAL_ONLY=1`, `BUNDLE_ONLY=2`, `AUTO=3`.
 
-Resolver Model
+## Resolver Model
 
 - Grants are in-memory objects identified by unique `grant_id`.
 - Each grant belongs to exactly one source and one resource.
@@ -77,7 +81,7 @@ Resolver Model
 - Time windows are inclusive at `not_before_ts` and exclusive at `expires_ts`.
 - Revoked or otherwise unusable grants remain audit-visible.
 
-Grant Creation
+## Grant Creation
 
 - `auth_create_local_grant` creates a root grant in `LOCAL_PROFILE`.
 - `auth_import_bundle_grant` creates a root grant in `IDENTITY_BUNDLE`.
@@ -86,7 +90,7 @@ Grant Creation
 - `auth_attach_bundle_key` is valid only for existing bundle grants and is idempotent.
 - Duplicate `grant_id` creation must fail, regardless of source.
 
-Delegation Semantics
+## Delegation Semantics
 
 - `auth_delegate` creates a child grant in the same source as the parent.
 - Cross-source delegation is forbidden by construction.
@@ -97,7 +101,7 @@ Delegation Semantics
 - For bundle-sourced children, `requires_key` controls only the child’s own activation gate.
 - Parent key material is **not** required at delegation time, but missing parent key material must still disable descendant authorization at evaluation time.
 
-Resolution Modes
+## Resolution Modes
 
 - `auth_check(subject_id, resource_id, perm_bit, ts, resolve_mode)` returns `1` when the requested permission is authorized and `0` otherwise.
 - `LOCAL_ONLY` considers only local grants.
@@ -107,7 +111,7 @@ Resolution Modes
   - otherwise only local grants may be considered.
 - Source results are never merged. `AUTO` chooses one source; it does not union local and bundle grants.
 
-Usability Rules
+## Usability Rules
 
 - A grant is directly unusable when any of the following hold:
   - it is revoked;
@@ -119,7 +123,7 @@ Usability Rules
 - Effective permission masks are bounded by all ancestors in the chain.
 - `auth_count_usable(subject_id, ts, resolve_mode)` counts only grants that would actually authorize under the chosen mode.
 
-Audit Contract
+## Audit Contract
 
 - `auth_audit_get(grant_id, ts, out_view)` returns `1` and fills `out_view` for existing grants, otherwise returns `0`.
 - The audit payload must expose:
@@ -137,7 +141,7 @@ Audit Contract
 - `disabled_by_ancestor` must reflect ancestor-caused unusability and remain distinct from direct revocation on the current grant.
 - For grants that do not require key material, `key_attached` must report `1`.
 
-Error Reporting
+## Error Reporting
 
 - Mutation helpers return `1` on success and `0` on failure.
 - `auth_last_error()` must return the most recent resolver status code.
@@ -151,7 +155,7 @@ Error Reporting
   - child expiry after parent
   - null output pointer
 
-Evaluation Model
+## Evaluation Model
 
 - Validation is black-box: hidden programs call the exported API and compare observable behavior against this specification.
 - Hidden validation includes large irrelevant populations and repeated hot-path queries. Correctness alone is not sufficient if read paths degrade badly as stored grant volume grows.

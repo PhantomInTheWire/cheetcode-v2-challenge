@@ -8,9 +8,14 @@ import type {
   Level3ChallengeState,
   ResultsData,
   Screen,
-} from "@/lib/gameTypes";
-import { postSessionReplayEvent } from "@/lib/session-replay-client";
-import type { SessionReplayEventType } from "@/lib/session-replay-contract";
+} from "@/lib/game/gameTypes";
+import {
+  ensureClientFingerprintProfile,
+  getCachedFingerprintSummary,
+} from "@/lib/fingerprint/fingerprint-profile";
+import { buildUnverifiedFingerprintHints } from "@/lib/fingerprint/fingerprint-shared";
+import { postSessionReplayEvent } from "@/lib/session/session-replay-client";
+import type { SessionReplayEventType } from "@/lib/session/session-replay-contract";
 
 const SNAPSHOT_DEBOUNCE_MS = 1_200;
 const HEARTBEAT_INTERVAL_MS = 5_000;
@@ -88,6 +93,20 @@ export function useSessionReplay({
   const lastScreenKeyRef = useRef<string | null>(null);
   const lastSnapshotJsonRef = useRef<string | null>(null);
   const lastResultsKeyRef = useRef<string | null>(null);
+  const fingerprintSummaryRef = useRef(
+    getCachedFingerprintSummary()
+      ? buildUnverifiedFingerprintHints(getCachedFingerprintSummary()!)
+      : null,
+  );
+
+  useEffect(() => {
+    void ensureClientFingerprintProfile()
+      .then(() => {
+        const summary = getCachedFingerprintSummary();
+        fingerprintSummaryRef.current = summary ? buildUnverifiedFingerprintHints(summary) : null;
+      })
+      .catch(() => undefined);
+  }, []);
 
   const summary = useMemo(() => {
     const totalProblems =
@@ -205,8 +224,16 @@ export function useSessionReplay({
     sessionId,
   ]);
 
-  const summaryJson = useMemo(() => JSON.stringify(summary), [summary]);
-  const snapshotJson = useMemo(() => (snapshot ? JSON.stringify(snapshot) : null), [snapshot]);
+  const summaryRef = useRef(summary);
+  const snapshotRef = useRef(snapshot);
+
+  useEffect(() => {
+    summaryRef.current = summary;
+  }, [summary]);
+
+  useEffect(() => {
+    snapshotRef.current = snapshot;
+  }, [snapshot]);
 
   const emitReplayEvent = useEffectEvent(
     async (
@@ -222,6 +249,7 @@ export function useSessionReplay({
         screen,
         summary: nextSummary,
         snapshot: nextSnapshot ?? undefined,
+        fingerprintSummary: fingerprintSummaryRef.current ?? undefined,
       });
     },
   );
@@ -239,14 +267,17 @@ export function useSessionReplay({
   }, [currentLevel, isAuthenticated, screen, sessionId, snapshot, summary]);
 
   useEffect(() => {
-    if (!sessionId || !isAuthenticated || !snapshotJson || !snapshot) return;
-    if (snapshotJson === lastSnapshotJsonRef.current) return;
+    if (!sessionId || !isAuthenticated || !snapshot) return;
     const timeoutId = window.setTimeout(() => {
-      lastSnapshotJsonRef.current = snapshotJson;
-      void emitReplayEvent("state_snapshot", summary, snapshot);
+      const nextSnapshot = snapshotRef.current;
+      if (!nextSnapshot) return;
+      const nextSnapshotJson = JSON.stringify(nextSnapshot);
+      if (nextSnapshotJson === lastSnapshotJsonRef.current) return;
+      lastSnapshotJsonRef.current = nextSnapshotJson;
+      void emitReplayEvent("state_snapshot", summaryRef.current, nextSnapshot);
     }, SNAPSHOT_DEBOUNCE_MS);
     return () => window.clearTimeout(timeoutId);
-  }, [isAuthenticated, sessionId, snapshot, snapshotJson, summary]);
+  }, [isAuthenticated, sessionId, snapshot]);
 
   useEffect(() => {
     if (!sessionId || !isAuthenticated) return;
@@ -261,8 +292,8 @@ export function useSessionReplay({
   useEffect(() => {
     if (!sessionId || !isAuthenticated) return;
     const intervalId = window.setInterval(() => {
-      void emitReplayEvent("heartbeat", JSON.parse(summaryJson) as Record<string, unknown>, null);
+      void emitReplayEvent("heartbeat", summaryRef.current, null);
     }, HEARTBEAT_INTERVAL_MS);
     return () => window.clearInterval(intervalId);
-  }, [isAuthenticated, sessionId, summaryJson]);
+  }, [isAuthenticated, sessionId]);
 }

@@ -57,8 +57,9 @@ export const recordEventInternal = internalMutation({
       .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
       .collect();
     const existingPresence =
-      presenceRows.sort((a, b) => b.lastSeenAt - a.lastSeenAt || b._creationTime - a._creationTime)[0] ??
-      null;
+      presenceRows.sort(
+        (a, b) => b.lastSeenAt - a.lastSeenAt || b._creationTime - a._creationTime,
+      )[0] ?? null;
 
     const expiresAt = session.expiresAt;
     const duplicateOfPrevious =
@@ -174,19 +175,44 @@ export const recordEvent = action({
 
 export const getRecentSessions = query({
   args: {
+    secret: v.string(),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
+      throw new Error("unauthorized");
+    }
     const rows = await ctx.db
       .query("sessionReplayPresence")
       .withIndex("by_last_seen")
       .order("desc")
       .take(Math.max(1, Math.min(args.limit ?? 30, 100)));
 
-    return rows.map((row) => ({
+    const fingerprints = await Promise.all(
+      rows.map((row) =>
+        ctx.db
+          .query("sessionFingerprintProfiles")
+          .withIndex("by_session", (q) => q.eq("sessionId", row.sessionId))
+          .first(),
+      ),
+    );
+
+    return rows.map((row, index) => ({
       ...row,
       summary: parseJsonField(row.summaryJson),
       snapshotPreview: parseJsonField(row.snapshotPreviewJson),
+      fingerprintProfile: fingerprints[index]
+        ? {
+            sourceTrust: fingerprints[index]?.sourceTrust,
+            automationVerdict: fingerprints[index]?.automationVerdict,
+            automationConfidence: fingerprints[index]?.automationConfidence,
+            fingerprintId: fingerprints[index]?.fingerprintId,
+            fingerprintSource: fingerprints[index]?.fingerprintSource,
+            lastSeenAt: fingerprints[index]?.lastSeenAt,
+            changeCount: fingerprints[index]?.changeCount,
+            latestSummary: parseJsonField(fingerprints[index]?.latestSummaryJson),
+          }
+        : null,
       live: row.status === "active" && row.lastSeenAt >= Date.now() - 15_000,
     }));
   },
@@ -194,27 +220,40 @@ export const getRecentSessions = query({
 
 export const getSessionReplay = query({
   args: {
+    secret: v.string(),
     sessionId: v.id("sessions"),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const [session, presence, replayEvents, attemptEvents] = await Promise.all([
-      ctx.db.get(args.sessionId),
-      ctx.db
-        .query("sessionReplayPresence")
-        .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
-        .first(),
-      ctx.db
-        .query("sessionReplayEvents")
-        .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
-        .order("desc")
-        .take(Math.max(1, Math.min(args.limit ?? 160, 400))),
-      ctx.db
-        .query("attemptTelemetry")
-        .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
-        .order("asc")
-        .collect(),
-    ]);
+    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
+      throw new Error("unauthorized");
+    }
+    const [session, presence, replayEvents, attemptEvents, fingerprintProfile, identityLinks] =
+      await Promise.all([
+        ctx.db.get(args.sessionId),
+        ctx.db
+          .query("sessionReplayPresence")
+          .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+          .first(),
+        ctx.db
+          .query("sessionReplayEvents")
+          .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+          .order("desc")
+          .take(Math.max(1, Math.min(args.limit ?? 160, 400))),
+        ctx.db
+          .query("attemptTelemetry")
+          .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+          .order("asc")
+          .collect(),
+        ctx.db
+          .query("sessionFingerprintProfiles")
+          .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+          .first(),
+        ctx.db
+          .query("sessionIdentityLinks")
+          .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+          .collect(),
+      ]);
 
     return {
       session,
@@ -231,6 +270,14 @@ export const getSessionReplay = query({
         snapshot: parseJsonField(event.snapshotJson),
         snapshotPreview: parseJsonField(event.snapshotPreviewJson),
       })),
+      fingerprintProfile: fingerprintProfile
+        ? {
+            ...fingerprintProfile,
+            baselineSummary: parseJsonField(fingerprintProfile.baselineSummaryJson),
+            latestSummary: parseJsonField(fingerprintProfile.latestSummaryJson),
+          }
+        : null,
+      identityLinks,
       attemptEvents: attemptEvents.map((event) => ({
         ...event,
         summary: parseJsonField(event.summaryJson),
