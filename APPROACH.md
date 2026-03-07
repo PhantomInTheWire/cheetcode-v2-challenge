@@ -1,97 +1,170 @@
 # CheetCode v2 Approach
 
-## What I'm trying to measure
+## 1. Problem framing
 
-CheetCode v1 is a solid, but it over-rewards speed and "one-shot correctness".
+CheetCode v1 was a cool test, but it over-indexed on speed and one-shot correctness.
 
-What I want v2 to measure is: how candidates run agents under constraints, do they understand the tools they use(agents, tools etc) and can they close the loop when it comes to agents so that they can move fast.
+I redesigned v2 to answer a different question: can candidates design, orchestrate, and ship stuff with agents under constraints?
 
-Concretely:
+Whilst making sure they knew what they were doing and understood tradeoffs to a certain degree.
 
-- Planning and decomposition.
-- Coordination (do they parallelize without stepping on their own CPU/IO).
-- Can they unblock their own agents through harness engineering
-- Verification discipline (do they actually check things).
-- Prompt Injections (do they get wrecked by edge cases, injections, or traps).
+tldr: the goal is to look for strong engineers who can use AI to ship real systems, understand architecture and tradeoffs. Also they should be able to figure out ways to unblock their agents and make them faster.
 
-## Design goals
+## 2. Design goals
 
-1. A solid platform that can truly measure AI orchestration skills.
-2. Anti-gaming by default: problem variants + fingerprinting etc; shadow banning bad actors
-3. Operator visibility: structured telemetry so reviews aren't guesswork.
+1. The platform should test [Harness Engineering](https://openai.com/index/harness-engineering/), while also indexing on mature engineering discipline and agent orchestration ability
+2. A good UI/UX because firecrawl.dev is one of the better looking websites in the space, if deployed as the final challenge this should not change that
+3. A great dashboard to do product analytics and track abuse, cheating and other candidate patterns.
+4. Strong fingerprinting, anti-cheat and abuse mechanisms.
+5. The total time for a single attempt should be < 5mins, this is because anything that takes more time would be too tedious to rapidly iterate on for the players.
 
-## Architecture
+### The ideal person to filter for
 
-The main changes are around validation, scoring semantics, and abuse resistance.(and ofcourse adding new levels)
+This can be many types of people but here are some kinds of people who might be considered "ideal"
 
-Stage 1. Algorithmic puzzles
+1. People who can build custom harnesses to go beyond what regular claudecode/codex/opencode etc can do. Think someone who can build something like this
+   - [ramp's Inspect](https://builders.ramp.com/post/why-we-built-our-background-agent) that works in the background, can be triggered from anywhere like slack, jira etc.
+   - [cursor's custom harness](https://x.com/mntruell/status/2028903020847841336) that built them a browser and gave a novel solution to the famous first proof challenge
+   - [Anthropic's harness](https://www.anthropic.com/engineering/building-c-compiler) that built a C compiler
 
-25 problems instead of 10: 20 easy/medium/hard, plus 5 ICPC-style with strict 60-second limits. The goal is to force deliberate orchestration decisions. Candidates or their orchestrator agent must classify problems by difficulty, decide which can be batched into subagents.
+2. This can also mean filtering for someone who works like the creator of openclaw/clawdbot/moltbook [steipete](https://steipete.me/posts/2025/shipping-at-inference-speed). Essentially just opens up multiple codex windows and only reads code that matters, understands the "blast radius" of everything he does
 
-Ideal solutuon: A main orchestrator, batching the 20 easier problems across 4 subagents, each with 5 problems and a dedicated subagent for each of ICPC problems. These harder problems require iterative reasoning, even strong models take 30-40 seconds for each problem. Without proper orchestration, candidates time out.
+3. My personal favourite would be someone that can push forward an organisation's engineering culture towards a [self driving code base](https://background-agents.com/). Essentially someone who can build a world where AI agents - triage bugs, come up with a minimal failing test case and then open a PR for it - debug ci failures no one wants to look at - fix flaky tests that no one bothers touching - keep all PRs/branches in sync with master by resolving conflicts
+   and do all of this unprompted. Someone who can build good enough primitives inside the codebase and isolate things, and increase test coverage meaningfully so that low risk PRs that have a "low blast radius" can be merged once CI is green and an AI code reviewer approves.
 
-Stage 2. Large OSS search
+## 3. Architecture and data flow
 
-10 questions requiring extraction from Chromium codebases, 60 seconds total. This exposes search bottlenecks. Broad grep over tens of millions of lines is slow; naive subagent spawning with each calling grep saturates CPU. Even two aggressive subagents can cripple a MacBook M3 Air.
+I did not want to just make v1 "harder". I wanted to broaden the surface area of what is being measured.
 
-Ideal solution: candidates must scope searches and optimize subagent count and instruct their agents on doing search properly(as in well scoped inside folders to reduce time else a broad search can easily take 10+secs to resolve)
+The current shape of v2 is a 3 level funnel:
 
-Alternate solution: Use indexed services like source.chromium.org or grep.app via firecrawl(they might need to write a custom skill to make this work reliably or some sub agents will always waste a lot of time making bad web fetch requests and curls to these sites). This also allows them to skip cloning chromium locally
+1. Level 1 is is a scaled up version of v1, I decided to keep the spirit of fast algorithmic challenges from v1(there are some twists and gottcha's though, more on that later)
 
-Stage 3. Spec-driven systems task
+2. Level 2 asks source-diving questions across large real projects like Chromium, Firefox, LibreOffice and Postgres.
 
-Formal specification for a small systems component, implemented in pure C, C++, Rust with no deps and single flat file, runs in a vercel firecracker sandbox. ~2 minutes total time. Evaluation is test and benchmark based. This measures verification ability+closing a self reviwing loop("harness engineering") and tradeoff reasoning in systems programming, areas where agents struggle without proper harness. They tend to produce superficially correct but suboptimal or fragile fallbacks. This stage surfaces those weaknesses.
+3. Level 3 is the most important addition. It turns the challenge into a real task where the candidate has to satisfy a spec in C, C++ or Rust and get through sample, smoke, hidden checks and benchmarks inside a native sandbox.(This involves security/architechture/perf/constraint heavy problems I have come across reading through patches on big OSS codebases, essentially everything that has a big blast radius not just in the particular codebase but also on everyone building on top of it)
 
-Ideal solution: Have the agent write "blackbox" tests for the spec, then have another agent write code that passes these blackbox tests
+This exists because Level 3 sandboxes are expensive to run, so the goal is to filter out many people in Level 1 and especially level 2.
 
-Bonus layer
+At the product level the flow looks like this:
 
-Prompt injections, hidden flags, and failure traps embedded across stages that affect total score, evaluating resilience to adversarial inputs and prompt injections.
+1. Candidate logs in with GitHub
+2. Session is created and tied to identity/fingerprint data
+3. Candidate plays through the current unlocked level
+4. Validation and result events are recorded
+5. Passing a level unlocks the next level
+6. Reviewer telemetry and analytics get stored in Convex for later inspection
 
-## Telemetry
+Architecturally I kept the stack pretty practical:
 
-- Where events are recorded: `src/lib/attempt-telemetry.ts` sends events to Convex via `api.attemptTelemetry.recordEvent`.
-- What an event contains: `sessionId`, `github`, `level`, `eventType` (usually `validate_*` / `finish_*`), `route`, `status`, optional counts (`passCount`/`failCount`/`solvedCount`), and a small `summaryJson`.
-- Artifacts: optional `artifactJson` is size-capped/truncated client-side, hashed (`sha256`), and stored once in `attemptArtifacts` (dedup by hash). The event stores `artifactId` + `artifactHash` so we can tie retries together and detect duplicates.
-- Rollups: every write updates `sessionTelemetryRollups` (total events, validate vs finish counts, pass deltas, duplicate rate, improvement rate, etc). This is what powers "needs review" and "suspicious" flags.
-- Queries for review: `convex/attemptTelemetry.ts` exposes session timelines (events + parsed summaries + linked artifacts) and rollups so you can audit an attempt end-to-end without digging through logs.
+1. Next.js app for the product surface
+2. Convex for state, leaderboard, sessions and telemetry
+3. GitHub OAuth because identity matters a lot in a hiring funnel
+4. QuickJS for the lightweight code validation path
+5. Vercel Sandbox for the native execution path in Level 3
 
-## Anti-gaming
+This felt like the right balance. It is real enough to be deployed and operated, but still lightweight enough that the company could actually adopt it next week if they wanted to.
 
-The goal is not "perfectly game-proof". The goal is to make brittle strategies unreliable and expensive and just deter abuse in general.
+## 4. Anti-gaming strategy
 
-1.  Add basic IP + FingerprintJS–based shadow bans and rate limiting. Fingerprintjs generates a stable client/browser fingerprint and attaches it to API requests.
-2.  Multiple questions and multiple variations of the same question. If I only intend to have 5 easy problems out of 25, the problem set should contain at least 20 easy problems that are randomly picked each time. It should not stop there. There should also be 5 variations with different IDs and descriptions but the same or similar solution.
+This was one of the things I optimized for.
 
-For example, the Two Sum problem could be:
+v1 had some fun exploit mechanics so the anti-gaming model in v2 is layered..
 
-    a.  Given an array of integers nums of size n and an integer target, return the indices of two distinct elements such that nums[i] + nums[j] = target.
-    b.  Given an array nums and a target T, return the two numbers that sum to T. If multiple answers exist, return any.
+### 1. Randomize questions on each run
 
-I have point 2 implemented for Level 1 with around 90 questions, and some questions have variations. It took a significant amount of time and consumed most of my Codex and Opus weekly quotas as such I did not optimize for this in Level 2 and Level 3, we can get more level 3 problems by running codex or opus overnight, with good instructions.
+lvl 1,2,3 serve questions from large datasets that can be scaled with more LLM tokens if needed(more on "industrializing" creating questions with llm skills below)
 
-Ideally, I would have preferred dynamically picking random Codeforces and LeetCode questions for Level 1, but that violates the terms of service of those platforms. Some, like Codeforces, allow it for personal use, but for a hiring challenge this would be a violation.
+### 2. Abuse controls at the route level
 
-## What changed vs v1
+The app now has route-specific abuse limits, identity keys, shadow-ban behavior and trusted fingerprint support. This is less glamorous than the challenge design itself, but it matters a lot. If the challenge can be spammed or brute forced from one box with no friction, then the scoring becomes noisy very quickly.
 
-Kept:
+I do not think abuse prevention needs to be perfect here. It just needs to make mass probing and replaying meaningfully more expensive while keeping the experience smooth for honest candidates.
 
-- Next.js app + Convex backend.
-- Multi-level challenge concept.
-- Local dev workflow.
-- Level 1 is still spiritually similar
+### 3. Session-specific assignment and hidden evaluation
 
-Changed:
+v1 was much closer to a public puzzle box. Start a session, get a fixed kind of coding game, optimize hard, submit. That is fast and fun but also easier to reverse engineer.
 
-- New levels 2 and 3
-- level 1 has more problems(10vs25), a new ('competitive')category of problems from ICPC contests archive(licensed under CC0 1.0 Universal)
-- Stronger anti-gaming via variants + hidden checks/fingerprinting.
-- Telementary
+In v2 the per-session new task assignment, multiple levels, multiple combination of problems and hidden checks reduce the usefulness of static answer sharing and hardcoding. Someone can still try to game it, but now they need a much more adaptive system to do so, and that is actually closer to what we want to measure.
 
-## Tradeoffs / concerns
+### 5. Give reviewers evidence instead of pretending automation is enough
 
-1. Complexity. Better signal costs more engineering and more maintenance.
-2. It will take a lot of tokens and human oversight to come up with more questions for level 2 and 3
-3. added KV-store and sandbox to the infra, vercel bill will be higher.
-4. The anti cheat/anti abuse is not full proof, but it is "good enough" in the sense that most bad actors will be rate-limited then shadow banned.
-5. This kind of tracking with fingerprintjs and IP to a certain extent also allows us to indentify cheaters across their multiple github accounts
+No anti-cheat system is perfect. The correct move is not to pretend it is. The correct move is to expose risk flags, identity evidence, suspicious sessions and operator review tools so a human can make the final call when something looks off.
+
+## 5. Scoring and evaluation strategy
+
+I think the biggest scoring mistake in challenges like this is when they collapse everything into a single number and then trust that number too much.
+
+The leaderboard score still matters. Speed, correctness and difficulty still tell you something. But for a role like this, the score should be one signal among several, not the entire truth.
+
+So the actual evaluation logic I am optimizing for is:
+
+1. Can they clear Level 1 in a way that suggests they can operate under time pressure?
+2. Can they do Level 2, which is much more about search strategy, retrieval quality and verification?
+3. Can they survive Level 3, which is where harness quality and systems thinking matter most?
+4. Did they trigger anti-cheat or injection-related risk flags?
+5. What does the telemetry suggest about how they approached the challenge?
+
+This is why the reviewer dashboard matters. The ideal outcome is not "fully automated ranking with fake precision". The ideal outcome is:
+
+1. automation narrows the funnel
+2. richer telemetry surfaces suspicious or exceptional cases
+3. a human reviewer makes the last mile decision
+
+The scoring is also intentionally level-shaped:
+
+1. Level 1 still rewards correctness, difficulty, and time remaining. This preserves some of the game feel from v1.
+2. Level 2 is a much better proxy for whether someone can aim agents at large real codebases and get grounded answers back.
+3. Level 3 is the closest thing in this repo to actual harness engineering ability, because it forces the candidate to iterate against a spec and survive hidden checks in a native environment.
+
+So if I had to summarize the philosophy in one sentence: I do not want to know who can prompt fastest, I want to know who can build the best loop.
+
+## 6. What changed vs v1
+
+the delta is pretty substantial.
+
+v1 was basically:
+
+1. one fast coding round
+2. QuickJS validation
+3. leaderboard-centric evaluation
+4. some clever exploit / landmine mechanics
+5. a much narrower view of candidate ability
+
+In v2 I changed that in a few major ways:
+
+1. It is now a 3-level progression instead of one coding sprint.
+2. The middle of the challenge is source-diving, not just more code generation.
+3. The final layer is native sandbox execution in C/C++/Rust with sample, smoke and hidden checks.
+4. There is now real analytics, identity linking, abuse controls and reviewer telemetry.
+5. The eval is much more focused on orchestration quality and harness engineering than pure speed.
+
+What I kept from v1:
+
+1. The web-native product shape
+2. The fast feedback loop
+3. The competitive/timed feel
+4. The adversarial spirit of exploits and landmines
+
+So this is not a total rejection of v1. It is more like taking the fun, sharp, game-like shell of v1 and then making the actual signal much more relevant to the kind of people the company probably wants to hire.
+
+## 7. Tradeoffs and future work
+
+There are definitely tradeoffs here.
+
+### Tradeoffs
+
+1. The infrastructure is more complex now. GitHub auth, Convex, abuse controls, analytics, and Vercel Sandbox are much more realistic than a toy challenge, but they also cost more to operate.
+2. Manual review still matters. I think this is good, not bad, but it means the system is not purely self-serve for final hiring decisions.
+3. Level 2 answer grading can still be made better. Source-diving questions are higher signal than toy coding, but answer normalization is always a bit messy.
+4. Level 3 is much closer to real harness engineering, but it is still a bounded sandbox and not a messy long-running production environment.
+
+### Future work
+
+1. Require evidence-backed submissions for Level 2, not just final answers. I would love candidates to submit the grep/path/context that got them there.
+2. Add a challenge mode that explicitly tests multi-agent decomposition and recovery from tool failures.
+3. Make session generation even more dynamic so answer sharing decays faster over time.
+4. Improve the telemetry dashboard with session playback, artifact inspection and maybe prompt/tool trace viewing.
+5. Calibrate the challenge against actual hiring outcomes after a few cycles so the system gets tuned on real signal rather than vibes.
+
+If I had more time, this is the main direction I would keep pushing: less "can you win a clever benchmark" and more "can you build agent systems that actually hold up under pressure".
