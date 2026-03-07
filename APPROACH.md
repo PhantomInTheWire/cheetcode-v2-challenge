@@ -162,9 +162,7 @@ There are definitely tradeoffs here.
 ### Future work
 
 1. Require evidence-backed submissions for Level 2, not just final answers. I would love candidates to submit the grep/path/context that got them there.
-2. Add a challenge mode that explicitly tests multi-agent decomposition and recovery from tool failures.
-3. Make session generation even more dynamic so answer sharing decays faster over time.
-4. Improve the telemetry dashboard with session playback, artifact inspection and maybe prompt/tool trace viewing.
-5. Calibrate the challenge against actual hiring outcomes after a few cycles so the system gets tuned on real signal rather than vibes.
+2. More level 3 problems
+3. A level 4 that involves a lot red teaming OSS projects, it seems AI models are not good at finding vulnerabilities [but they can't independantly exploit them](https://red.anthropic.com/2026/firefox/)
 
 If I had more time, this is the main direction I would keep pushing: less "can you win a clever benchmark" and more "can you build agent systems that actually hold up under pressure".
