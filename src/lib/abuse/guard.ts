@@ -128,6 +128,26 @@ function prune(events: number[], cutoff: number): number[] {
   return firstValid === 0 ? events : events.slice(firstValid);
 }
 
+export function isIdentityKeyShadowBanned(identityKey: string, now: number = Date.now()): boolean {
+  const expiresAt = shadowBans.get(identityKey) ?? 0;
+  if (expiresAt <= now) {
+    if (expiresAt > 0) shadowBans.delete(identityKey);
+    return false;
+  }
+  return true;
+}
+
+export function setShadowBanForIdentityKey(
+  identityKey: string,
+  ttlMs: number = SHADOW_BAN_DURATION_MS,
+): void {
+  shadowBans.set(identityKey, Date.now() + Math.max(1, ttlMs));
+}
+
+export function clearShadowBanForIdentityKey(identityKey: string): void {
+  shadowBans.delete(identityKey);
+}
+
 export function checkAndTrackAbuse(request: Request, route: AbuseRoute): AbuseDecision {
   if (process.env.NODE_ENV === "test") {
     return { limited: false, retryAfterSeconds: 0, shadowBanned: false };

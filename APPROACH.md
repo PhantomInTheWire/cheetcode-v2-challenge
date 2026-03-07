@@ -83,7 +83,7 @@ I do not think abuse prevention needs to be perfect here. It just needs to make 
 
 ### 3. Session-specific assignment and hidden evaluation
 
-v1 was much closer to a public puzzle box. Start a session, get a fixed kind of coding game, optimize hard, submit. That is fast and fun but also easier to reverse engineer.
+v1 was much closer to a public puzzle box. Start a session, get a fixed kind of coding game, submit. That is fast and fun but also easier to reverse engineer.
 
 In v2 the per-session new task assignment, multiple levels, multiple combination of problems and hidden checks reduce the usefulness of static answer sharing and hardcoding. Someone can still try to game it, but now they need a much more adaptive system to do so, and that is actually closer to what we want to measure.
 
@@ -113,9 +113,9 @@ This is why the reviewer dashboard matters. The ideal outcome is not "fully auto
 
 The scoring is also intentionally level-shaped:
 
-1. Level 1 still rewards correctness, difficulty, and time remaining. This preserves some of the game feel from v1.
+1. Level 1 still rewards correctness, difficulty, and time remaining. This preserves some of the game feel from v1, while optimmizing for better orchestration.
 2. Level 2 is a much better proxy for whether someone can aim agents at large real codebases and get grounded answers back.
-3. Level 3 is the closest thing in this repo to actual harness engineering ability, because it forces the candidate to iterate against a spec and survive hidden checks in a native environment.
+3. Level 3 is the closest thing in this repo to actual harness engineering ability, because it forces the candidate to iterate against a spec and survive hidden checks and benchmarks in a native environment.
 
 So if I had to summarize the philosophy in one sentence: I do not want to know who can prompt fastest, I want to know who can build the best loop.
 

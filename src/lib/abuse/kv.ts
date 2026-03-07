@@ -6,6 +6,10 @@ const SHADOW_BAN_DURATION_SECONDS = 24 * 60 * 60;
 const KEY_PREFIX = "ctf:abuse:v1";
 let redisClient: Redis | null | undefined;
 
+function getShadowBanStorageKey(identityKey: string): string {
+  return `${KEY_PREFIX}:ban:${identityKey}`;
+}
+
 function getRedisClient(): Redis | null {
   if (redisClient !== undefined) return redisClient;
   if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
@@ -50,6 +54,42 @@ async function markShadowBan(key: string): Promise<void> {
   await redis.set(key, "1", { ex: SHADOW_BAN_DURATION_SECONDS });
 }
 
+export async function getKvShadowBanStates(
+  identityKeys: string[],
+): Promise<Record<string, boolean>> {
+  const redis = getRedisClient();
+  const uniqueKeys = [...new Set(identityKeys)];
+  if (!redis || uniqueKeys.length === 0) return {};
+
+  const pipeline = redis.pipeline();
+  for (const identityKey of uniqueKeys) {
+    pipeline.get(getShadowBanStorageKey(identityKey));
+  }
+  const results = await pipeline.exec();
+
+  return Object.fromEntries(
+    uniqueKeys.map((identityKey, index) => {
+      const value = results?.[index];
+      return [identityKey, value === "1" || value === 1];
+    }),
+  );
+}
+
+export async function setKvShadowBan(
+  identityKey: string,
+  ttlSeconds: number = SHADOW_BAN_DURATION_SECONDS,
+): Promise<void> {
+  const redis = getRedisClient();
+  if (!redis) return;
+  await redis.set(getShadowBanStorageKey(identityKey), "1", { ex: Math.max(1, ttlSeconds) });
+}
+
+export async function clearKvShadowBan(identityKey: string): Promise<void> {
+  const redis = getRedisClient();
+  if (!redis) return;
+  await redis.del(getShadowBanStorageKey(identityKey));
+}
+
 export async function checkAndTrackAbuseInKv(
   request: Request,
   route: AbuseRoute,
@@ -74,7 +114,7 @@ export async function checkAndTrackAbuseInKv(
   for (const identity of keys) {
     const shortKey = `${KEY_PREFIX}:short:${route}:${identity}`;
     const longKey = `${KEY_PREFIX}:long:${route}:${identity}`;
-    const banKey = `${KEY_PREFIX}:ban:${identity}`;
+    const banKey = getShadowBanStorageKey(identity);
 
     const [shortHits, longHits, banFlag] = await Promise.all([
       incrementWindowCounter(shortKey, shortWindowSeconds),

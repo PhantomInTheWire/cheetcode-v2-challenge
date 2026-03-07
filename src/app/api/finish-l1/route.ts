@@ -230,6 +230,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         ...result,
+        completedLevel: solvedProblemIds.length === session.problemIds.length,
         exploits: exploits.map((e) => ({ id: e.id, bonus: e.bonus, message: e.message })),
         landmines: landmines.map((l) => ({ id: l.id, penalty: l.penalty, message: l.message })),
       });

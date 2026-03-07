@@ -14,6 +14,7 @@ import {
   type StoredSessionSnapshot,
 } from "@/lib/gameTypes";
 import { clientFetch } from "@/lib/client-identity";
+import { postSessionReplayEvent } from "@/lib/session-replay-client";
 
 type LeaderboardRow = { solved: number };
 
@@ -49,6 +50,10 @@ const LEVEL1_PASS_STORAGE_KEY = "cheetcode.level1Pass";
 const DRAFT_PERSIST_DEBOUNCE_MS = 250;
 const RESTORE_REQUEST_TIMEOUT_MS = 8_000;
 const ORIGINAL_TWEET_URL = "https://x.com/CalebPeffer/status/2024167056372097131";
+
+function reportReplayLoggingFailure(error: unknown): void {
+  console.error("[session-replay] completion logging failed", error);
+}
 
 function sessionScopedStorageKey(baseKey: string, sessionId: string) {
   return `${baseKey}:${sessionId}`;
@@ -254,6 +259,19 @@ export function useHomeGameState({
     setIsRestoringSession(false);
   }, [abortRestoreRequest]);
 
+  const clearActiveSessionRuntime = useCallback(() => {
+    setSessionId(null);
+    setExpiresAt(0);
+    setProblems([]);
+    setL2Problems([]);
+    setL3Challenge(null);
+    setL2Answers({});
+    setL3CodeDraft("");
+    setCodes({});
+    setLocalPass({});
+    lockedTimeElapsedMsRef.current = null;
+  }, []);
+
   const clearFlowState = useCallback(() => {
     clearStoredFlowScreen();
     clearStoredResults();
@@ -349,6 +367,8 @@ export function useHomeGameState({
             (flow.screen === "level2-prereq" || flow.screen === "level3-prereq") &&
             (flow.pendingLevel === 2 || flow.pendingLevel === 3)
           ) {
+            setResults(null);
+            clearStoredResults();
             setPendingLevel(flow.pendingLevel);
             setScreen(flow.screen);
             setDidBootstrapSession(true);
@@ -471,9 +491,44 @@ export function useHomeGameState({
         throw new Error(data.error || `finish failed: ${res.status}`);
       }
       const data = await res.json();
+      if (data.completedLevel === true) {
+        void postSessionReplayEvent({
+          sessionId,
+          level: 1,
+          eventType: "session_completed",
+          screen: "playing",
+          summary: {
+            github,
+            screen: "playing",
+            level: 1,
+            expiresAt,
+            solvedLocal,
+            completedLevel: true,
+          },
+          snapshot: {
+            type: "level1",
+            problems: problems.map((problem) => ({
+              id: problem.id,
+              title: problem.title,
+              tier: problem.tier,
+            })),
+            codes,
+            localPass,
+          },
+        }).catch(reportReplayLoggingFailure);
+      }
       clearStoredSession();
-      setResults(data);
-      setScreen("results");
+      if (data.completedLevel === true) {
+        clearActiveSessionRuntime();
+        clearStoredResults();
+        setResults(null);
+        setPendingLevel(2);
+        persistFlowScreen("level2-prereq", 2);
+        setScreen("level2-prereq");
+      } else {
+        setResults(data);
+        setScreen("results");
+      }
     } catch (err) {
       console.error("submitResults failed:", err);
       setSubmitError(err instanceof Error ? err.message : "Submission failed. Please try again.");
@@ -489,7 +544,13 @@ export function useHomeGameState({
     problems,
     codes,
     flag,
+    clearStoredResults,
     clearStoredSession,
+    clearActiveSessionRuntime,
+    persistFlowScreen,
+    setResults,
+    localPass,
+    solvedLocal,
   ]);
 
   useEffect(() => {
@@ -1057,7 +1118,9 @@ export function useHomeGameState({
     shareScore,
     autoSolve,
     clearStoredSession,
+    clearActiveSessionRuntime,
     clearStoredFlowScreen,
+    persistFlowScreen,
     copyToClipboard,
     canAutoSolve,
   };

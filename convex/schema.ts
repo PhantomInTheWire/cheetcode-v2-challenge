@@ -110,4 +110,63 @@ export default defineSchema({
     lastEventType: v.string(),
     lastStatus: v.string(),
   }).index("by_session", ["sessionId"]),
+
+  sessionReplayEvents: defineTable({
+    sessionId: v.id("sessions"),
+    github: v.string(),
+    level: v.number(),
+    eventType: v.string(),
+    screen: v.string(),
+    route: v.string(),
+    createdAt: v.number(),
+    clientAt: v.optional(v.number()),
+    sequence: v.number(),
+    duplicateOfPrevious: v.boolean(),
+    snapshotHash: v.optional(v.string()),
+    snapshotSize: v.optional(v.number()),
+    summaryJson: v.string(),
+    snapshotJson: v.optional(v.string()),
+    snapshotPreviewJson: v.optional(v.string()),
+  })
+    .index("by_session", ["sessionId", "createdAt"])
+    .index("by_github", ["github", "createdAt"])
+    .index("by_created", ["createdAt"]),
+
+  sessionReplayPresence: defineTable({
+    sessionId: v.id("sessions"),
+    github: v.string(),
+    level: v.number(),
+    screen: v.string(),
+    route: v.string(),
+    status: v.string(),
+    startedAt: v.number(),
+    expiresAt: v.number(),
+    lastSeenAt: v.number(),
+    lastEventAt: v.number(),
+    lastEventType: v.string(),
+    eventCount: v.number(),
+    duplicateSnapshotCount: v.number(),
+    lastSnapshotHash: v.optional(v.string()),
+    summaryJson: v.string(),
+    snapshotPreviewJson: v.optional(v.string()),
+    completedAt: v.optional(v.number()),
+  })
+    .index("by_session", ["sessionId"])
+    .index("by_last_seen", ["lastSeenAt"]),
+
+  sessionIdentityLinks: defineTable({
+    sessionId: v.id("sessions"),
+    github: v.string(),
+    level: v.number(),
+    identityKey: v.string(),
+    identityKind: v.string(),
+    route: v.string(),
+    screen: v.optional(v.string()),
+    firstSeenAt: v.number(),
+    lastSeenAt: v.number(),
+  })
+    .index("by_session", ["sessionId"])
+    .index("by_identity", ["identityKey", "lastSeenAt"])
+    .index("by_github", ["github", "lastSeenAt"])
+    .index("by_last_seen", ["lastSeenAt"]),
 });

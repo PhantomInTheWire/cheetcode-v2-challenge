@@ -50,4 +50,17 @@ describe("proxy fingerprint promotion", () => {
     expect(captured.fingerprint).toBe("fp-real-visitor-id");
     expect(response.headers.get("set-cookie")).toContain("ctf_fp=fp-real-visitor-id");
   });
+
+  it("promotes trusted fingerprint headers for replay requests even without abuse checks", async () => {
+    const { proxy } = await import("../proxy");
+    const request = new NextRequest("https://example.com/api/session/replay", {
+      method: "POST",
+      headers: {
+        "x-client-fingerprint": "fp-replay-visitor-id",
+      },
+    });
+
+    const response = await proxy(request);
+    expect(response.headers.get("set-cookie")).toContain("ctf_fp=fp-replay-visitor-id");
+  });
 });

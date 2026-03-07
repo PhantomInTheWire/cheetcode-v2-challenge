@@ -18,4 +18,7 @@ export const ENV = {
   get CONVEX_MUTATION_SECRET() {
     return getRequiredEnv("CONVEX_MUTATION_SECRET");
   },
+  get ADMIN_GITHUB_USERS() {
+    return process.env.ADMIN_GITHUB_USERS ?? "";
+  },
 } as const;

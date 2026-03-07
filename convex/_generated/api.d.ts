@@ -12,6 +12,8 @@ import type * as attemptTelemetry from "../attemptTelemetry.js";
 import type * as helpers from "../helpers.js";
 import type * as leaderboard from "../leaderboard.js";
 import type * as leads from "../leads.js";
+import type * as sessionIdentity from "../sessionIdentity.js";
+import type * as sessionReplay from "../sessionReplay.js";
 import type * as sessions from "../sessions.js";
 import type * as submissions from "../submissions.js";
 
@@ -26,6 +28,8 @@ declare const fullApi: ApiFromModules<{
   helpers: typeof helpers;
   leaderboard: typeof leaderboard;
   leads: typeof leads;
+  sessionIdentity: typeof sessionIdentity;
+  sessionReplay: typeof sessionReplay;
   sessions: typeof sessions;
   submissions: typeof submissions;
 }>;

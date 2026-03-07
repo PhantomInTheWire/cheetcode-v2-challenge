@@ -11,7 +11,6 @@ type OwnedSession = {
   expiresAt: number;
   level?: number;
 };
-const FINISH_ROUTE_EXPIRY_GRACE_MS = 5_000;
 
 /**
  * Common orchestration for "finish" routes:
@@ -20,6 +19,8 @@ const FINISH_ROUTE_EXPIRY_GRACE_MS = 5_000;
  * 3. Verify session ownership and level
  * 4. Execute level-specific logic
  */
+export const FINISH_ROUTE_EXPIRY_GRACE_MS = 5_000;
+
 export async function withAuthenticatedSession<TBody extends { sessionId: string }>(
   request: Request,
   expectedLevel: 1 | 2 | 3,

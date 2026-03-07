@@ -53,9 +53,6 @@ function rateLimitBody(pathname: string): Record<string, unknown> {
 export async function proxy(request: NextRequest) {
   if (request.method !== "POST") return NextResponse.next();
 
-  const route = API_ROUTE_TO_ABUSE_ROUTE[request.nextUrl.pathname];
-  if (!route) return NextResponse.next();
-
   const fingerprintCookie = request.cookies.get(FINGERPRINT_COOKIE)?.value?.trim();
   const rawClientFingerprint = request.headers.get("x-client-fingerprint")?.trim();
   const normalizedClientFingerprint =
@@ -74,6 +71,15 @@ export async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete(SHADOW_BAN_HEADER);
   requestHeaders.set(TRUSTED_FINGERPRINT_HEADER, fingerprint);
+
+  const route = API_ROUTE_TO_ABUSE_ROUTE[request.nextUrl.pathname];
+  if (!route) {
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    if (!fingerprintCookie || shouldPromoteClientFingerprint) {
+      setFingerprintCookie(response, fingerprint);
+    }
+    return response;
+  }
 
   const kvAbuse = await checkAndTrackAbuseInKv(
     new Request(request.url, { method: request.method, headers: requestHeaders }),
@@ -122,5 +128,6 @@ export const proxyConfig = {
     "/api/finish-l1",
     "/api/finish-l2",
     "/api/finish-l3",
+    "/api/session/replay",
   ],
 };
