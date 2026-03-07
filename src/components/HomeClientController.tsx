@@ -8,6 +8,7 @@ import { api } from "../../convex/_generated/api";
 import { TOTAL_SOLVE_TARGET } from "@/lib/gameTypes";
 import { isClientDevMode } from "@/lib/myEnv";
 import { useHomeGameState } from "@/hooks/useHomeGameState";
+import { useSessionReplay } from "@/hooks/useSessionReplay";
 import type { HomeClientProps } from "@/components/HomeClient";
 
 const MOBILE_BREAKPOINT = 900;
@@ -226,6 +227,8 @@ function renderPlayingScreen(params: {
   setL3CodeDraft: HomeGameState["setL3CodeDraft"];
   updateActiveSessionExpiry: HomeGameState["updateActiveSessionExpiry"];
   clearStoredSession: HomeGameState["clearStoredSession"];
+  setPendingLevel: HomeGameState["setPendingLevel"];
+  persistFlowScreen: HomeGameState["persistFlowScreen"];
   setResults: HomeGameState["setResults"];
   setScreen: HomeGameState["setScreen"];
   autoSolve: HomeGameState["autoSolve"];
@@ -242,6 +245,14 @@ function renderPlayingScreen(params: {
 }) {
   const finishAndShowResults = (nextResults: HomeGameState["results"]) => {
     params.clearStoredSession();
+    if (params.currentLevel === 2 && nextResults?.completedLevel === true) {
+      params.setResults(null);
+      params.setPendingLevel(3);
+      params.persistFlowScreen("level3-prereq", 3);
+      params.setScreen("level3-prereq");
+      return;
+    }
+
     params.setResults(nextResults);
     if (params.currentLevel === 3) {
       params.setScreen("level3-verification");
@@ -321,6 +332,7 @@ function renderHomeScreen(params: {
   copyToClipboard: HomeGameState["copyToClipboard"];
   launchLevel: HomeGameState["launchLevel"];
   clearStoredFlowScreen: HomeGameState["clearStoredFlowScreen"];
+  persistFlowScreen: HomeGameState["persistFlowScreen"];
   setPendingLevel: HomeGameState["setPendingLevel"];
   setScreen: HomeGameState["setScreen"];
   level3Preview: HomeGameState["level3Preview"];
@@ -421,6 +433,8 @@ function renderHomeScreen(params: {
       setL3CodeDraft: params.setL3CodeDraft,
       updateActiveSessionExpiry: params.updateActiveSessionExpiry,
       clearStoredSession: params.clearStoredSession,
+      setPendingLevel: params.setPendingLevel,
+      persistFlowScreen: params.persistFlowScreen,
       setResults: params.setResults,
       setScreen: params.setScreen,
       autoSolve: params.autoSolve,
@@ -598,6 +612,7 @@ export function HomeClientController({
     autoSolve,
     clearStoredSession,
     clearStoredFlowScreen,
+    persistFlowScreen,
     copyToClipboard,
   } = useHomeGameState({
     github,
@@ -607,6 +622,27 @@ export function HomeClientController({
     unlockedLevel: effectiveUnlockedLevel,
     isLocalDev,
     canAutoSolve,
+  });
+
+  useSessionReplay({
+    github,
+    isAuthenticated,
+    sessionId,
+    currentLevel,
+    screen,
+    expiresAt,
+    problems,
+    codes,
+    localPass,
+    l2Problems,
+    l2Answers,
+    l3Challenge,
+    l3CodeDraft,
+    results,
+    isSubmitting,
+    isRestoringSession,
+    submitError,
+    submittedLead,
   });
 
   return renderHomeScreen({
@@ -631,6 +667,7 @@ export function HomeClientController({
     copyToClipboard,
     launchLevel,
     clearStoredFlowScreen,
+    persistFlowScreen,
     setPendingLevel,
     setScreen,
     level2Preview,

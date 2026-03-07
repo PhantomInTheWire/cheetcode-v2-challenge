@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 import { requireAuthenticatedGithub } from "../../../lib/request-auth";
 import { getLevel3ChallengeFromId } from "../../../../server/level3/problems";
 import { normalizeTestCasesWithArgs } from "../../../lib/testcaseArgs";
 import { ENV } from "../../../lib/env-vars";
+import { recordSessionIdentity } from "../../../lib/session-identity";
 
 type SessionLevel1Problem = {
   id: string;
@@ -79,6 +81,18 @@ export async function POST(request: Request) {
         } as (typeof result.problems)[number];
       }
     }
+
+    await recordSessionIdentity({
+      convex,
+      secret: mutationSecret,
+      request,
+      sessionId: result.sessionId as Id<"sessions">,
+      github,
+      level: result.level as 1 | 2 | 3,
+      route: "/api/session",
+      screen: "playing",
+    });
+
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to create session";

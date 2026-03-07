@@ -43,6 +43,7 @@ export type ResultsData = {
   solved: number;
   rank: number;
   timeRemaining: number;
+  completedLevel?: boolean;
   exploits?: ExploitInfo[];
   landmines?: LandmineInfo[];
   validation?: {

@@ -2,6 +2,7 @@ import { isIP } from "is-ip";
 
 const DEFAULT_IDENTITY = "anon";
 export const TRUSTED_FINGERPRINT_HEADER = "x-ctf-fingerprint";
+const CLIENT_FINGERPRINT_HEADER = "x-client-fingerprint";
 
 function hashIdentity(raw: string): string {
   let h1 = 0x811c9dc5;
@@ -70,7 +71,10 @@ function extractIpAddress(request: Request): string {
 
 export function getIdentityKeys(request: Request): string[] {
   const ip = extractIpAddress(request);
-  const fingerprint = request.headers.get(TRUSTED_FINGERPRINT_HEADER)?.trim() || DEFAULT_IDENTITY;
+  const fingerprint =
+    request.headers.get(TRUSTED_FINGERPRINT_HEADER)?.trim() ||
+    request.headers.get(CLIENT_FINGERPRINT_HEADER)?.trim() ||
+    DEFAULT_IDENTITY;
 
   const keys = new Set<string>();
   keys.add(`ip:${hashIdentity(ip)}`);
@@ -78,4 +82,19 @@ export function getIdentityKeys(request: Request): string[] {
     keys.add(`fp:${hashIdentity(fingerprint)}`);
   }
   return [...keys];
+}
+
+export type IdentityDescriptor = {
+  key: string;
+  kind: "ip" | "fp";
+};
+
+export function getIdentityDescriptors(request: Request): IdentityDescriptor[] {
+  return getIdentityKeys(request)
+    .map((key) => {
+      const [kind] = key.split(":", 1);
+      if (kind !== "ip" && kind !== "fp") return null;
+      return { key, kind };
+    })
+    .filter((entry): entry is IdentityDescriptor => entry !== null);
 }

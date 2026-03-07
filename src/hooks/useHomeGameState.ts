@@ -472,8 +472,16 @@ export function useHomeGameState({
       }
       const data = await res.json();
       clearStoredSession();
-      setResults(data);
-      setScreen("results");
+      if (data.completedLevel === true) {
+        clearStoredResults();
+        setResults(null);
+        setPendingLevel(2);
+        persistFlowScreen("level2-prereq", 2);
+        setScreen("level2-prereq");
+      } else {
+        setResults(data);
+        setScreen("results");
+      }
     } catch (err) {
       console.error("submitResults failed:", err);
       setSubmitError(err instanceof Error ? err.message : "Submission failed. Please try again.");
@@ -489,7 +497,10 @@ export function useHomeGameState({
     problems,
     codes,
     flag,
+    clearStoredResults,
     clearStoredSession,
+    persistFlowScreen,
+    setResults,
   ]);
 
   useEffect(() => {
@@ -1058,6 +1069,7 @@ export function useHomeGameState({
     autoSolve,
     clearStoredSession,
     clearStoredFlowScreen,
+    persistFlowScreen,
     copyToClipboard,
     canAutoSolve,
   };

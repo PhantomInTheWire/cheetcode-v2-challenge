@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   acquireLevel3InflightLock,
+  clearShadowBanForIdentityKey,
+  isIdentityKeyShadowBanned,
   releaseLevel3InflightLock,
   resetLevel3InflightLocksForTests,
+  setShadowBanForIdentityKey,
 } from "../src/lib/abuse/guard";
 
 describe("level3 inflight guard", () => {
@@ -83,5 +86,14 @@ describe("level3 inflight guard", () => {
     if (second.ok) {
       releaseLevel3InflightLock(second.lock);
     }
+  });
+
+  it("lets admin code set and clear a local shadow ban", () => {
+    const identityKey = "fp:1234567890abcdef";
+    setShadowBanForIdentityKey(identityKey, 60_000);
+    expect(isIdentityKeyShadowBanned(identityKey)).toBe(true);
+
+    clearShadowBanForIdentityKey(identityKey);
+    expect(isIdentityKeyShadowBanned(identityKey)).toBe(false);
   });
 });

@@ -88,7 +88,10 @@ export async function POST(request: Request) {
         },
       });
 
-      return NextResponse.json(result);
+      return NextResponse.json({
+        ...result,
+        completedLevel: solvedProblemIds.length === session.problemIds.length,
+      });
     },
   );
 }

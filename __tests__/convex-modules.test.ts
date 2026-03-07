@@ -2,6 +2,8 @@ import * as attemptTelemetryModule from "../convex/attemptTelemetry";
 import { describe, expect, it } from "vitest";
 import * as leaderboardModule from "../convex/leaderboard";
 import * as leadsModule from "../convex/leads";
+import * as sessionIdentityModule from "../convex/sessionIdentity";
+import * as sessionReplayModule from "../convex/sessionReplay";
 import schema from "../convex/schema";
 
 describe("convex module exports", () => {
@@ -21,6 +23,19 @@ describe("convex module exports", () => {
     expect(attemptTelemetryModule.getSessionTimeline).toBeTruthy();
     expect(attemptTelemetryModule.getGithubTelemetry).toBeTruthy();
     expect(attemptTelemetryModule.getSessionRollup).toBeTruthy();
+  });
+
+  it("exposes session replay functions", () => {
+    expect(sessionReplayModule.recordEventInternal).toBeTruthy();
+    expect(sessionReplayModule.recordEvent).toBeTruthy();
+    expect(sessionReplayModule.getRecentSessions).toBeTruthy();
+    expect(sessionReplayModule.getSessionReplay).toBeTruthy();
+  });
+
+  it("exposes session identity functions", () => {
+    expect(sessionIdentityModule.recordLinksInternal).toBeTruthy();
+    expect(sessionIdentityModule.recordLinks).toBeTruthy();
+    expect(sessionIdentityModule.getRecentLinks).toBeTruthy();
   });
 
   it("exports schema definition", () => {
