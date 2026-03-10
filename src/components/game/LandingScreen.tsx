@@ -210,7 +210,7 @@ export function LandingScreen({
                   fontFamily: "var(--font-geist-mono), monospace",
                 }}
               >
-                cheetcode-ctf.firecrawl.dev
+                {SITE_URL.replace(/^https?:\/\//, "")}
               </a>
             </div>
           </div>

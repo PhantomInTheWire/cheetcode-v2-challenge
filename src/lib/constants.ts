@@ -3,7 +3,7 @@
  */
 
 /** Site URL */
-export const SITE_URL = "https://cheetcode-ctf.firecrawl.dev";
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 /** Round duration in milliseconds (60 seconds) */
 export const ROUND_DURATION_MS = 60_000;
