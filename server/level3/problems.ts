@@ -30,10 +30,6 @@ function hydrateChallenge(meta: Level3ChallengeMeta): Level3Challenge {
   };
 }
 
-export function generateLevel3Challenge(): Level3Challenge {
-  return hydrateChallenge(generateLevel3ChallengeMeta());
-}
-
 export function getLevel3ChallengeFromId(challengeId: string): Level3Challenge | null {
   const meta = getLevel3ChallengeMetaFromId(challengeId);
   if (!meta) return null;

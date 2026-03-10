@@ -62,7 +62,16 @@ describe("/api/validate-l1", () => {
 
     const res = await POST(req);
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toEqual({ passed: true });
+    await expect(res.json()).resolves.toMatchObject({
+      sessionId: "s1",
+      problemId: assignedProblem.id,
+      expiresAt: 61_000,
+      status: "passed",
+      passCount: assignedProblem.testCases.length,
+      failCount: 0,
+      totalCount: assignedProblem.testCases.length,
+      passed: true,
+    });
     expect(hoisted.actionMock).toHaveBeenCalledTimes(1);
     expect(hoisted.actionMock.mock.calls[0]?.[1]).toMatchObject({
       sessionId: "s1",
@@ -103,7 +112,7 @@ describe("/api/validate-l1", () => {
       eventType: "validate_l1",
       status: "failed",
       errorType: "wrong_answer",
-      failCount: 1,
+      failCount: assignedProblem.testCases.length,
     });
   });
 

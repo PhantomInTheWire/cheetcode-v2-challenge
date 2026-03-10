@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
-import { PROBLEMS_PER_SESSION, ROUND_DURATION_MS } from "@/lib/constants";
+import { PROBLEMS_PER_SESSION } from "@/lib/constants";
 import { FIRECRAWL_FLAME_SVG } from "@/components/game/firecrawl-flame";
 import { BrailleSpinner } from "./decor";
+import { useRoundCountdown } from "@/hooks/useRoundCountdown";
 
 type GameProblem = {
   id: string;
@@ -55,18 +56,7 @@ export function Level1Game({
   runLocalCheckAction,
 }: Level1GameProps) {
   const [expandedQuestions, setExpandedQuestions] = React.useState<Record<string, boolean>>({});
-  const [timeLeftMs, setTimeLeftMs] = React.useState(ROUND_DURATION_MS);
-
-  React.useEffect(() => {
-    const syncTimeLeft = () => {
-      setTimeLeftMs(Math.max(0, expiresAt - Date.now()));
-    };
-    syncTimeLeft();
-    const id = window.setInterval(syncTimeLeft, 1000);
-    return () => window.clearInterval(id);
-  }, [expiresAt]);
-
-  const timeUp = timeLeftMs === 0;
+  const { timeUp } = useRoundCountdown(expiresAt);
 
   return (
     <div

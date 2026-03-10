@@ -19,7 +19,7 @@ export async function requireOwnedSession(
   options?: { expiryGraceMs?: number },
 ): Promise<{ session: OwnedSession; convex: ConvexHttpClient } | { response: NextResponse }> {
   const convex = new ConvexHttpClient(ENV.NEXT_PUBLIC_CONVEX_URL);
-  const session = (await convex.query(api.submissions.getSession, {
+  const session = (await convex.query(api.sessions.getSession, {
     secret: ENV.CONVEX_MUTATION_SECRET,
     sessionId: sessionId as Id<"sessions">,
   })) as OwnedSession | null;

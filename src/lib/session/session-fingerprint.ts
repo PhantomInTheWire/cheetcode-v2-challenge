@@ -3,6 +3,8 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { api } from "../../../convex/_generated/api";
 import type { UnverifiedFingerprintHints } from "../fingerprint/fingerprint-shared";
 
+type ConvexActionReference = Parameters<ConvexHttpClient["action"]>[0];
+
 type SessionFingerprintInput = {
   convex: ConvexHttpClient;
   secret: string;
@@ -18,26 +20,23 @@ export async function recordSessionFingerprint(input: SessionFingerprintInput): 
   if (!input.fingerprintHints) return;
 
   try {
-    await input.convex.action(
-      (
-        api as typeof api & {
-          sessionIdentity: { recordFingerprintProfile: unknown };
-        }
-      ).sessionIdentity.recordFingerprintProfile,
-      {
-        secret: input.secret,
-        sessionId: input.sessionId,
-        github: input.github,
-        level: input.level,
-        route: input.route,
-        screen: input.screen,
-        createdAt: Date.now(),
-        sourceTrust: "client_unverified",
-        summaryJson: JSON.stringify(input.fingerprintHints),
-      },
-    );
-  } catch (error) {
-    console.warn("[session-fingerprint] best-effort task failed", error);
+    const recordFingerprintProfile = (
+      api as typeof api & {
+        sessionIdentity: { recordFingerprintProfile: ConvexActionReference };
+      }
+    ).sessionIdentity.recordFingerprintProfile;
+    await input.convex.action(recordFingerprintProfile, {
+      secret: input.secret,
+      sessionId: input.sessionId,
+      github: input.github,
+      level: input.level,
+      route: input.route,
+      screen: input.screen,
+      createdAt: Date.now(),
+      sourceTrust: "client_unverified",
+      summaryJson: JSON.stringify(input.fingerprintHints),
+    });
+  } catch {
     return;
   }
 }

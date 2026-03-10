@@ -108,8 +108,7 @@ export async function recordAttemptTelemetry(input: TelemetryEventInput): Promis
         artifactJson,
       },
     );
-  } catch (error) {
-    console.warn("[attempt-telemetry] best-effort task failed", error);
+  } catch {
     return;
   }
 }

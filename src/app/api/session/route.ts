@@ -10,6 +10,7 @@ import { recordSessionIdentity } from "../../../lib/session/session-identity";
 import { recordSessionFingerprint } from "../../../lib/session/session-fingerprint";
 import type { RestoredSessionPayload } from "../../../lib/gameTypes";
 import {
+  buildLevel3ChallengeState,
   buildLevel1SessionPayload,
   buildLevel2SessionPayload,
   buildLevel3SessionPayload,
@@ -90,30 +91,23 @@ export async function POST(request: Request) {
       const fullChallenge = challengeMeta.id ? getLevel3ChallengeFromId(challengeMeta.id) : null;
       if (fullChallenge && Array.isArray(result.problems) && result.problems.length > 0) {
         payload = buildLevel3SessionPayload(sessionMeta, [
-          {
-            id: fullChallenge.id,
-            title: fullChallenge.title,
-            taskId: fullChallenge.taskId,
-            taskName: fullChallenge.taskName,
-            language: fullChallenge.language,
-            spec: fullChallenge.spec,
-            starterCode: fullChallenge.starterCode,
-            checks: fullChallenge.checks.map((c) => ({ id: c.id, name: c.name })),
-          },
+          buildLevel3ChallengeState(fullChallenge),
         ]);
       } else if (Array.isArray(result.problems)) {
         payload = buildLevel3SessionPayload(
           sessionMeta,
-          result.problems as Array<{
-            id: string;
-            title: string;
-            taskId: string;
-            taskName: string;
-            language: string;
-            spec: string;
-            starterCode: string;
-            checks: Array<{ id: string; name: string }>;
-          }>,
+          (
+            result.problems as Array<{
+              id: string;
+              title: string;
+              taskId: string;
+              taskName: string;
+              language: string;
+              spec: string;
+              starterCode: string;
+              checks: Array<{ id: string; name: string }>;
+            }>
+          ).map(buildLevel3ChallengeState),
         );
       } else {
         throw new Error("invalid level 3 session payload");

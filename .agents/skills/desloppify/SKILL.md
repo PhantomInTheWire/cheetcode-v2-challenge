@@ -10,7 +10,7 @@ allowed-tools: Bash(desloppify *)
 ---
 
 <!-- desloppify-begin -->
-<!-- desloppify-skill-version: 4 -->
+<!-- desloppify-skill-version: 5 -->
 
 # Desloppify
 

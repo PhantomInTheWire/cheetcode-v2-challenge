@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 // ── Firecrawl-style ASCII flame texture ───────────────────────────────
 // Matches firecrawl.dev: 9px font, 11px leading, rgba(0,0,0,0.2), ~783px wide
-export const FIRE_TEXTURE_FRAMES = [
+const FIRE_TEXTURE_FRAMES = [
   `                                                                                                                                                 
                                                                                                                                                  
                                                                                                                                                  
@@ -74,7 +74,7 @@ export const FIRE_TEXTURE_FRAMES = [
 ];
 
 // ── Animated side ASCII art frames (small orange blocks, firecrawl style) ──
-export const SIDE_ASCII_FRAMES = [
+const SIDE_ASCII_FRAMES = [
   `  <++++>
  ++XXXXX++
  +XXXXXXX+
@@ -98,7 +98,7 @@ X*XXXXX+X*
   <+++*>`,
 ];
 
-export const BRAILLE_SPINNER_FRAMES = [
+const BRAILLE_SPINNER_FRAMES = [
   "\u28FE",
   "\u28FD",
   "\u28FB",

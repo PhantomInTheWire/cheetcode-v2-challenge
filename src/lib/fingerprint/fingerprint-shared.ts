@@ -241,9 +241,7 @@ function asNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
-function asAutomationVerdict(
-  value: unknown,
-): AutomationVerdict | "unverified_invalid_or_missing" {
+function asAutomationVerdict(value: unknown): AutomationVerdict | "unverified_invalid_or_missing" {
   if (value === "normal" || value === "possibly_automation" || value === "likely_automation") {
     return value;
   }

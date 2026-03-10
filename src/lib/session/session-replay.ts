@@ -96,8 +96,7 @@ export async function recordSessionReplayEvent(input: SessionReplayEventInput): 
         snapshotSize: snapshotJson ? Buffer.byteLength(snapshotJson, "utf8") : undefined,
       },
     );
-  } catch (error) {
-    console.warn("[session-replay] best-effort task failed", error);
+  } catch {
     return;
   }
 }

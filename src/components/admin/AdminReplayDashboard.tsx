@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { formatRelative } from "./time-format";
 
 const LIST_REFRESH_MS = 2_500;
 const DETAIL_REFRESH_MS = 1_500;
@@ -99,17 +100,6 @@ function formatTime(timestamp: number) {
     minute: "2-digit",
     second: "2-digit",
   });
-}
-
-function formatRelative(timestamp: number) {
-  const deltaMs = Date.now() - timestamp;
-  if (deltaMs < 1_000) return "now";
-  const seconds = Math.round(deltaMs / 1_000);
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  return `${hours}h ago`;
 }
 
 function codeBlocksFromSnapshot(snapshot: Record<string, unknown> | null | undefined) {

@@ -23,7 +23,9 @@ export async function acquireLevel3InflightLock(
   request: Request,
   github: string,
 ): Promise<{ ok: true; lock: Level3InflightLock } | { ok: false; reason: "busy" | "unavailable" }> {
-  const scopeKeys = [...new Set([`gh:${github.trim().toLowerCase()}`, ...getIdentityKeys(request)])];
+  const scopeKeys = [
+    ...new Set([`gh:${github.trim().toLowerCase()}`, ...getIdentityKeys(request)]),
+  ];
   const acquired: Level3InflightLock["entries"] = [];
 
   for (const scopeKey of scopeKeys) {

@@ -5,6 +5,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { isClientDevMode } from "../lib/myEnv";
 import { clientFetch } from "../lib/fingerprint/client-identity";
 import { COLORS } from "../lib/theme";
+import { useRoundCountdown } from "../hooks/useRoundCountdown";
 import { FIRECRAWL_FLAME_SVG } from "./game/firecrawl-flame";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -129,7 +130,6 @@ export function Level3Game({
 }: Level3GameProps) {
   const canAutoSolve = isClientDevMode();
   const [code, setCode] = useState(initialCode ?? challenge.starterCode);
-  const [now, setNow] = useState(Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -223,12 +223,7 @@ export function Level3Game({
     },
     [applySmokeResults, onExpiresAtChangeAction],
   );
-
-  useEffect(() => {
-    setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [expiresAt, startedAt]);
+  const { now } = useRoundCountdown(expiresAt);
 
   useEffect(() => {
     initialCodeRef.current = initialCode ?? challenge.starterCode;

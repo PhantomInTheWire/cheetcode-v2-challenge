@@ -3,6 +3,7 @@ import { action, internalMutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 
 type InternalMutationRunner = (reference: unknown, args: Record<string, unknown>) => Promise<void>;
+const LEGACY_CLIENT_PROFILE_SOURCE_TRUST = "legacy_client_profile";
 
 function parseJsonField(value: string | undefined) {
   if (!value) return null;
@@ -230,6 +231,84 @@ export const recordFingerprintProfile = action({
         createdAt: args.createdAt,
         sourceTrust: args.sourceTrust,
         summaryJson: args.summaryJson,
+      },
+    );
+  },
+});
+
+export const getFingerprintProfileSourceTrustMigrationStatus = query({
+  args: {
+    secret: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
+      throw new Error("unauthorized");
+    }
+
+    const rows = await ctx.db.query("sessionFingerprintProfiles").collect();
+    const missingSourceTrustCount = rows.filter((row) => !row.sourceTrust).length;
+
+    return {
+      totalRows: rows.length,
+      missingSourceTrustCount,
+      migrationRequired: missingSourceTrustCount > 0,
+      migrationLabel: LEGACY_CLIENT_PROFILE_SOURCE_TRUST,
+    };
+  },
+});
+
+export const backfillFingerprintProfileSourceTrustInternal = internalMutation({
+  args: {
+    limit: v.optional(v.number()),
+    sourceTrust: v.string(),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ updatedCount: number; remainingCount: number; sourceTrust: string }> => {
+    const rows = await ctx.db.query("sessionFingerprintProfiles").collect();
+    const missingRows = rows
+      .filter((row) => !row.sourceTrust)
+      .sort((a, b) => a._creationTime - b._creationTime);
+    const limit = Math.max(1, Math.floor(args.limit ?? 250));
+    const batch = missingRows.slice(0, limit);
+
+    for (const row of batch) {
+      await ctx.db.patch(row._id, {
+        sourceTrust: args.sourceTrust,
+      });
+    }
+
+    return {
+      updatedCount: batch.length,
+      remainingCount: Math.max(0, missingRows.length - batch.length),
+      sourceTrust: args.sourceTrust,
+    };
+  },
+});
+
+export const backfillFingerprintProfileSourceTrust = action({
+  args: {
+    secret: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ updatedCount: number; remainingCount: number; sourceTrust: string }> => {
+    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
+      throw new Error("unauthorized");
+    }
+
+    return await ctx.runMutation(
+      (
+        internal as typeof internal & {
+          sessionIdentity: { backfillFingerprintProfileSourceTrustInternal: unknown };
+        }
+      ).sessionIdentity.backfillFingerprintProfileSourceTrustInternal,
+      {
+        limit: args.limit,
+        sourceTrust: LEGACY_CLIENT_PROFILE_SOURCE_TRUST,
       },
     );
   },

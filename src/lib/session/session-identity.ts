@@ -3,6 +3,8 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { api } from "../../../convex/_generated/api";
 import { getIdentityDescriptors, type IdentityDescriptor } from "../abuse/identity";
 
+type ConvexActionReference = Parameters<ConvexHttpClient["action"]>[0];
+
 type SessionIdentityInput = {
   convex: ConvexHttpClient;
   secret: string;
@@ -19,22 +21,20 @@ export async function recordSessionIdentity(input: SessionIdentityInput): Promis
   if (identities.length === 0) return;
 
   try {
-    await input.convex.action(
-      (api as typeof api & { sessionIdentity: { recordLinks: unknown } }).sessionIdentity
-        .recordLinks,
-      {
-        secret: input.secret,
-        sessionId: input.sessionId,
-        github: input.github,
-        level: input.level,
-        route: input.route,
-        screen: input.screen,
-        createdAt: Date.now(),
-        identities,
-      },
-    );
-  } catch (error) {
-    console.warn("[session-identity] best-effort task failed", error);
+    const recordLinks = (
+      api as typeof api & { sessionIdentity: { recordLinks: ConvexActionReference } }
+    ).sessionIdentity.recordLinks;
+    await input.convex.action(recordLinks, {
+      secret: input.secret,
+      sessionId: input.sessionId,
+      github: input.github,
+      level: input.level,
+      route: input.route,
+      screen: input.screen,
+      createdAt: Date.now(),
+      identities,
+    });
+  } catch {
     return;
   }
 }

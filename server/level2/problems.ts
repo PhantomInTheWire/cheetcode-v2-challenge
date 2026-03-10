@@ -2,9 +2,9 @@ import level2Questions from "../../data/level2-questions.json";
 
 export const LEVEL2_PROJECTS = ["chromium", "firefox", "libreoffice", "postgres"] as const;
 export type Level2Project = (typeof LEVEL2_PROJECTS)[number];
-export type Level2ProjectPair = [Level2Project, Level2Project];
+type Level2ProjectPair = [Level2Project, Level2Project];
 
-export type Level2Problem = {
+type Level2Problem = {
   id: string;
   project: Level2Project;
   question: string;
@@ -84,7 +84,7 @@ function parseLevel2Problems(raw: unknown): Level2Problem[] {
  * Each session draws exactly 2 projects and serves a 5+5 split.
  */
 export const LEVEL2_PROBLEMS: Level2Problem[] = parseLevel2Problems(level2Questions);
-export const LEVEL2_PROBLEMS_BY_ID = new Map(
+const LEVEL2_PROBLEMS_BY_ID = new Map(
   LEVEL2_PROBLEMS.map((problem) => [problem.id, problem] as const),
 );
 

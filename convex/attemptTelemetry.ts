@@ -195,7 +195,7 @@ export const recordEvent = action({
       throw new Error("unauthorized");
     }
 
-    const session = await ctx.runQuery(api.submissions.getSession, {
+    const session = await ctx.runQuery(api.sessions.getSession, {
       secret: args.secret,
       sessionId: args.sessionId,
     });

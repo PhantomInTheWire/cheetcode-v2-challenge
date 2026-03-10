@@ -24,15 +24,15 @@ export function languageToExt(language: string): "c" | "cpp" | "rs" {
   return ext;
 }
 
-export function resolveLevel3TaskDir(taskId: string): string {
+function resolveLevel3TaskDir(taskId: string): string {
   return path.join(LEVEL3_TASKS_DIR, taskId);
 }
 
-export function resolveLevel3TaskAssetPath(taskId: string, filename: string): string {
+function resolveLevel3TaskAssetPath(taskId: string, filename: string): string {
   return path.join(resolveLevel3TaskDir(taskId), filename);
 }
 
-export function readLevel3TaskAsset(taskId: string, filename: string): string {
+function readLevel3TaskAsset(taskId: string, filename: string): string {
   const cacheKey = `${taskId}/${filename}`;
   const cached = assetCache.get(cacheKey);
   if (cached !== undefined) return cached;

@@ -11,6 +11,7 @@ import {
 } from "../../../lib/quickjs-shared";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { recordBuiltTelemetry } from "../../../lib/telemetry/attempt-telemetry";
+import { summarizeValidation } from "../../../lib/api/validation-response";
 import { PROBLEM_BANK } from "../../../../server/level1/problems";
 import { withOwnedSessionRoute } from "../../../lib/route-handler";
 
@@ -175,6 +176,10 @@ export async function POST(request: Request) {
       ) as TestCase[];
       const qjs = await getQJS();
       const result = runValidation(qjs, code, testCases);
+      const summary = summarizeValidation({
+        passCount: result.passed ? testCases.length : 0,
+        totalCount: testCases.length,
+      });
 
       if (!result.passed) {
         result.system_note =
@@ -202,8 +207,8 @@ export async function POST(request: Request) {
         route: "/api/validate-l1",
         status: result.passed ? "passed" : "failed",
         errorType,
-        passCount: result.passed ? testCases.length : 0,
-        failCount: result.passed ? 0 : 1,
+        passCount: summary.passCount,
+        failCount: summary.failCount,
         artifact: {
           sessionId,
           problemId,
@@ -213,7 +218,16 @@ export async function POST(request: Request) {
         },
       });
 
-      return NextResponse.json(result);
+      return NextResponse.json({
+        sessionId,
+        problemId,
+        expiresAt: session.expiresAt,
+        status: result.passed ? "passed" : "failed",
+        passCount: summary.passCount,
+        failCount: summary.failCount,
+        totalCount: summary.totalCount,
+        ...result,
+      });
     },
   );
 }

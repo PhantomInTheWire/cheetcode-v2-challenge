@@ -8,12 +8,14 @@ import {
 import { LEVEL2_PROBLEMS } from "../../../../../server/level2/problems";
 import { getLevel3ChallengeFromId } from "../../../../../server/level3/problems";
 import type { Level2Problem, Level3ChallengeState } from "../../../../lib/gameTypes";
-import { getAssignedLevel3ChallengeId, withOwnedSessionRoute } from "../../../../lib/route-handler";
 import {
+  buildLevel3ChallengeState,
+  getAssignedLevel3ChallengeId,
   buildLevel1SessionPayload,
   buildLevel2SessionPayload,
   buildLevel3SessionPayload,
 } from "../../../../lib/session/session-payload";
+import { withOwnedSessionRoute } from "../../../../lib/route-handler";
 
 export async function POST(request: Request) {
   return withOwnedSessionRoute<{ sessionId: string }>(
@@ -117,16 +119,7 @@ export async function POST(request: Request) {
             scoreSnapshot,
           },
           (restoredPayload as Level3ChallengeState[] | null) ?? [
-            {
-              id: challenge.id,
-              title: challenge.title,
-              taskId: challenge.taskId,
-              taskName: challenge.taskName,
-              language: challenge.language,
-              spec: challenge.spec,
-              starterCode: challenge.starterCode,
-              checks: challenge.checks.map((check) => ({ id: check.id, name: check.name })),
-            },
+            buildLevel3ChallengeState(challenge),
           ],
         ),
       );

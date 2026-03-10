@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { validateLevel2Answers } from "../../../lib/level2-validation";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { recordBuiltTelemetry } from "../../../lib/telemetry/attempt-telemetry";
+import { summarizeValidation } from "../../../lib/api/validation-response";
 import { withOwnedSessionRoute } from "../../../lib/route-handler";
 
 /**
@@ -28,7 +29,10 @@ export async function POST(request: Request) {
     },
     async ({ github, convex, session, body: { sessionId, answers } }) => {
       const results = validateLevel2Answers(answers, session.problemIds as string[]);
-      const correctCount = results.filter((result) => result.correct).length;
+      const summary = summarizeValidation({
+        passCount: results.filter((result) => result.correct).length,
+        totalCount: results.length,
+      });
 
       await recordBuiltTelemetry({
         convex,
@@ -37,10 +41,9 @@ export async function POST(request: Request) {
         level: 2,
         eventType: "validate_l2",
         route: "/api/validate-l2",
-        status:
-          correctCount === 0 ? "failed" : correctCount === results.length ? "passed" : "partial",
-        passCount: correctCount,
-        failCount: results.length - correctCount,
+        status: summary.status,
+        passCount: summary.passCount,
+        failCount: summary.failCount,
         artifact: {
           sessionId,
           answers,
@@ -48,7 +51,12 @@ export async function POST(request: Request) {
         },
       });
 
-      return NextResponse.json({ results });
+      return NextResponse.json({
+        sessionId,
+        expiresAt: session.expiresAt,
+        ...summary,
+        results,
+      });
     },
   );
 }

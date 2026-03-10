@@ -174,7 +174,7 @@ export default defineSchema({
     sessionId: v.id("sessions"),
     github: v.string(),
     level: v.number(),
-    sourceTrust: v.string(),
+    sourceTrust: v.optional(v.string()),
     fingerprintId: v.optional(v.string()),
     fingerprintSource: v.optional(v.string()),
     automationVerdict: v.optional(v.string()),

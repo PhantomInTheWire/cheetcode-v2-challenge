@@ -11,7 +11,7 @@ export type Level2Problem = {
   project?: Level2ProjectKey;
 };
 
-export const LEVEL2_PROJECT_META: Record<
+const LEVEL2_PROJECT_META: Record<
   Level2ProjectKey,
   { label: string; commit: string; color: string }
 > = {

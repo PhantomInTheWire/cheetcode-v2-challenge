@@ -6,7 +6,9 @@ import {
 import { acquireLevel3InflightLock, releaseLevel3InflightLock } from "../../../lib/abuse/guard";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { recordBuiltTelemetry } from "../../../lib/telemetry/attempt-telemetry";
-import { getAssignedLevel3ChallengeId, withOwnedSessionRoute } from "../../../lib/route-handler";
+import { summarizeValidation } from "../../../lib/api/validation-response";
+import { withOwnedSessionRoute } from "../../../lib/route-handler";
+import { getAssignedLevel3ChallengeId } from "../../../lib/session/session-payload";
 
 /**
  * POST /api/validate-l3
@@ -60,15 +62,11 @@ export async function POST(request: Request) {
         const result = await validateLevel3Submission(challengeId, code);
         const clientResult = sanitizeLevel3ValidationForClient(result);
 
-        const passCount = result.results.filter((row) => row.correct).length;
-        const status =
-          result.compiled === false
-            ? "failed"
-            : passCount === 0
-              ? "failed"
-              : passCount === result.results.length
-                ? "passed"
-                : "partial";
+        const summary = summarizeValidation({
+          passCount: result.results.filter((row) => row.correct).length,
+          totalCount: result.results.length,
+        });
+        const status = result.compiled === false ? "failed" : summary.status;
         const errorType = result.compiled === false ? "compile" : undefined;
 
         await recordBuiltTelemetry({
@@ -80,8 +78,8 @@ export async function POST(request: Request) {
           route: "/api/validate-l3",
           status,
           errorType,
-          passCount,
-          failCount: result.results.length - passCount,
+          passCount: summary.passCount,
+          failCount: summary.failCount,
           summary: {
             compileError: result.compiled === false ? result.error : null,
             staleSession: result.staleSession === true,
@@ -95,6 +93,8 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json({
+          sessionId,
+          ...summary,
           ...clientResult,
           expiresAt: session.expiresAt,
         });

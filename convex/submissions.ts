@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation, query, action } from "./_generated/server";
+import { internalMutation, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { PROBLEM_BANK } from "../server/level1/problems";
 import { computeElo, getDifficultyBonus } from "../src/lib/scoring";
@@ -202,15 +202,5 @@ export const recordResults = action({
       timeElapsedMs: args.timeElapsedMs,
       exploitBonus: args.exploitBonus,
     });
-  },
-});
-
-export const getSession = query({
-  args: { secret: v.string(), sessionId: v.id("sessions") },
-  handler: async (ctx, args) => {
-    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
-      throw new Error("unauthorized");
-    }
-    return await ctx.db.get(args.sessionId);
   },
 });

@@ -125,11 +125,3 @@ export async function withAuthenticatedSession<TBody extends { sessionId: string
     handler,
   );
 }
-
-export function getAssignedLevel3ChallengeId(problemIds: string[]): string | null {
-  const assignedProblemId = problemIds[0];
-  if (!assignedProblemId) return null;
-  const lastSeparator = assignedProblemId.lastIndexOf(":");
-  if (lastSeparator <= 0) return assignedProblemId;
-  return assignedProblemId.slice(0, lastSeparator);
-}

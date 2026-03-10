@@ -10,6 +10,7 @@ import { SHADOW_BAN_HEADER } from "../../../lib/abuse/guard";
 import { clampElapsed, shadowBanResponse } from "../../../lib/api-route";
 import { ENV } from "../../../lib/env-vars";
 import { LEVEL3_FINISH_EXPIRY_GRACE_MS, withOwnedSessionRoute } from "../../../lib/route-handler";
+import { getAssignedLevel3ChallengeId } from "../../../lib/session/session-payload";
 import { recordBuiltTelemetry } from "../../../lib/telemetry/attempt-telemetry";
 
 type RequestBody = {
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
         return response;
       }
 
-      const challengeId = session.problemIds[0]?.split(":").slice(0, 3).join(":");
+      const challengeId = getAssignedLevel3ChallengeId(session.problemIds);
       if (!challengeId) {
         return NextResponse.json({ error: "invalid level 3 session" }, { status: 400 });
       }

@@ -24,7 +24,6 @@ function setFingerprintCookie(response: NextResponse, value: string): void {
 function rateLimitBody(pathname: string): Record<string, unknown> {
   if (
     pathname === "/api/validate-l1" ||
-    pathname === "/api/validate-batch" ||
     pathname === "/api/validate-l2" ||
     pathname === "/api/validate-l3"
   ) {

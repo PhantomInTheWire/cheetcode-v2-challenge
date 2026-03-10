@@ -16,6 +16,8 @@ import {
 import { ENV } from "../../../../lib/env-vars";
 import { requireAuthenticatedGithub } from "../../../../lib/request-auth";
 
+type ConvexQueryReference = Parameters<ConvexHttpClient["query"]>[0];
+
 type IdentityLinkRow = {
   _id: string;
   sessionId: string;
@@ -272,11 +274,13 @@ export async function GET(request: Request) {
 
   try {
     const convex = new ConvexHttpClient(ENV.NEXT_PUBLIC_CONVEX_URL);
-    const links = (await convex.query(
-      (api as typeof api & { sessionIdentity: { getRecentLinks: unknown } }).sessionIdentity
-        .getRecentLinks,
-      { secret: ENV.CONVEX_MUTATION_SECRET, limit: normalizedLimit },
-    )) as IdentityLinkRow[];
+    const getRecentLinks = (
+      api as typeof api & { sessionIdentity: { getRecentLinks: ConvexQueryReference } }
+    ).sessionIdentity.getRecentLinks;
+    const links = (await convex.query(getRecentLinks, {
+      secret: ENV.CONVEX_MUTATION_SECRET,
+      limit: normalizedLimit,
+    })) as IdentityLinkRow[];
 
     const shadowBanStates = await getShadowBanStateMap(links.map((link) => link.identityKey));
     const clusters = buildIdentityGraph(links, shadowBanStates);

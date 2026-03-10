@@ -10,7 +10,7 @@ import type {
   ScoreSnapshot,
 } from "../gameTypes";
 
-type SessionEnvelopeInput<TSessionId extends string> = {
+export type SessionEnvelopeInput<TSessionId extends string> = {
   sessionId: TSessionId;
   startedAt?: number;
   expiresAt: number;
@@ -23,15 +23,23 @@ function normalizeScoreSnapshot(
   return scoreSnapshot ?? null;
 }
 
+export function buildSessionEnvelope<TSessionId extends string>(
+  session: SessionEnvelopeInput<TSessionId>,
+): SessionEnvelopeInput<TSessionId> & { scoreSnapshot: ScoreSnapshot | null } {
+  return {
+    ...session,
+    scoreSnapshot: normalizeScoreSnapshot(session.scoreSnapshot),
+  };
+}
+
 export function buildLevel1SessionPayload<TSessionId extends string>(
   session: SessionEnvelopeInput<TSessionId>,
   problems: GameProblem[],
 ): Level1SessionPayload<TSessionId> {
   return {
-    ...session,
+    ...buildSessionEnvelope(session),
     level: 1,
     problems,
-    scoreSnapshot: normalizeScoreSnapshot(session.scoreSnapshot),
   };
 }
 
@@ -40,10 +48,9 @@ export function buildLevel2SessionPayload<TSessionId extends string>(
   problems: Level2Problem[],
 ): Level2SessionPayload<TSessionId> {
   return {
-    ...session,
+    ...buildSessionEnvelope(session),
     level: 2,
     problems,
-    scoreSnapshot: normalizeScoreSnapshot(session.scoreSnapshot),
   };
 }
 
@@ -52,11 +59,42 @@ export function buildLevel3SessionPayload<TSessionId extends string>(
   problems: Level3ChallengeState[],
 ): Level3SessionPayload<TSessionId> {
   return {
-    ...session,
+    ...buildSessionEnvelope(session),
     level: 3,
     problems,
-    scoreSnapshot: normalizeScoreSnapshot(session.scoreSnapshot),
   };
+}
+
+type Level3ChallengeSource = {
+  id: string;
+  title: string;
+  taskId?: string;
+  taskName: string;
+  language: string;
+  spec: string;
+  starterCode: string;
+  checks: Array<{ id: string; name: string }>;
+};
+
+export function buildLevel3ChallengeState(challenge: Level3ChallengeSource): Level3ChallengeState {
+  return {
+    id: challenge.id,
+    title: challenge.title,
+    taskId: challenge.taskId,
+    taskName: challenge.taskName,
+    language: challenge.language,
+    spec: challenge.spec,
+    starterCode: challenge.starterCode,
+    checks: challenge.checks.map((check) => ({ id: check.id, name: check.name })),
+  };
+}
+
+export function getAssignedLevel3ChallengeId(problemIds: string[]): string | null {
+  const assignedProblemId = problemIds[0];
+  if (!assignedProblemId) return null;
+  const lastSeparator = assignedProblemId.lastIndexOf(":");
+  if (lastSeparator <= 0) return assignedProblemId;
+  return assignedProblemId.slice(0, lastSeparator);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

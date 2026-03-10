@@ -203,7 +203,7 @@ export const getRecentSessions = query({
       snapshotPreview: parseJsonField(row.snapshotPreviewJson),
       fingerprintProfile: fingerprints[index]
         ? {
-            sourceTrust: fingerprints[index]?.sourceTrust,
+            sourceTrust: fingerprints[index]?.sourceTrust ?? "legacy_client_profile",
             automationVerdict: fingerprints[index]?.automationVerdict,
             automationConfidence: fingerprints[index]?.automationConfidence,
             fingerprintId: fingerprints[index]?.fingerprintId,
@@ -273,6 +273,7 @@ export const getSessionReplay = query({
       fingerprintProfile: fingerprintProfile
         ? {
             ...fingerprintProfile,
+            sourceTrust: fingerprintProfile.sourceTrust ?? "legacy_client_profile",
             baselineSummary: parseJsonField(fingerprintProfile.baselineSummaryJson),
             latestSummary: parseJsonField(fingerprintProfile.latestSummaryJson),
           }

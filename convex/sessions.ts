@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation, action } from "./_generated/server";
+import { internalMutation, action, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import { calculateRank, sortByEloAndAttempts } from "./helpers";
@@ -268,5 +268,15 @@ export const extendExpiry = action({
       github: args.github,
       extendMs: args.extendMs,
     });
+  },
+});
+
+export const getSession = query({
+  args: { secret: v.string(), sessionId: v.id("sessions") },
+  handler: async (ctx, args) => {
+    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
+      throw new Error("unauthorized");
+    }
+    return await ctx.db.get(args.sessionId);
   },
 });
