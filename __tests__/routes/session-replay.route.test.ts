@@ -190,6 +190,17 @@ describe("/api/session/replay", () => {
 
     expect(res.status).toBe(200);
     expect(hoisted.actionMock).toHaveBeenCalledTimes(3);
+    expect(JSON.parse(String(hoisted.actionMock.mock.calls[0]?.[1]?.summaryJson))).toMatchObject({
+      fingerprint: {
+        fingerprintId: "fingerprint-1234",
+        automation: {
+          automationVerdict: "normal",
+        },
+      },
+    });
+    expect(
+      JSON.parse(String(hoisted.actionMock.mock.calls[0]?.[1]?.summaryJson)).fingerprint,
+    ).not.toHaveProperty("hashes");
     expect(hoisted.actionMock.mock.calls[1]?.[1]).toEqual(
       expect.objectContaining({
         identities: [
@@ -204,5 +215,49 @@ describe("/api/session/replay", () => {
     expect(
       JSON.parse(String(hoisted.actionMock.mock.calls[2]?.[1]?.summaryJson)),
     ).not.toHaveProperty("hashes");
+  });
+
+  it("marks invalid client automation labels explicitly as unverified", async () => {
+    const { POST } = await import("../../src/app/api/session/replay/route");
+    const res = await POST(
+      new Request("http://localhost/api/session/replay", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "203.0.113.40",
+          "x-ctf-fingerprint": "fp-trusted-replay-header",
+        },
+        body: JSON.stringify({
+          sessionId: "s",
+          eventType: "state_snapshot",
+          screen: "playing",
+          summary: {
+            fingerprint: {
+              fingerprintId: "fingerprint-1234",
+              automation: {
+                automationVerdict: "totally-real-human",
+                automationConfidence: "absolutely-certain",
+              },
+              environment: { language: "en-US", timezone: "UTC" },
+              display: { screenWidth: 1440, screenHeight: 900 },
+              hardware: { hardwareConcurrency: 8, deviceMemory: 8, maxTouchPoints: 0 },
+              rendering: { webGlVendor: "WebKit", webGlRenderer: "Apple GPU" },
+            },
+          },
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const replaySummary = JSON.parse(String(hoisted.actionMock.mock.calls[0]?.[1]?.summaryJson));
+    const storedHints = JSON.parse(String(hoisted.actionMock.mock.calls[2]?.[1]?.summaryJson));
+    expect(replaySummary.fingerprint.automation).toMatchObject({
+      automationVerdict: "unverified_invalid_or_missing",
+      automationConfidence: "unverified_invalid_or_missing",
+    });
+    expect(storedHints.automation).toMatchObject({
+      automationVerdict: "unverified_invalid_or_missing",
+      automationConfidence: "unverified_invalid_or_missing",
+    });
   });
 });

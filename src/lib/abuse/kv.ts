@@ -18,8 +18,8 @@ function getShadowBanStorageKey(identityKey: string): string {
   return `${KEY_PREFIX}:ban:${identityKey}`;
 }
 
-function getLevel3InflightKey(github: string): string {
-  return `${LEVEL3_INFLIGHT_PREFIX}:${github.trim().toLowerCase()}`;
+function getLevel3InflightKey(scopeKey: string): string {
+  return `${LEVEL3_INFLIGHT_PREFIX}:${scopeKey.trim().toLowerCase()}`;
 }
 
 function getRedisClient(): Redis | null {
@@ -161,11 +161,11 @@ export async function checkAndTrackAbuseInKv(
 }
 
 export async function acquireKvLevel3InflightLock(
-  github: string,
+  scopeKey: string,
   ttlMs: number,
 ): Promise<{ ok: true; token: string } | { ok: false; reason: "busy" | "unavailable" }> {
   if (process.env.NODE_ENV === "test") {
-    const key = getLevel3InflightKey(github);
+    const key = getLevel3InflightKey(scopeKey);
     if (TEST_LEVEL3_LOCKS.has(key)) {
       return { ok: false, reason: "busy" };
     }
@@ -180,7 +180,7 @@ export async function acquireKvLevel3InflightLock(
   }
 
   const token = crypto.randomUUID();
-  const result = await redis.set(getLevel3InflightKey(github), token, {
+  const result = await redis.set(getLevel3InflightKey(scopeKey), token, {
     nx: true,
     px: Math.max(1, Math.floor(ttlMs)),
   });
@@ -192,9 +192,9 @@ export async function acquireKvLevel3InflightLock(
   return { ok: true, token };
 }
 
-export async function releaseKvLevel3InflightLock(github: string, token: string): Promise<void> {
+export async function releaseKvLevel3InflightLock(scopeKey: string, token: string): Promise<void> {
   if (process.env.NODE_ENV === "test") {
-    const key = getLevel3InflightKey(github);
+    const key = getLevel3InflightKey(scopeKey);
     if (TEST_LEVEL3_LOCKS.get(key) === token) {
       TEST_LEVEL3_LOCKS.delete(key);
     }
@@ -204,7 +204,7 @@ export async function releaseKvLevel3InflightLock(github: string, token: string)
   const redis = getRedisClient();
   if (!redis) return;
 
-  const key = getLevel3InflightKey(github);
+  const key = getLevel3InflightKey(scopeKey);
   const active = await redis.get<string>(key);
   if (active === token) {
     await redis.del(key);

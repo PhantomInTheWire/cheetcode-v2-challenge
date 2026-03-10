@@ -514,6 +514,7 @@ export function AdminReplayDashboard({ adminGithub }: { adminGithub: string }) {
                         }}
                       >
                         <div>
+                          client_unverified ·{" "}
                           {fingerprintSummary.automation?.automationVerdict ?? "unknown"} ·{" "}
                           {fingerprintSummary.automation?.automationConfidence ?? "n/a"} ·{" "}
                           {fingerprintSummary.fingerprintSource ?? "unknown"}

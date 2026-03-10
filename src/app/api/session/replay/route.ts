@@ -76,6 +76,10 @@ export async function POST(request: Request) {
         typeof body.summary.fingerprint === "object"
           ? parseUnverifiedFingerprintHints(body.summary.fingerprint)
           : undefined;
+      const sanitizedSummary =
+        fingerprintHints && body.summary && typeof body.summary === "object"
+          ? { ...body.summary, fingerprint: fingerprintHints }
+          : (body.summary ?? {});
 
       await recordSessionReplayEvent({
         convex,
@@ -87,7 +91,7 @@ export async function POST(request: Request) {
         screen: body.screen,
         route: body.route ?? "/",
         clientAt: typeof body.clientAt === "number" ? body.clientAt : undefined,
-        summary: body.summary ?? {},
+        summary: sanitizedSummary,
         snapshot: body.snapshot,
       });
 

@@ -141,10 +141,15 @@ export type UnverifiedFingerprintHints = Pick<
   >;
   hardware: ClientFingerprintProfile["hardware"];
   rendering: ClientFingerprintProfile["rendering"];
-  automation?: Pick<
-    ClientFingerprintProfile["derived"],
-    "automationVerdict" | "automationConfidence" | "reasonCodes"
-  >;
+  automation?: {
+    automationVerdict:
+      | ClientFingerprintProfile["derived"]["automationVerdict"]
+      | "unverified_invalid_or_missing";
+    automationConfidence:
+      | ClientFingerprintProfile["derived"]["automationConfidence"]
+      | "unverified_invalid_or_missing";
+    reasonCodes: string[];
+  };
 };
 
 export function buildCompactFingerprintSummary(
@@ -236,18 +241,22 @@ function asNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
-function asAutomationVerdict(value: unknown): AutomationVerdict {
+function asAutomationVerdict(
+  value: unknown,
+): AutomationVerdict | "unverified_invalid_or_missing" {
   if (value === "normal" || value === "possibly_automation" || value === "likely_automation") {
     return value;
   }
-  return "normal";
+  return "unverified_invalid_or_missing";
 }
 
-function asAutomationConfidence(value: unknown): AutomationConfidence {
+function asAutomationConfidence(
+  value: unknown,
+): AutomationConfidence | "unverified_invalid_or_missing" {
   if (value === "low" || value === "medium" || value === "high") {
     return value;
   }
-  return "low";
+  return "unverified_invalid_or_missing";
 }
 
 function asStringArray(value: unknown, maxLength: number): string[] {
