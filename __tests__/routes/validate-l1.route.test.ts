@@ -112,7 +112,7 @@ describe("/api/validate-l1", () => {
       eventType: "validate_l1",
       status: "failed",
       errorType: "wrong_answer",
-      failCount: assignedProblem.testCases.length,
+      failCount: 1,
     });
   });
 

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  MAX_SESSION_PAUSE_EXTENSION_MS,
+  clampSessionPauseExtension,
+} from "../../convex/sessions";
+import {
   PROBLEM_DISTRIBUTION,
   injectDescriptionCanary,
   selectSessionProblems,
@@ -95,5 +99,13 @@ describe("sessions", () => {
 
     const projects = new Set(selected.map((problem) => problem.project));
     expect(projects).toEqual(new Set(["firefox", "postgres"]));
+  });
+
+  it("caps session pause extensions to preserve timer integrity", () => {
+    expect(clampSessionPauseExtension(-500)).toBe(0);
+    expect(clampSessionPauseExtension(12_345.9)).toBe(12_345);
+    expect(clampSessionPauseExtension(MAX_SESSION_PAUSE_EXTENSION_MS + 10_000)).toBe(
+      MAX_SESSION_PAUSE_EXTENSION_MS,
+    );
   });
 });

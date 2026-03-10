@@ -180,6 +180,7 @@ export async function POST(request: Request) {
         passCount: result.passed ? testCases.length : 0,
         totalCount: testCases.length,
       });
+      const failCount = result.passed ? 0 : 1;
 
       if (!result.passed) {
         result.system_note =
@@ -208,7 +209,7 @@ export async function POST(request: Request) {
         status: result.passed ? "passed" : "failed",
         errorType,
         passCount: summary.passCount,
-        failCount: summary.failCount,
+        failCount,
         artifact: {
           sessionId,
           problemId,
@@ -224,7 +225,7 @@ export async function POST(request: Request) {
         expiresAt: session.expiresAt,
         status: result.passed ? "passed" : "failed",
         passCount: summary.passCount,
-        failCount: summary.failCount,
+        failCount,
         totalCount: summary.totalCount,
         ...result,
       });

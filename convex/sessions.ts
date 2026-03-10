@@ -22,6 +22,11 @@ import { selectLevel2SessionProblems } from "../server/level2/problems";
 
 export const ROUND_DURATION_L2_MS = 60_000;
 export const ROUND_DURATION_L3_MS = 120_000;
+export const MAX_SESSION_PAUSE_EXTENSION_MS = 30_000;
+
+export function clampSessionPauseExtension(extendMs: number): number {
+  return Math.max(0, Math.min(MAX_SESSION_PAUSE_EXTENSION_MS, Math.floor(extendMs)));
+}
 
 function parsePublicPayloadJson(payload: string | undefined): Record<string, unknown>[] {
   if (!payload) return [];
@@ -235,7 +240,7 @@ export const extendExpiryInternal = internalMutation({
       throw new Error("github mismatch");
     }
 
-    const extendMs = Math.max(0, Math.floor(args.extendMs));
+    const extendMs = clampSessionPauseExtension(args.extendMs);
     const nextExpiresAt = session.expiresAt + extendMs;
     await ctx.db.patch(args.sessionId, { expiresAt: nextExpiresAt });
 

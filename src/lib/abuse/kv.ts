@@ -5,6 +5,8 @@ import { getIdentityKeys } from "./identity";
 const SHADOW_BAN_DURATION_SECONDS = 24 * 60 * 60;
 const KEY_PREFIX = "ctf:abuse:v1";
 const LEVEL3_INFLIGHT_PREFIX = `${KEY_PREFIX}:level3-inflight`;
+const RELEASE_LEVEL3_INFLIGHT_LOCK_SCRIPT =
+  "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
 const TEST_LEVEL3_LOCKS = new Map<string, string>();
 let redisClient: Redis | null | undefined;
 
@@ -205,10 +207,7 @@ export async function releaseKvLevel3InflightLock(scopeKey: string, token: strin
   if (!redis) return;
 
   const key = getLevel3InflightKey(scopeKey);
-  const active = await redis.get<string>(key);
-  if (active === token) {
-    await redis.del(key);
-  }
+  await redis.eval(RELEASE_LEVEL3_INFLIGHT_LOCK_SCRIPT, [key], [token]);
 }
 
 export function resetKvLevel3InflightLocksForTests(): void {
