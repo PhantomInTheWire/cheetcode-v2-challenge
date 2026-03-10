@@ -9,7 +9,7 @@ import { TOTAL_SOLVE_TARGET } from "@/lib/gameTypes";
 import { isClientDevMode } from "@/lib/myEnv";
 import { useHomeGameState } from "@/hooks/useHomeGameState";
 import { useSessionReplay } from "@/hooks/useSessionReplay";
-import { postSessionReplayEvent } from "@/lib/session-replay-client";
+import { postSessionReplayEvent } from "@/lib/session/session-replay-client";
 import type { HomeClientProps } from "@/components/HomeClient";
 
 const MOBILE_BREAKPOINT = 900;
@@ -222,6 +222,7 @@ function renderPlayingScreen(params: {
   github: string;
   canAutoSolve: boolean;
   sessionId: HomeGameState["sessionId"];
+  startedAt: HomeGameState["startedAt"];
   expiresAt: HomeGameState["expiresAt"];
   currentLevel: HomeGameState["currentLevel"];
   l2Problems: HomeGameState["l2Problems"];
@@ -230,6 +231,8 @@ function renderPlayingScreen(params: {
   l3Challenge: HomeGameState["l3Challenge"];
   l3CodeDraft: HomeGameState["l3CodeDraft"];
   setL3CodeDraft: HomeGameState["setL3CodeDraft"];
+  activeScoreSnapshot: HomeGameState["activeScoreSnapshot"];
+  updateRunScoreSnapshot: HomeGameState["updateRunScoreSnapshot"];
   updateActiveSessionExpiry: HomeGameState["updateActiveSessionExpiry"];
   clearStoredSession: HomeGameState["clearStoredSession"];
   clearActiveSessionRuntime: HomeGameState["clearActiveSessionRuntime"];
@@ -278,6 +281,7 @@ function renderPlayingScreen(params: {
           },
         }).catch(reportReplayLoggingFailure);
       }
+      params.updateRunScoreSnapshot(nextResults);
       params.clearStoredSession();
       params.clearActiveSessionRuntime();
       params.setResults(null);
@@ -290,7 +294,7 @@ function renderPlayingScreen(params: {
     params.clearStoredSession();
     params.setResults(nextResults);
     if (params.currentLevel === 3) {
-      params.setScreen("level3-verification");
+      params.setScreen(nextResults.validation ? "level3-verification" : "results");
     } else {
       params.setScreen("results");
     }
@@ -303,6 +307,7 @@ function renderPlayingScreen(params: {
         github={params.github}
         problems={params.l2Problems}
         expiresAt={params.expiresAt}
+        scoreSnapshot={params.activeScoreSnapshot}
         initialAnswers={params.l2Answers}
         onAnswersChangeAction={params.setL2Answers}
         onFinishAction={finishAndShowResults}
@@ -316,7 +321,9 @@ function renderPlayingScreen(params: {
         sessionId={params.sessionId!}
         github={params.github}
         challenge={params.l3Challenge}
+        startedAt={params.startedAt}
         expiresAt={params.expiresAt}
+        scoreSnapshot={params.activeScoreSnapshot}
         initialCode={params.l3CodeDraft}
         onCodeChangeAction={params.setL3CodeDraft}
         onExpiresAtChangeAction={params.updateActiveSessionExpiry}
@@ -395,6 +402,7 @@ function renderHomeScreen(params: {
   resetAll: HomeGameState["resetAll"];
   canAutoSolve: boolean;
   sessionId: HomeGameState["sessionId"];
+  startedAt: HomeGameState["startedAt"];
   expiresAt: HomeGameState["expiresAt"];
   l2Problems: HomeGameState["l2Problems"];
   l2Answers: HomeGameState["l2Answers"];
@@ -402,6 +410,8 @@ function renderHomeScreen(params: {
   l3Challenge: HomeGameState["l3Challenge"];
   l3CodeDraft: HomeGameState["l3CodeDraft"];
   setL3CodeDraft: HomeGameState["setL3CodeDraft"];
+  activeScoreSnapshot: HomeGameState["activeScoreSnapshot"];
+  updateRunScoreSnapshot: HomeGameState["updateRunScoreSnapshot"];
   updateActiveSessionExpiry: HomeGameState["updateActiveSessionExpiry"];
   clearStoredSession: HomeGameState["clearStoredSession"];
   clearActiveSessionRuntime: HomeGameState["clearActiveSessionRuntime"];
@@ -459,6 +469,7 @@ function renderHomeScreen(params: {
       github: params.github,
       canAutoSolve: params.canAutoSolve,
       sessionId: params.sessionId,
+      startedAt: params.startedAt,
       expiresAt: params.expiresAt,
       currentLevel: params.currentLevel,
       l2Problems: params.l2Problems,
@@ -467,6 +478,8 @@ function renderHomeScreen(params: {
       l3Challenge: params.l3Challenge,
       l3CodeDraft: params.l3CodeDraft,
       setL3CodeDraft: params.setL3CodeDraft,
+      activeScoreSnapshot: params.activeScoreSnapshot,
+      updateRunScoreSnapshot: params.updateRunScoreSnapshot,
       updateActiveSessionExpiry: params.updateActiveSessionExpiry,
       clearStoredSession: params.clearStoredSession,
       clearActiveSessionRuntime: params.clearActiveSessionRuntime,
@@ -607,6 +620,7 @@ export function HomeClientController({
     didBootstrapSession,
     hasStoredActiveSession,
     sessionId,
+    startedAt,
     expiresAt,
     problems,
     codes,
@@ -637,6 +651,8 @@ export function HomeClientController({
     l3Challenge,
     l3CodeDraft,
     setL3CodeDraft,
+    activeScoreSnapshot,
+    updateRunScoreSnapshot,
     updateActiveSessionExpiry,
     solvedLocal,
     finishGame,
@@ -733,6 +749,7 @@ export function HomeClientController({
     resetAll,
     canAutoSolve,
     sessionId,
+    startedAt,
     expiresAt,
     l2Problems,
     l2Answers,
@@ -740,6 +757,8 @@ export function HomeClientController({
     l3Challenge,
     l3CodeDraft,
     setL3CodeDraft,
+    activeScoreSnapshot,
+    updateRunScoreSnapshot,
     updateActiveSessionExpiry,
     clearStoredSession,
     clearActiveSessionRuntime,

@@ -175,7 +175,6 @@ export const recordResultsInternal = internalMutation({
       await ctx.db.patch(args.sessionId, { expiresAt: finishedAt });
     }
 
-    // Return the AGGREGATE solved/elo so the UI shows the massive combined score
     return { elo: totalElo, solved: totalSolved, rank, timeRemaining: timeRemainingSecs };
   },
 });
@@ -207,8 +206,11 @@ export const recordResults = action({
 });
 
 export const getSession = query({
-  args: { sessionId: v.id("sessions") },
+  args: { secret: v.string(), sessionId: v.id("sessions") },
   handler: async (ctx, args) => {
+    if (args.secret !== process.env.CONVEX_MUTATION_SECRET) {
+      throw new Error("unauthorized");
+    }
     return await ctx.db.get(args.sessionId);
   },
 });

@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { TOTAL_SOLVE_TARGET } from "@/lib/constants";
-import { VictoryScreen } from "@/components/game/VictoryScreen";
 import {
   RESULTS_FIELD_LABEL_STYLE,
   RESULTS_INPUT_STYLE,
@@ -12,6 +12,10 @@ import {
   ResultsPanel,
   ResultsStatsGrid,
 } from "@/components/game/results-shared";
+
+const VictoryScreen = dynamic(() =>
+  import("@/components/game/VictoryScreen").then((mod) => mod.VictoryScreen),
+);
 
 type ResultsData = {
   elo: number;
@@ -578,6 +582,49 @@ export function ResultsScreen({
                     fontWeight: 500,
                     cursor: "pointer",
                     color: "#262626",
+                  }}
+                >
+                  Try again
+                </button>
+              </div>
+            </ResultsPanel>
+          ) : null}
+
+          {!isProgressionOnly && results.solved < 3 && !submittedLead ? (
+            <ResultsPanel maxWidth={RESULTS_LAYOUT.metricsWidth}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                  gap: 12,
+                }}
+              >
+                <button
+                  className="btn-ghost"
+                  onClick={shareScoreAction}
+                  style={{
+                    height: 48,
+                    borderRadius: 10,
+                    fontSize: 14,
+                    fontWeight: 500,
+                    background: "transparent",
+                    cursor: "pointer",
+                    color: "#262626",
+                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  }}
+                >
+                  Share on X
+                </button>
+                <button
+                  onClick={resetAllAction}
+                  className="btn-heat"
+                  style={{
+                    height: 48,
+                    borderRadius: 10,
+                    fontSize: 14,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                   }}
                 >
                   Try again

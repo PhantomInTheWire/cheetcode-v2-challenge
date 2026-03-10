@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { validateEmail, validateXHandle } from "@/lib/validation";
-import { ROUND_DURATION_MS, ROUND_DURATION_SECONDS, PROBLEMS_PER_SESSION } from "@/lib/constants";
+import { ROUND_DURATION_MS } from "@/lib/constants";
 import {
   TOTAL_SOLVE_TARGET,
   type GameProblem,
@@ -9,12 +9,21 @@ import {
   type Level3ChallengeState,
   type ResultsData,
   type RestoredSessionPayload,
+  type ScoreSnapshot,
   type Screen,
   type StoredFlowScreen,
   type StoredSessionSnapshot,
 } from "@/lib/gameTypes";
-import { clientFetch } from "@/lib/client-identity";
-import { postSessionReplayEvent } from "@/lib/session-replay-client";
+import { clientFetch } from "@/lib/fingerprint/client-identity";
+import { getClientFingerprintProfile } from "@/lib/fingerprint/fingerprint-profile";
+import { buildUnverifiedFingerprintHints } from "@/lib/fingerprint/fingerprint-shared";
+import { postSessionReplayEvent } from "@/lib/session/session-replay-client";
+import {
+  buildLevel1SessionPayload,
+  buildLevel2SessionPayload,
+  buildLevel3SessionPayload,
+  parseHydratableSessionPayload,
+} from "@/lib/session/session-payload";
 
 type LeaderboardRow = { solved: number };
 
@@ -43,6 +52,7 @@ const ACTIVE_SESSION_STORAGE_KEY = "cheetcode.activeSession";
 const SESSION_SNAPSHOT_STORAGE_KEY = "cheetcode.sessionSnapshot";
 const FLOW_SCREEN_STORAGE_KEY = "cheetcode.flowScreen";
 const RESULTS_SCREEN_STORAGE_KEY = "cheetcode.resultsScreen";
+const RUN_SCORE_STORAGE_KEY = "cheetcode.runScore";
 const LEVEL1_DRAFTS_STORAGE_KEY = "cheetcode.level1Drafts";
 const LEVEL2_DRAFTS_STORAGE_KEY = "cheetcode.level2Drafts";
 const LEVEL3_DRAFTS_STORAGE_KEY = "cheetcode.level3Drafts";
@@ -58,6 +68,8 @@ function reportReplayLoggingFailure(error: unknown): void {
 function sessionScopedStorageKey(baseKey: string, sessionId: string) {
   return `${baseKey}:${sessionId}`;
 }
+
+const EMPTY_SCORE_SNAPSHOT: ScoreSnapshot = { elo: 0, solved: 0, rank: 0 };
 
 export function useHomeGameState({
   github,
@@ -89,6 +101,7 @@ export function useHomeGameState({
   const [needsRestoreVerification, setNeedsRestoreVerification] = useState(false);
   const [hasStoredActiveSession, setHasStoredActiveSession] = useState(false);
   const [sessionId, setSessionId] = useState<Id<"sessions"> | null>(null);
+  const [startedAt, setStartedAt] = useState(0);
   const [expiresAt, setExpiresAt] = useState(0);
   const [problems, setProblems] = useState<GameProblem[]>([]);
   const [codes, setCodes] = useState<Record<string, string>>({});
@@ -108,6 +121,7 @@ export function useHomeGameState({
   const [l2Answers, setL2Answers] = useState<Record<string, string>>({});
   const [l3Challenge, setL3Challenge] = useState<Level3ChallengeState | null>(null);
   const [l3CodeDraft, setL3CodeDraft] = useState("");
+  const [activeScoreSnapshot, setActiveScoreSnapshot] = useState<ScoreSnapshot | null>(null);
 
   const lockedTimeElapsedMsRef = useRef<number | null>(null);
   const restoreAbortRef = useRef<AbortController | null>(null);
@@ -125,6 +139,28 @@ export function useHomeGameState({
     return Math.max(TOTAL_SOLVE_TARGET, bestFromSession);
   }, [leaderboard, results]);
   const sessionSolveTarget = TOTAL_SOLVE_TARGET;
+
+  const persistRunScoreSnapshot = useCallback((snapshot: ScoreSnapshot | null) => {
+    if (typeof window === "undefined") return;
+    if (!snapshot) {
+      window.localStorage.removeItem(RUN_SCORE_STORAGE_KEY);
+      return;
+    }
+    window.localStorage.setItem(RUN_SCORE_STORAGE_KEY, JSON.stringify(snapshot));
+  }, []);
+
+  const resetRunScoreSnapshot = useCallback(() => {
+    setActiveScoreSnapshot(null);
+    persistRunScoreSnapshot(null);
+  }, [persistRunScoreSnapshot]);
+
+  const updateRunScoreSnapshot = useCallback(
+    (snapshot: ScoreSnapshot | null) => {
+      setActiveScoreSnapshot(snapshot);
+      persistRunScoreSnapshot(snapshot);
+    },
+    [persistRunScoreSnapshot],
+  );
 
   const getDraftCache = useCallback(
     <T>(storageKey: string, ref: { current: T | null }, fallback: T): T => {
@@ -202,15 +238,28 @@ export function useHomeGameState({
       setExpiresAt(nextExpiresAt);
       persistActiveSession(sessionId, currentLevel, nextExpiresAt);
       if (l3Challenge) {
-        persistSessionSnapshot({
-          sessionId,
-          level: currentLevel,
-          expiresAt: nextExpiresAt,
-          problems: [l3Challenge],
-        });
+        persistSessionSnapshot(
+          buildLevel3SessionPayload(
+            {
+              sessionId,
+              startedAt,
+              expiresAt: nextExpiresAt,
+              scoreSnapshot: activeScoreSnapshot,
+            },
+            [l3Challenge],
+          ),
+        );
       }
     },
-    [currentLevel, l3Challenge, persistActiveSession, persistSessionSnapshot, sessionId],
+    [
+      activeScoreSnapshot,
+      currentLevel,
+      l3Challenge,
+      persistActiveSession,
+      persistSessionSnapshot,
+      sessionId,
+      startedAt,
+    ],
   );
 
   const persistFlowScreen = useCallback((nextScreen: StoredFlowScreen["screen"], level: 2 | 3) => {
@@ -251,8 +300,29 @@ export function useHomeGameState({
   const clearStoredSession = useCallback(() => {
     abortRestoreRequest();
     if (typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY);
+        const persisted = raw ? (JSON.parse(raw) as { sessionId?: string } | null) : null;
+        const activeSessionId = persisted?.sessionId;
+        if (activeSessionId) {
+          for (const key of [
+            LEVEL1_DRAFTS_STORAGE_KEY,
+            LEVEL2_DRAFTS_STORAGE_KEY,
+            LEVEL3_DRAFTS_STORAGE_KEY,
+            LEVEL1_PASS_STORAGE_KEY,
+          ]) {
+            window.localStorage.removeItem(sessionScopedStorageKey(key, activeSessionId));
+          }
+        }
+      } catch {
+        // Ignore best-effort cleanup failures.
+      }
       window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
       window.localStorage.removeItem(SESSION_SNAPSHOT_STORAGE_KEY);
+      window.localStorage.removeItem(LEVEL1_DRAFTS_STORAGE_KEY);
+      window.localStorage.removeItem(LEVEL2_DRAFTS_STORAGE_KEY);
+      window.localStorage.removeItem(LEVEL3_DRAFTS_STORAGE_KEY);
+      window.localStorage.removeItem(LEVEL1_PASS_STORAGE_KEY);
     }
     setHasStoredActiveSession(false);
     setNeedsRestoreVerification(false);
@@ -261,6 +331,7 @@ export function useHomeGameState({
 
   const clearActiveSessionRuntime = useCallback(() => {
     setSessionId(null);
+    setStartedAt(0);
     setExpiresAt(0);
     setProblems([]);
     setL2Problems([]);
@@ -291,7 +362,9 @@ export function useHomeGameState({
     (payload: RestoredSessionPayload) => {
       setCurrentLevel(payload.level);
       setSessionId(payload.sessionId);
+      setStartedAt(payload.startedAt ?? 0);
       setExpiresAt(payload.expiresAt);
+      setActiveScoreSnapshot(payload.scoreSnapshot ?? null);
 
       if (payload.level === 2) {
         setL2Problems(payload.problems as Level2Problem[]);
@@ -357,6 +430,10 @@ export function useHomeGameState({
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
+      const runScoreRaw = window.localStorage.getItem(RUN_SCORE_STORAGE_KEY);
+      setActiveScoreSnapshot(
+        runScoreRaw ? ((JSON.parse(runScoreRaw) as ScoreSnapshot | null) ?? null) : null,
+      );
       const raw = window.localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY);
       if (!raw) {
         setHasStoredActiveSession(false);
@@ -434,9 +511,6 @@ export function useHomeGameState({
         return;
       }
 
-      applySessionPayload(snapshot);
-      clearFlowState();
-      setScreen("playing");
       setNeedsRestoreVerification(true);
       setDidBootstrapSession(true);
     } catch {
@@ -457,8 +531,15 @@ export function useHomeGameState({
     clearStoredFlowScreen();
     clearStoredResults();
     clearStoredSession();
+    resetRunScoreSnapshot();
     setIsRestoringSession(false);
-  }, [authStatus, clearStoredFlowScreen, clearStoredResults, clearStoredSession]);
+  }, [
+    authStatus,
+    clearStoredFlowScreen,
+    clearStoredResults,
+    clearStoredSession,
+    resetRunScoreSnapshot,
+  ]);
 
   const solvedLocal = useMemo(
     () => problems.filter((p) => localPass[p.id] === true).length,
@@ -484,6 +565,7 @@ export function useHomeGameState({
           timeElapsed: lockedTimeElapsedMs,
           submissions: problems.map((p) => ({ problemId: p.id, code: codes[p.id] || "" })),
           flag: flag || undefined,
+          runScoreSnapshot: activeScoreSnapshot ?? EMPTY_SCORE_SNAPSHOT,
         }),
       });
       if (!res.ok) {
@@ -519,6 +601,7 @@ export function useHomeGameState({
       }
       clearStoredSession();
       if (data.completedLevel === true) {
+        updateRunScoreSnapshot(data);
         clearActiveSessionRuntime();
         clearStoredResults();
         setResults(null);
@@ -547,10 +630,12 @@ export function useHomeGameState({
     clearStoredResults,
     clearStoredSession,
     clearActiveSessionRuntime,
+    activeScoreSnapshot,
     persistFlowScreen,
     setResults,
     localPass,
     solvedLocal,
+    updateRunScoreSnapshot,
   ]);
 
   useEffect(() => {
@@ -569,19 +654,23 @@ export function useHomeGameState({
 
       setSubmitError(null);
       try {
+        const fingerprintHints = await getClientFingerprintProfile()
+          .then((profile) => buildUnverifiedFingerprintHints(profile))
+          .catch(() => undefined);
         const res = await clientFetch("/api/session", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ level, isDev: isLocalDev, level3ChallengeId, level2Projects }),
+          body: JSON.stringify({
+            level,
+            isDev: isLocalDev,
+            level3ChallengeId,
+            level2Projects,
+            fingerprintHints,
+          }),
         });
         if (!res.ok) throw new Error(`session creation failed: ${res.status}`);
-        const data = await res.json();
-        const payload = {
-          sessionId: data.sessionId as Id<"sessions">,
-          level: data.level,
-          expiresAt: data.expiresAt,
-          problems: data.problems as unknown[],
-        };
+        const payload = parseHydratableSessionPayload(await res.json());
+        if (!payload) throw new Error("session creation returned an invalid payload");
         applySessionPayload(payload);
         clearFlowState();
         persistActiveSession(payload.sessionId, payload.level, payload.expiresAt);
@@ -610,6 +699,7 @@ export function useHomeGameState({
     async (requestedLevel?: number) => {
       const level = requestedLevel ?? 1;
       clearStoredResults();
+      resetRunScoreSnapshot();
       if (level === 2) {
         setPendingLevel(2);
         setLevel2Preview(null);
@@ -628,7 +718,7 @@ export function useHomeGameState({
       }
       await launchLevel(level);
     },
-    [clearStoredResults, launchLevel, persistFlowScreen],
+    [clearStoredResults, launchLevel, persistFlowScreen, resetRunScoreSnapshot],
   );
 
   useEffect(() => {
@@ -668,14 +758,9 @@ export function useHomeGameState({
           if (!cancelled) setScreen("landing");
           return;
         }
-        const data = await res.json();
+        const payload = parseHydratableSessionPayload(await res.json());
         if (cancelled) return;
-        const payload = {
-          sessionId: data.sessionId as Id<"sessions">,
-          level: data.level,
-          expiresAt: data.expiresAt,
-          problems: data.problems as unknown[],
-        };
+        if (!payload) throw new Error("session restore returned an invalid payload");
         applySessionPayload(payload);
         clearFlowState();
         persistActiveSession(payload.sessionId, payload.level, payload.expiresAt);
@@ -710,6 +795,7 @@ export function useHomeGameState({
     isAuthenticated,
     isRestoringSession,
     needsRestoreVerification,
+    activeScoreSnapshot,
     persistActiveSession,
     persistSessionSnapshot,
   ]);
@@ -842,6 +928,7 @@ export function useHomeGameState({
   const resetAll = useCallback(() => {
     clearStoredSession();
     clearStoredResults();
+    resetRunScoreSnapshot();
     level1DraftsRef.current = null;
     level2DraftsRef.current = null;
     level3DraftsRef.current = null;
@@ -870,11 +957,11 @@ export function useHomeGameState({
     setEmailError("");
     setXHandleError("");
     lockedTimeElapsedMsRef.current = null;
-  }, [clearStoredResults, clearStoredSession]);
+  }, [clearStoredResults, clearStoredSession, resetRunScoreSnapshot]);
 
   const shareScore = useCallback(async () => {
     if (!results) return;
-    const text = `I just scored ${results.elo.toLocaleString()} (rank #${results.rank}) on CheetCode CTF — ${PROBLEMS_PER_SESSION} problems, ${ROUND_DURATION_SECONDS} seconds. Think your agent can beat it? 🔥`;
+    const text = `I just scored ${results.elo.toLocaleString()} and cleared ${results.solved}/${TOTAL_SOLVE_TARGET} on this CheetCode run (rank #${results.rank}). Think your agent can beat it? 🔥`;
     const fullText = `${text}\n\n${ORIGINAL_TWEET_URL}`;
     const tweetUrl = `https://x.com/intent/post?text=${encodeURIComponent(fullText)}`;
     window.open(tweetUrl, "_blank", "noopener,noreferrer");
@@ -914,7 +1001,7 @@ export function useHomeGameState({
         .filter((item) => item.code.trim().length > 0);
 
       if (items.length > 0) {
-        const validationRes = await clientFetch("/api/validate-batch", {
+        const validationRes = await clientFetch("/api/dev/validate-batch", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ sessionId, items }),
@@ -1017,13 +1104,32 @@ export function useHomeGameState({
             ? [l3Challenge]
             : [];
     if (problemsSnapshot.length === 0) return;
-    persistSessionSnapshot({
-      sessionId,
-      level: currentLevel,
-      expiresAt,
-      problems: problemsSnapshot,
-    });
+    if (currentLevel === 1) {
+      persistSessionSnapshot(
+        buildLevel1SessionPayload(
+          { sessionId, startedAt, expiresAt, scoreSnapshot: activeScoreSnapshot },
+          problemsSnapshot as GameProblem[],
+        ),
+      );
+      return;
+    }
+    if (currentLevel === 2) {
+      persistSessionSnapshot(
+        buildLevel2SessionPayload(
+          { sessionId, startedAt, expiresAt, scoreSnapshot: activeScoreSnapshot },
+          problemsSnapshot as Level2Problem[],
+        ),
+      );
+      return;
+    }
+    persistSessionSnapshot(
+      buildLevel3SessionPayload(
+        { sessionId, startedAt, expiresAt, scoreSnapshot: activeScoreSnapshot },
+        problemsSnapshot as Level3ChallengeState[],
+      ),
+    );
   }, [
+    activeScoreSnapshot,
     currentLevel,
     expiresAt,
     l2Problems,
@@ -1032,6 +1138,7 @@ export function useHomeGameState({
     problems,
     screen,
     sessionId,
+    startedAt,
   ]);
 
   useEffect(() => {
@@ -1076,6 +1183,7 @@ export function useHomeGameState({
     didBootstrapSession,
     hasStoredActiveSession,
     sessionId,
+    startedAt,
     expiresAt,
     updateActiveSessionExpiry,
     problems,
@@ -1108,6 +1216,8 @@ export function useHomeGameState({
     l3Challenge,
     l3CodeDraft,
     setL3CodeDraft,
+    activeScoreSnapshot,
+    updateRunScoreSnapshot,
     solvedLocal,
     finishGame,
     startGame,

@@ -73,22 +73,9 @@ export function Level2PrereqScreen({
         </>
       }
     >
-      <div
-        style={{
-          fontSize: 12,
-          color: "rgba(0,0,0,0.12)",
-          fontFamily: "var(--font-geist-mono), monospace",
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          marginBottom: 16,
-          marginTop: 12,
-        }}
-      >
-        [ OVERVIEW ]
-      </div>
       <p
         style={{
-          margin: "0 0 24px",
+          margin: "12px 0 24px",
           fontSize: 15,
           color: "rgba(0,0,0,0.65)",
           lineHeight: 1.6,

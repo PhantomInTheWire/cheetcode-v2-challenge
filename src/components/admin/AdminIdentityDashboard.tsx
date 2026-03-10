@@ -50,8 +50,30 @@ function formatRelative(timestamp: number) {
 }
 
 function labelIdentity(identity: IdentityNode) {
-  const short = identity.identityKey.slice(0, 19);
-  return `${identity.identityKind.toUpperCase()} · ${short}…`;
+  if (identity.identityKind === "ip") {
+    const short = identity.identityKey.slice(0, 19);
+    return `${identity.identityKind.toUpperCase()} · ${short}…`;
+  }
+
+  const [, subtype = "fp", rawValue = ""] = identity.identityKey.split(":", 3);
+  const short = rawValue.slice(0, 24);
+  const label =
+    subtype === "id"
+      ? "Fingerprint ID"
+      : subtype === "profile"
+        ? "Profile Hash"
+        : subtype === "environment"
+          ? "Environment Hash"
+          : subtype === "display"
+            ? "Display Hash"
+            : subtype === "rendering"
+              ? "Render Hash"
+              : subtype === "device"
+                ? "Device Cluster"
+                : subtype === "locale"
+                  ? "Locale Cluster"
+                  : "Fingerprint";
+  return `${label} · ${short}${rawValue.length > short.length ? "…" : ""}`;
 }
 
 export function AdminIdentityDashboard({ adminGithub }: { adminGithub: string }) {

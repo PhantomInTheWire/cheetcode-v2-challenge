@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { isClientDevMode } from "../lib/myEnv";
-import { clientFetch } from "../lib/client-identity";
+import { clientFetch } from "../lib/fingerprint/client-identity";
 import { COLORS } from "../lib/theme";
 import { FIRECRAWL_FLAME_SVG } from "./game/firecrawl-flame";
 import ReactMarkdown from "react-markdown";
@@ -54,7 +54,9 @@ type Level3GameProps = {
   sessionId: Id<"sessions">;
   github: string;
   challenge: Level3Challenge;
+  startedAt: number;
   expiresAt: number;
+  scoreSnapshot?: Pick<Level3FinishResult, "elo" | "solved" | "rank"> | null;
   initialCode?: string;
   onCodeChangeAction?: (code: string) => void;
   onExpiresAtChangeAction?: (expiresAt: number) => void;
@@ -117,7 +119,9 @@ export function Level3Game({
   sessionId,
   github,
   challenge,
+  startedAt,
   expiresAt,
+  scoreSnapshot,
   initialCode,
   onCodeChangeAction,
   onExpiresAtChangeAction,
@@ -221,9 +225,10 @@ export function Level3Game({
   );
 
   useEffect(() => {
+    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [expiresAt, startedAt]);
 
   useEffect(() => {
     initialCodeRef.current = initialCode ?? challenge.starterCode;
@@ -302,8 +307,16 @@ export function Level3Game({
   }, []);
 
   useEffect(() => {
-    const Busy = isChecking || isSubmitting;
-    if (Busy) {
+    return () => {
+      clearRunPhaseTimer();
+      clearRunCachedTimer();
+      clearRunHintTimer();
+    };
+  }, [clearRunCachedTimer, clearRunHintTimer, clearRunPhaseTimer]);
+
+  useEffect(() => {
+    const shouldPause = isChecking || isSubmitting;
+    if (shouldPause) {
       if (pauseStartedAtRef.current === null) {
         pauseStartedAtRef.current = Date.now();
       }
@@ -315,24 +328,31 @@ export function Level3Game({
     }
   }, [isChecking, isSubmitting]);
 
-  useEffect(() => {
-    return () => {
-      clearRunPhaseTimer();
-      clearRunCachedTimer();
-      clearRunHintTimer();
-    };
-  }, [clearRunCachedTimer, clearRunHintTimer, clearRunPhaseTimer]);
+  const sessionStartedAt = useMemo(() => {
+    if (startedAt > 0) return startedAt;
+    return Math.max(0, expiresAt - ROUND_DURATION_L3_MS);
+  }, [expiresAt, startedAt]);
 
-  const timeLeftMs = useMemo(() => Math.max(0, expiresAt - now), [expiresAt, now]);
-  const secondsLeft = Math.ceil(timeLeftMs / 1000);
-  const progress = Math.max(0, Math.min(100, (timeLeftMs / ROUND_DURATION_L3_MS) * 100));
-  const solvedLocal = useMemo(
-    () => Object.values(localCorrect).filter((v) => v === true).length,
-    [localCorrect],
+  const getElapsedActiveMs = useCallback(
+    (atMs: number) => {
+      const activePauseMs =
+        pauseStartedAtRef.current === null ? 0 : Math.max(0, atMs - pauseStartedAtRef.current);
+      return Math.max(
+        0,
+        Math.min(
+          ROUND_DURATION_L3_MS,
+          atMs - sessionStartedAt - pausedDurationMsRef.current - activePauseMs,
+        ),
+      );
+    },
+    [sessionStartedAt],
   );
-  const totalChecks = challenge.checks.length;
+
+  const timeLeftMs = useMemo(
+    () => ROUND_DURATION_L3_MS - getElapsedActiveMs(now),
+    [getElapsedActiveMs, now],
+  );
   const timeUp = timeLeftMs === 0;
-  const timerPaused = isChecking || isSubmitting;
   const sourceExtension = useMemo(
     () => extensionForLanguage(challenge.language),
     [challenge.language],
@@ -391,6 +411,15 @@ export function Level3Game({
     }
     runDebounceUntilRef.current = nowMs + LEVEL3_RUN_DEBOUNCE_MS;
 
+    const codeHash = await hashText(code);
+    const cacheKey = `${sessionId}:${challenge.id}:${codeHash}`;
+    const cached = runCacheRef.current.get(cacheKey);
+    if (cached && nowMs - cached.at <= LEVEL3_RUN_CACHE_TTL_MS) {
+      applyValidationForRun(cached.response);
+      setRunPhaseCached();
+      return;
+    }
+
     runInFlightRef.current = true;
     setIsChecking(true);
     setCompileError(null);
@@ -403,18 +432,7 @@ export function Level3Game({
       setRunUiPhase((current) => (current === "compiling" ? "running" : current));
       runPhaseTimerRef.current = null;
     }, LEVEL3_PHASE_SWAP_MS);
-    let keepCachedPhase = false;
     try {
-      const codeHash = await hashText(code);
-      const cacheKey = `${sessionId}:${challenge.id}:${codeHash}`;
-      const cached = runCacheRef.current.get(cacheKey);
-      if (cached && nowMs - cached.at <= LEVEL3_RUN_CACHE_TTL_MS) {
-        applyValidationForRun(cached.response);
-        setRunPhaseCached();
-        keepCachedPhase = true;
-        return;
-      }
-
       const res = await clientFetch("/api/validate-l3", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -432,9 +450,7 @@ export function Level3Game({
     } finally {
       runInFlightRef.current = false;
       setIsChecking(false);
-      if (!keepCachedPhase) {
-        setRunPhaseIdle();
-      }
+      setRunPhaseIdle();
     }
   }
 
@@ -454,10 +470,20 @@ export function Level3Game({
     }
   }
 
+  const buildTimedOutResults = useCallback(
+    (): Level3FinishResult => ({
+      elo: scoreSnapshot?.elo ?? 0,
+      solved: scoreSnapshot?.solved ?? 0,
+      rank: scoreSnapshot?.rank ?? 0,
+      timeRemaining: 0,
+    }),
+    [scoreSnapshot],
+  );
+
   const finishGame = useCallback(async () => {
     if (!sessionId || isSubmitting) return;
     if (lockedTimeElapsedMsRef.current === null) {
-      lockedTimeElapsedMsRef.current = ROUND_DURATION_L3_MS - timeLeftMs;
+      lockedTimeElapsedMsRef.current = getElapsedActiveMs(Date.now());
     }
     const lockedTimeElapsedMs = lockedTimeElapsedMsRef.current;
     setIsSubmitting(true);
@@ -471,12 +497,29 @@ export function Level3Game({
           github,
           timeElapsed: lockedTimeElapsedMs,
           code,
+          runScoreSnapshot: scoreSnapshot,
         }),
       });
 
       if (!finishRes.ok) {
         const errorData = await finishRes.json().catch(() => ({}));
-        throw new Error(errorData.error || `finish failed: ${finishRes.status}`);
+        if (typeof errorData.expiresAt === "number" && Number.isFinite(errorData.expiresAt)) {
+          onExpiresAtChangeAction?.(errorData.expiresAt);
+        }
+        const errorMessage =
+          typeof errorData.error === "string"
+            ? errorData.error
+            : `finish failed: ${finishRes.status}`;
+        const isExpiredTimeout =
+          timeUp &&
+          (finishRes.status === 410 ||
+            errorMessage.toLowerCase().includes("session expired") ||
+            errorMessage.toLowerCase().includes("stale"));
+        if (isExpiredTimeout) {
+          onFinishAction(buildTimedOutResults());
+          return;
+        }
+        throw new Error(errorMessage);
       }
       const data = (await finishRes.json()) as Level3FinishResult;
       if (typeof data.expiresAt === "number" && Number.isFinite(data.expiresAt)) {
@@ -496,7 +539,18 @@ export function Level3Game({
     } finally {
       setIsSubmitting(false);
     }
-  }, [sessionId, github, timeLeftMs, isSubmitting, onExpiresAtChangeAction, onFinishAction, code]);
+  }, [
+    sessionId,
+    github,
+    getElapsedActiveMs,
+    isSubmitting,
+    onExpiresAtChangeAction,
+    onFinishAction,
+    code,
+    scoreSnapshot,
+    timeUp,
+    buildTimedOutResults,
+  ]);
 
   useEffect(() => {
     if (timeUp && !autoSubmittedRef.current) {
@@ -533,18 +587,6 @@ export function Level3Game({
       window.removeEventListener("mouseup", onUp);
     };
   }, []);
-
-  const timerBg = secondsLeft <= 20 ? "#dc2626" : secondsLeft <= 45 ? "#fa5d19" : "#1a9338";
-  const timerFg = timerBg;
-
-  const labelStyle: React.CSSProperties = {
-    fontSize: 12,
-    color: "rgba(0,0,0,0.12)",
-    fontFamily: "var(--font-geist-mono), monospace",
-    fontWeight: 450,
-    textTransform: "uppercase",
-    letterSpacing: "0.02em",
-  };
 
   return (
     <div
@@ -660,83 +702,6 @@ export function Level3Game({
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={labelStyle}>[ PASSED ]</span>
-            <span
-              style={{
-                fontSize: 16,
-                fontWeight: 500,
-                color: solvedLocal === totalChecks ? "#1a9338" : "#262626",
-                fontFamily: "var(--font-geist-mono), monospace",
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {String(solvedLocal).padStart(2, "0")}
-              <span style={{ color: "rgba(0,0,0,0.2)" }}>
-                {" "}
-                / {String(totalChecks).padStart(2, "0")}
-              </span>
-            </span>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={labelStyle}>[ TIME ]</span>
-            <div
-              style={{
-                width: 120,
-                height: 4,
-                background: "#e8e8e8",
-                borderRadius: 4,
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  width: `${progress}%`,
-                  height: "100%",
-                  background: timerBg,
-                  borderRadius: 4,
-                  transition: "width 100ms linear, background 500ms",
-                }}
-              />
-            </div>
-            <span
-              style={{
-                fontSize: 16,
-                fontWeight: 500,
-                color: timerFg,
-                minWidth: 48,
-                textAlign: "right",
-                transition: "color 500ms",
-                fontFamily: "var(--font-geist-mono), monospace",
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {timeUp
-                ? "TIME"
-                : `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`}
-            </span>
-            {timerPaused && (
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 500,
-                  color: "#fa5d19",
-                  background: "rgba(250, 93, 25, 0.12)",
-                  border: "1px solid rgba(250, 93, 25, 0.25)",
-                  borderRadius: 999,
-                  padding: "4px 8px",
-                  letterSpacing: 0.2,
-                  whiteSpace: "nowrap",
-                  fontFamily: "var(--font-geist-mono), monospace",
-                  textTransform: "uppercase",
-                }}
-              >
-                Paused
-              </span>
-            )}
-          </div>
-
           <button
             onClick={() => void runChecks()}
             disabled={isSubmitting || timeUp || !code.trim()}
@@ -888,8 +853,7 @@ export function Level3Game({
                 fontFamily: "var(--font-geist-mono), monospace",
               }}
             >
-              Assigned language: <strong style={{ fontWeight: 500 }}>{challenge.language}</strong> •
-              submit one flat file
+              Assigned language: <strong style={{ fontWeight: 500 }}>{challenge.language}</strong>
             </p>
 
             <div

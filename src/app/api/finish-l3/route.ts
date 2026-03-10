@@ -6,22 +6,37 @@ import {
   validateLevel3Submission,
 } from "../../../../server/level3/validation";
 import { acquireLevel3InflightLock, releaseLevel3InflightLock } from "../../../lib/abuse/guard";
-import { SHADOW_BAN_HEADER } from "../../../lib/abuse";
+import { SHADOW_BAN_HEADER } from "../../../lib/abuse/guard";
 import { clampElapsed, shadowBanResponse } from "../../../lib/api-route";
 import { ENV } from "../../../lib/env-vars";
-import { withAuthenticatedSession } from "../../../lib/route-handler";
-import { recordBuiltTelemetry } from "../../../lib/attempt-telemetry";
+import { LEVEL3_FINISH_EXPIRY_GRACE_MS, withOwnedSessionRoute } from "../../../lib/route-handler";
+import { recordBuiltTelemetry } from "../../../lib/telemetry/attempt-telemetry";
 
 type RequestBody = {
   sessionId: string;
   code: string;
   timeElapsed: number;
+  runScoreSnapshot?: { elo?: number; solved?: number };
 };
 
 export async function POST(request: Request) {
-  return withAuthenticatedSession<RequestBody>(
+  return withOwnedSessionRoute<RequestBody>(
     request,
-    3,
+    {
+      expectedLevel: 3,
+      expiryGraceMs: LEVEL3_FINISH_EXPIRY_GRACE_MS,
+      validateBody: (body): body is RequestBody =>
+        !!body &&
+        typeof body === "object" &&
+        typeof (body as { sessionId?: unknown }).sessionId === "string" &&
+        typeof (body as { code?: unknown }).code === "string" &&
+        typeof (body as { timeElapsed?: unknown }).timeElapsed === "number",
+      errorLabel: "Route handler error (Level 3)",
+      errorResponse: NextResponse.json(
+        { error: "internal server error", elo: 0, solved: 0, rank: 0, timeRemaining: 0 },
+        { status: 500 },
+      ),
+    },
     async ({ github, session, convex, body }) => {
       const requestStartedAt = Date.now();
       const { sessionId, code, timeElapsed } = body;
@@ -35,14 +50,15 @@ export async function POST(request: Request) {
         });
       };
 
-      if (typeof code !== "string" || !code.trim() || typeof timeElapsed !== "number") {
+      if (!code.trim()) {
         return NextResponse.json({ error: "invalid request" }, { status: 400 });
       }
 
-      const clientElapsedMs = clampElapsed(timeElapsed, session.expiresAt - session.startedAt);
+      const roundDurationMs = session.expiresAt - session.startedAt;
+      const clientElapsedMs = clampElapsed(timeElapsed, roundDurationMs);
 
       if (request.headers.get(SHADOW_BAN_HEADER) === "1") {
-        const response = shadowBanResponse(session.expiresAt - session.startedAt, clientElapsedMs);
+        const response = shadowBanResponse(roundDurationMs, clientElapsedMs);
         await recordBuiltTelemetry({
           convex,
           sessionId: sessionId as Id<"sessions">,
@@ -62,20 +78,28 @@ export async function POST(request: Request) {
         return response;
       }
 
-      const firstProblemId = session.problemIds[0];
-      if (!firstProblemId) {
+      const challengeId = session.problemIds[0]?.split(":").slice(0, 3).join(":");
+      if (!challengeId) {
         return NextResponse.json({ error: "invalid level 3 session" }, { status: 400 });
       }
-      const challengeId = firstProblemId.split(":").slice(0, 3).join(":");
 
-      const inflight = acquireLevel3InflightLock(request, github);
-      if (!inflight.ok) {
-        return NextResponse.json({ error: "level3 submission already in flight" }, { status: 409 });
+      const inflight = await acquireLevel3InflightLock(request, github);
+      if (inflight.ok === false) {
+        return NextResponse.json(
+          {
+            error:
+              inflight.reason === "unavailable"
+                ? "abuse protection backend unavailable"
+                : "level3 submission already in flight",
+          },
+          { status: inflight.reason === "unavailable" ? 503 : 409 },
+        );
       }
 
       try {
         const validation = await validateLevel3Submission(challengeId, code);
         const clientValidation = sanitizeLevel3ValidationForClient(validation);
+
         if (validation.staleSession) {
           await recordBuiltTelemetry({
             convex,
@@ -97,9 +121,16 @@ export async function POST(request: Request) {
               validation,
             },
           });
-          await extendSessionPause();
-          return NextResponse.json({ error: validation.error }, { status: 400 });
+          const extension = await extendSessionPause();
+          return NextResponse.json(
+            {
+              error: validation.error,
+              expiresAt: extension.expiresAt,
+            },
+            { status: 400 },
+          );
         }
+
         if (validation.compiled === false) {
           await recordBuiltTelemetry({
             convex,
@@ -130,10 +161,10 @@ export async function POST(request: Request) {
             { status: 503 },
           );
         }
+
         const solvedProblemIds = validation.results
           .filter((r) => r.correct)
           .map((r) => r.problemId);
-
         const result = await convex.action(api.submissions.recordResults, {
           secret: ENV.CONVEX_MUTATION_SECRET,
           sessionId: sessionId as Id<"sessions">,
@@ -177,7 +208,7 @@ export async function POST(request: Request) {
           validation: clientValidation,
         });
       } finally {
-        releaseLevel3InflightLock(inflight.lock);
+        await releaseLevel3InflightLock(inflight.lock);
       }
     },
   );

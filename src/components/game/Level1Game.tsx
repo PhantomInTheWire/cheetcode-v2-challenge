@@ -66,20 +66,7 @@ export function Level1Game({
     return () => window.clearInterval(id);
   }, [expiresAt]);
 
-  const secondsLeft = Math.ceil(timeLeftMs / 1000);
-  const progress = Math.max(0, Math.min(100, (timeLeftMs / ROUND_DURATION_MS) * 100));
   const timeUp = timeLeftMs === 0;
-  const timerBg = secondsLeft <= 10 ? "#dc2626" : secondsLeft <= 20 ? "#fa5d19" : "#1a9338";
-  const timerFg = timerBg;
-
-  const labelStyle: React.CSSProperties = {
-    fontSize: 12,
-    color: "rgba(0,0,0,0.12)",
-    fontFamily: "var(--font-geist-mono), monospace",
-    fontWeight: 450,
-    textTransform: "uppercase",
-    letterSpacing: "0.02em",
-  };
 
   return (
     <div
@@ -196,62 +183,6 @@ export function Level1Game({
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          {/* Solved */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={labelStyle}>[ SOLVED ]</span>
-            <span
-              style={{
-                fontSize: 16,
-                fontWeight: 500,
-                color: solvedLocal === PROBLEMS_PER_SESSION ? "#1a9338" : "#262626",
-                fontFamily: "var(--font-geist-mono), monospace",
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {String(solvedLocal).padStart(2, "0")}
-              <span style={{ color: "rgba(0,0,0,0.2)" }}> / {PROBLEMS_PER_SESSION}</span>
-            </span>
-          </div>
-          {/* Timer */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={labelStyle}>[ TIME ]</span>
-            <div
-              style={{
-                width: 120,
-                height: 4,
-                background: "#e8e8e8",
-                borderRadius: 4,
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  width: `${progress}%`,
-                  height: "100%",
-                  background: timerBg,
-                  borderRadius: 4,
-                  transition: "width 100ms linear, background 500ms",
-                }}
-              />
-            </div>
-            <span
-              style={{
-                fontSize: 16,
-                fontWeight: 500,
-                color: timerFg,
-                minWidth: 48,
-                textAlign: "right",
-                transition: "color 500ms",
-                fontFamily: "var(--font-geist-mono), monospace",
-                fontVariantNumeric: "tabular-nums",
-                ...(secondsLeft <= 10
-                  ? { animation: "timer-pulse 0.6s ease-in-out infinite" }
-                  : {}),
-              }}
-            >
-              {timeUp ? "TIME" : `0:${String(secondsLeft).padStart(2, "0")}`}
-            </span>
-          </div>
           {/* ── SUBMIT button ── */}
           <button
             onClick={() => void finishGameAction()}
@@ -613,7 +544,7 @@ export function Level1Game({
                 fontWeight: 400,
               }}
             >
-              <span style={labelStyle}>[ STATUS ]</span> {solvedLocal}/{PROBLEMS_PER_SESSION} solved
+              {solvedLocal}/{PROBLEMS_PER_SESSION} solved
             </p>
             {!isSubmitting && (
               <button

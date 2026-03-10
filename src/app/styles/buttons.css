@@ -1,0 +1,124 @@
+/* Firecrawl primary button */
+.btn-heat {
+  background: #fa5d19;
+  color: white;
+  border: 1px solid #e65416;
+  cursor: pointer;
+  transition:
+    all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+    scale 0.1s,
+    box-shadow 0.1s;
+  box-shadow:
+    inset 0px -6px 12px 0px rgba(250, 25, 25, 0.2),
+    0px 2px 4px 0px rgba(250, 93, 25, 0.12),
+    0px 1px 1px 0px rgba(250, 93, 25, 0.12),
+    0px 0.5px 0.5px 0px rgba(250, 93, 25, 0.16),
+    0px 0.25px 0.25px 0px rgba(250, 93, 25, 0.2);
+}
+
+.btn-heat:hover {
+  background: #e65416;
+  border-color: #d94e14;
+  box-shadow:
+    inset 0px -6px 12px 0px rgba(250, 25, 25, 0.2),
+    0px 4px 8px 0px rgba(250, 93, 25, 0.18),
+    0px 2px 2px 0px rgba(250, 93, 25, 0.14),
+    0px 1px 1px 0px rgba(250, 93, 25, 0.18),
+    0px 0.5px 0.5px 0px rgba(250, 93, 25, 0.22);
+}
+
+.btn-heat:active {
+  transform: scale(0.995);
+  background: #d94e14;
+  border-color: #d94e14;
+}
+
+.btn-heat:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-heat-busy {
+  animation: heat-breathe 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes heat-breathe {
+  0%,
+  100% {
+    box-shadow:
+      inset 0px -6px 12px 0px rgba(250, 25, 25, 0.2),
+      0px 2px 4px 0px rgba(250, 93, 25, 0.12),
+      0px 1px 1px 0px rgba(250, 93, 25, 0.12),
+      0px 0.5px 0.5px 0px rgba(250, 93, 25, 0.16),
+      0px 0.25px 0.25px 0px rgba(250, 93, 25, 0.2);
+  }
+
+  50% {
+    box-shadow:
+      inset 0px -6px 12px 0px rgba(250, 25, 25, 0.3),
+      0px 6px 16px 0px rgba(250, 93, 25, 0.24),
+      0px 3px 4px 0px rgba(250, 93, 25, 0.18),
+      0px 1.5px 2px 0px rgba(250, 93, 25, 0.22),
+      0px 0.5px 0.5px 0px rgba(250, 93, 25, 0.26),
+      0px 0px 24px 0px rgba(250, 93, 25, 0.08);
+  }
+}
+
+/* Ghost button */
+.btn-ghost {
+  background: var(--color-black-alpha-4);
+  color: var(--color-accent-black);
+  border: 1px solid var(--color-border-muted);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.btn-ghost:hover {
+  background: var(--color-black-alpha-6);
+  border-color: var(--color-border-loud);
+}
+
+.btn-ghost:active {
+  transform: scale(0.99);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-ghost-busy {
+  color: #fa5d19;
+  border-color: rgba(250, 93, 25, 0.45);
+  background: rgba(250, 93, 25, 0.04);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.btn-ghost-busy::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 36%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(250, 93, 25, 0.08) 0%,
+    rgba(250, 93, 25, 0.3) 45%,
+    #fa5d19 100%
+  );
+  animation: run-shimmer 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes run-shimmer {
+  0% {
+    left: -36%;
+  }
+
+  100% {
+    left: 100%;
+  }
+}

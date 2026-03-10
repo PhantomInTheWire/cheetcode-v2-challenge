@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import { SHADOW_BAN_HEADER } from "../../../lib/abuse";
+import { SHADOW_BAN_HEADER } from "../../../lib/abuse/guard";
 import { validateLevel2Answers } from "../../../lib/level2-validation";
 import { clampElapsed, shadowBanResponse } from "../../../lib/api-route";
 import { ENV } from "../../../lib/env-vars";
 import { withAuthenticatedSession } from "../../../lib/route-handler";
-import { recordBuiltTelemetry } from "../../../lib/attempt-telemetry";
+import { recordBuiltTelemetry } from "../../../lib/telemetry/attempt-telemetry";
 
 type RequestBody = {
   sessionId: string;
   answers: Record<string, string>;
   timeElapsed: number;
+  runScoreSnapshot?: { elo?: number; solved?: number };
 };
 
 export async function POST(request: Request) {

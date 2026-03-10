@@ -1,8 +1,11 @@
 import { isIP } from "is-ip";
+import {
+  CLIENT_FINGERPRINT_HEADER,
+  TRUSTED_FINGERPRINT_HEADER,
+} from "../fingerprint/fingerprint-contract";
+export { TRUSTED_FINGERPRINT_HEADER };
 
 const DEFAULT_IDENTITY = "anon";
-export const TRUSTED_FINGERPRINT_HEADER = "x-ctf-fingerprint";
-const CLIENT_FINGERPRINT_HEADER = "x-client-fingerprint";
 
 function hashIdentity(raw: string): string {
   let h1 = 0x811c9dc5;

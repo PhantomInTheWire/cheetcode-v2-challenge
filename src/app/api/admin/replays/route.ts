@@ -24,6 +24,7 @@ export async function GET(request: Request) {
         (api as typeof api & { sessionReplay: { getSessionReplay: unknown } }).sessionReplay
           .getSessionReplay,
         {
+          secret: ENV.CONVEX_MUTATION_SECRET,
           sessionId: sessionId as Id<"sessions">,
           limit: normalizedLimit,
         },
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
     const sessions = await convex.query(
       (api as typeof api & { sessionReplay: { getRecentSessions: unknown } }).sessionReplay
         .getRecentSessions,
-      { limit: normalizedLimit },
+      { secret: ENV.CONVEX_MUTATION_SECRET, limit: normalizedLimit },
     );
     return NextResponse.json({ sessions });
   } catch (error) {

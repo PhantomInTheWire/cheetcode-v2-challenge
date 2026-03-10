@@ -1,16 +1,16 @@
-import { ConvexHttpClient } from "convex/browser";
 import { NextResponse } from "next/server";
-import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
-import { requireAuthenticatedGithub } from "../../../../lib/request-auth";
+import { getJsonBodyWithLimit } from "../../../../lib/api-route";
 import { ENV } from "../../../../lib/env-vars";
 import {
   SESSION_REPLAY_EVENT_TYPES,
   type SessionReplayEventType,
-} from "../../../../lib/session-replay-contract";
-import { FINISH_ROUTE_EXPIRY_GRACE_MS } from "../../../../lib/route-handler";
-import { recordSessionReplayEvent } from "../../../../lib/session-replay";
-import { recordSessionIdentity } from "../../../../lib/session-identity";
+} from "../../../../lib/session/session-replay-contract";
+import { FINISH_ROUTE_EXPIRY_GRACE_MS, withOwnedSessionRoute } from "../../../../lib/route-handler";
+import { recordSessionReplayEvent } from "../../../../lib/session/session-replay";
+import { recordSessionIdentity } from "../../../../lib/session/session-identity";
+import { recordSessionFingerprint } from "../../../../lib/session/session-fingerprint";
+import { parseUnverifiedFingerprintHints } from "../../../../lib/fingerprint/fingerprint-shared";
 
 type ReplayBody = {
   sessionId?: string;
@@ -23,11 +23,13 @@ type ReplayBody = {
   snapshot?: Record<string, unknown>;
 };
 
-type StoredSession = {
-  github: string;
-  level?: number;
-  expiresAt: number;
+type ReplayRequestBody = Omit<ReplayBody, "sessionId" | "eventType" | "screen"> & {
+  sessionId: string;
+  eventType: SessionReplayEventType;
+  screen: string;
 };
+
+const MAX_REPLAY_BODY_BYTES = 256_000;
 
 function isReplayEventType(value: string | undefined): value is SessionReplayEventType {
   return (
@@ -37,64 +39,81 @@ function isReplayEventType(value: string | undefined): value is SessionReplayEve
 }
 
 export async function POST(request: Request) {
-  const authResult = await requireAuthenticatedGithub(request);
-  if ("response" in authResult) return authResult.response;
-
-  const body = (await request.json().catch(() => ({}))) as ReplayBody;
-  if (!body.sessionId || !body.screen || !isReplayEventType(body.eventType)) {
-    return NextResponse.json(
-      { error: "sessionId, screen, and valid eventType are required" },
-      { status: 400 },
-    );
-  }
-
-  const convex = new ConvexHttpClient(ENV.NEXT_PUBLIC_CONVEX_URL);
-  const session = (await convex.query(
-    (api as typeof api & { submissions: { getSession: unknown } }).submissions.getSession,
-    {
-      sessionId: body.sessionId as Id<"sessions">,
-    },
-  )) as StoredSession | null;
-
-  if (!session) {
-    return NextResponse.json({ error: "session not found" }, { status: 404 });
-  }
-  if (session.github !== authResult.github) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-  if (session.expiresAt + FINISH_ROUTE_EXPIRY_GRACE_MS <= Date.now()) {
-    return NextResponse.json({ error: "session expired" }, { status: 410 });
-  }
-
-  const level = session.level ?? 1;
-  if (level !== 1 && level !== 2 && level !== 3) {
-    return NextResponse.json({ error: "invalid level" }, { status: 400 });
-  }
-
-  await recordSessionReplayEvent({
-    convex,
-    secret: ENV.CONVEX_MUTATION_SECRET,
-    sessionId: body.sessionId as Id<"sessions">,
-    github: authResult.github,
-    level,
-    eventType: body.eventType,
-    screen: body.screen,
-    route: body.route ?? "/",
-    clientAt: typeof body.clientAt === "number" ? body.clientAt : undefined,
-    summary: body.summary ?? {},
-    snapshot: body.snapshot,
-  });
-
-  await recordSessionIdentity({
-    convex,
-    secret: ENV.CONVEX_MUTATION_SECRET,
+  return withOwnedSessionRoute<ReplayRequestBody>(
     request,
-    sessionId: body.sessionId as Id<"sessions">,
-    github: authResult.github,
-    level,
-    route: body.route ?? "/api/session/replay",
-    screen: body.screen,
-  });
+    {
+      expiryGraceMs: FINISH_ROUTE_EXPIRY_GRACE_MS,
+      parseBody: async (incomingRequest) =>
+        await getJsonBodyWithLimit<unknown>(incomingRequest, MAX_REPLAY_BODY_BYTES),
+      validateBody: (body): body is ReplayRequestBody =>
+        !!body &&
+        typeof body === "object" &&
+        typeof (body as ReplayBody).sessionId === "string" &&
+        typeof (body as ReplayBody).screen === "string" &&
+        isReplayEventType((body as ReplayBody).eventType),
+      invalidBodyResponse: NextResponse.json(
+        { error: "sessionId, screen, and valid eventType are required" },
+        { status: 400 },
+      ),
+      bodyTooLargeResponse: NextResponse.json(
+        { error: "replay payload too large" },
+        { status: 413 },
+      ),
+      errorLabel: "/api/session/replay error",
+      errorResponse: NextResponse.json({ error: "Failed to record replay" }, { status: 500 }),
+    },
+    async ({ github, convex, session, body }) => {
+      const level = session.level ?? 1;
+      if (level !== 1 && level !== 2 && level !== 3) {
+        return NextResponse.json({ error: "invalid level" }, { status: 400 });
+      }
 
-  return NextResponse.json({ ok: true });
+      const fingerprintHints =
+        body.summary &&
+        typeof body.summary === "object" &&
+        "fingerprint" in body.summary &&
+        body.summary.fingerprint &&
+        typeof body.summary.fingerprint === "object"
+          ? parseUnverifiedFingerprintHints(body.summary.fingerprint)
+          : undefined;
+
+      await recordSessionReplayEvent({
+        convex,
+        secret: ENV.CONVEX_MUTATION_SECRET,
+        sessionId: body.sessionId as Id<"sessions">,
+        github,
+        level,
+        eventType: body.eventType,
+        screen: body.screen,
+        route: body.route ?? "/",
+        clientAt: typeof body.clientAt === "number" ? body.clientAt : undefined,
+        summary: body.summary ?? {},
+        snapshot: body.snapshot,
+      });
+
+      await recordSessionIdentity({
+        convex,
+        secret: ENV.CONVEX_MUTATION_SECRET,
+        request,
+        sessionId: body.sessionId as Id<"sessions">,
+        github,
+        level,
+        route: body.route ?? "/api/session/replay",
+        screen: body.screen,
+      });
+
+      await recordSessionFingerprint({
+        convex,
+        secret: ENV.CONVEX_MUTATION_SECRET,
+        sessionId: body.sessionId as Id<"sessions">,
+        github,
+        level,
+        route: body.route ?? "/api/session/replay",
+        screen: body.screen,
+        fingerprintHints,
+      });
+
+      return NextResponse.json({ ok: true });
+    },
+  );
 }

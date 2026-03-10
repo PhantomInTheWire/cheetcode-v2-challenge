@@ -20,6 +20,76 @@ export type Level3TaskTemplate = {
   checks: Level3TaskCheckTemplate[];
 };
 
+function createMaintainerBucketChecks(names: {
+  behaviorRead: string;
+  behaviorAudit: string;
+  updatePrimary: string;
+  updateSecondary: string;
+  scaleRead: string;
+  scaleAudit: string;
+  scaleSummary: string;
+}): Level3TaskCheckTemplate[] {
+  return [
+    { key: "behavior_rule_precedence", name: "Behavior Bucket 1", exportName: names.behaviorRead },
+    {
+      key: "behavior_fallback_compat_window",
+      name: "Behavior Bucket 2",
+      exportName: names.behaviorRead,
+    },
+    {
+      key: "behavior_stale_and_inherited_state",
+      name: "Behavior Bucket 3",
+      exportName: names.behaviorRead,
+    },
+    {
+      key: "behavior_audit_explain_contract",
+      name: "Behavior Bucket 4",
+      exportName: names.behaviorAudit,
+    },
+    { key: "update_primary_transition", name: "Update Bucket 1", exportName: names.updatePrimary },
+    {
+      key: "update_secondary_transition",
+      name: "Update Bucket 2",
+      exportName: names.updateSecondary,
+    },
+    {
+      key: "update_independent_state_isolation",
+      name: "Update Bucket 3",
+      exportName: names.updatePrimary,
+    },
+    {
+      key: "update_small_trace_equivalence",
+      name: "Update Bucket 4",
+      exportName: names.behaviorRead,
+    },
+    { key: "scale_primary_lookup_ratio", name: "Scale Budget 1", exportName: names.scaleRead },
+    { key: "scale_audit_lookup_ratio", name: "Scale Budget 2", exportName: names.scaleAudit },
+    { key: "scale_summary_lookup_ratio", name: "Scale Budget 3", exportName: names.scaleSummary },
+    { key: "scale_hot_read_ratio", name: "Scale Budget 4", exportName: names.scaleRead },
+    { key: "scale_same_subject_noise_ratio", name: "Scale Budget 5", exportName: names.scaleRead },
+    { key: "scale_cross_subject_noise_ratio", name: "Scale Budget 6", exportName: names.scaleRead },
+    { key: "scale_mixed_version_ratio", name: "Scale Budget 7", exportName: names.scaleRead },
+    { key: "scale_stale_state_ratio", name: "Scale Budget 8", exportName: names.scaleRead },
+    { key: "scale_conflict_scan_ratio", name: "Scale Budget 9", exportName: names.scaleRead },
+    { key: "scale_summary_hotset_ratio", name: "Scale Budget 10", exportName: names.scaleSummary },
+    {
+      key: "scale_summary_mode_mix_ratio",
+      name: "Scale Budget 11",
+      exportName: names.scaleSummary,
+    },
+    { key: "scale_mixed_read_loop_ratio", name: "Scale Budget 12", exportName: names.scaleRead },
+    { key: "scale_deep_dependency_ratio", name: "Scale Budget 13", exportName: names.scaleRead },
+    { key: "scale_hot_rollout_ratio", name: "Scale Budget 14", exportName: names.scaleRead },
+    { key: "scale_localized_fix_ratio", name: "Scale Budget 15", exportName: names.scaleRead },
+    { key: "scale_operator_query_ratio", name: "Scale Budget 16", exportName: names.scaleAudit },
+    {
+      key: "scale_large_trace_equivalence_budget",
+      name: "Scale Budget 17",
+      exportName: names.scaleRead,
+    },
+  ];
+}
+
 const RAW_LEVEL3_TASK_CATALOG: Level3TaskTemplate[] = [
   {
     id: "cpu-16bit-emulator",
@@ -249,6 +319,80 @@ const RAW_LEVEL3_TASK_CATALOG: Level3TaskTemplate[] = [
         exportName: "auth_check",
       },
     ],
+  },
+  {
+    id: "collection-module-utils-resolver",
+    name: "Collection Module Utils Resolver",
+    title: "Level 3 Systems Spec",
+    enabled: true,
+    languages: ["C", "C++", "Rust"],
+    originTags: [
+      "back_end_knowledge",
+      "infrastructure_knowledge",
+      "devops_knowledge",
+      "major_bug",
+      "api_knowledge",
+      "integration_bug",
+      "regression_bug",
+    ],
+    checks: createMaintainerBucketChecks({
+      behaviorRead: "resolver_build_payload",
+      behaviorAudit: "resolver_audit_get",
+      updatePrimary: "resolver_add_redirect",
+      updateSecondary: "resolver_add_import",
+      scaleRead: "resolver_build_payload",
+      scaleAudit: "resolver_audit_get",
+      scaleSummary: "resolver_count_payload_modules",
+    }),
+  },
+  {
+    id: "ecr-credential-cache",
+    name: "ECR Credential Cache",
+    title: "Level 3 Systems Spec",
+    enabled: true,
+    languages: ["C", "C++", "Rust"],
+    originTags: [
+      "security_knowledge",
+      "authentication_authorization_knowledge",
+      "api_knowledge",
+      "integration_bug",
+      "major_bug",
+      "compatibility_bug",
+    ],
+    checks: createMaintainerBucketChecks({
+      behaviorRead: "cred_get",
+      behaviorAudit: "cred_audit_get",
+      updatePrimary: "cred_set_registry_kind",
+      updateSecondary: "cred_inject_token",
+      scaleRead: "cred_get",
+      scaleAudit: "cred_audit_get",
+      scaleSummary: "cred_count_cached",
+    }),
+  },
+  {
+    id: "trait-expression-ast",
+    name: "Trait Expression AST",
+    title: "Level 3 Systems Spec",
+    enabled: true,
+    languages: ["C", "C++", "Rust"],
+    originTags: [
+      "security_knowledge",
+      "back_end_knowledge",
+      "authentication_authorization_knowledge",
+      "api_knowledge",
+      "integration_bug",
+      "data_bug",
+      "compatibility_bug",
+    ],
+    checks: createMaintainerBucketChecks({
+      behaviorRead: "expr_evaluate_match",
+      behaviorAudit: "expr_audit_get",
+      updatePrimary: "expr_compile_regex_replace",
+      updateSecondary: "expr_compile_var",
+      scaleRead: "expr_evaluate_match",
+      scaleAudit: "expr_audit_get",
+      scaleSummary: "expr_evaluate_string",
+    }),
   },
 ];
 

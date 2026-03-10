@@ -12,7 +12,7 @@ import {
 } from "../../../lib/scoring";
 import { ROUND_DURATION_MS } from "../../../lib/constants";
 import { evalWithDeadline } from "../../../lib/quickjsTimeout";
-import { SHADOW_BAN_HEADER } from "../../../lib/abuse";
+import { SHADOW_BAN_HEADER } from "../../../lib/abuse/guard";
 import { resolveSubmittedFunction } from "../../../lib/quickjsResolve";
 import { buildArgs } from "../../../lib/testcaseArgs";
 import { clampElapsed, shadowBanResponse } from "../../../lib/api-route";
@@ -25,7 +25,7 @@ import {
 } from "../../../lib/quickjs-shared";
 import { ENV } from "../../../lib/env-vars";
 import { withAuthenticatedSession } from "../../../lib/route-handler";
-import { recordBuiltTelemetry } from "../../../lib/attempt-telemetry";
+import { recordBuiltTelemetry } from "../../../lib/telemetry/attempt-telemetry";
 
 type TestCase = {
   input: Record<string, unknown>;
@@ -43,6 +43,7 @@ type RequestBody = {
   submissions: Submission[];
   timeElapsed: number;
   flag?: string; // agents can submit the hidden flag for bonus ELO
+  runScoreSnapshot?: { elo?: number; solved?: number };
 };
 
 const PROBLEM_BANK_BY_ID = new Map(PROBLEM_BANK.map((problem) => [problem.id, problem]));

@@ -10,7 +10,7 @@ import {
 import {
   clearKvShadowBan,
   getKvShadowBanStates,
-  getKvClient,
+  isKvConfigured,
   setKvShadowBan,
 } from "../../../../lib/abuse/kv";
 import { ENV } from "../../../../lib/env-vars";
@@ -60,7 +60,10 @@ type IdentityNode = {
 };
 
 function isValidIdentityKey(identityKey: string): boolean {
-  return /^(ip|fp):[a-f0-9]{16,}$/i.test(identityKey);
+  return (
+    /^ip:[a-f0-9]{16,}$/i.test(identityKey) ||
+    /^fp:(?:[a-z]+:)?[a-z0-9._:-]{8,160}$/i.test(identityKey)
+  );
 }
 
 function sortByLastSeenDesc<T extends { lastSeenAt: number }>(rows: T[]): T[] {
@@ -68,7 +71,7 @@ function sortByLastSeenDesc<T extends { lastSeenAt: number }>(rows: T[]): T[] {
 }
 
 async function getShadowBanStateMap(identityKeys: string[]): Promise<Record<string, boolean>> {
-  if (getKvClient()) {
+  if (isKvConfigured()) {
     return await getKvShadowBanStates(identityKeys);
   }
   return Object.fromEntries(
@@ -80,7 +83,7 @@ async function applyIdentityAction(
   action: "shadow_ban" | "unshadow_ban",
   identityKeys: string[],
 ): Promise<void> {
-  if (getKvClient()) {
+  if (isKvConfigured()) {
     if (action === "shadow_ban") {
       await Promise.all(identityKeys.map((identityKey) => setKvShadowBan(identityKey)));
     } else {
@@ -253,6 +256,10 @@ function buildIdentityGraph(links: IdentityLinkRow[], shadowBanStates: Record<st
   });
 }
 
+function isAbuseBackendUnavailable(error: unknown): boolean {
+  return error instanceof Error && error.message === "abuse protection backend unavailable";
+}
+
 export async function GET(request: Request) {
   const authResult = await requireAuthenticatedGithub(request);
   if ("response" in authResult) return authResult.response;
@@ -268,7 +275,7 @@ export async function GET(request: Request) {
     const links = (await convex.query(
       (api as typeof api & { sessionIdentity: { getRecentLinks: unknown } }).sessionIdentity
         .getRecentLinks,
-      { limit: normalizedLimit },
+      { secret: ENV.CONVEX_MUTATION_SECRET, limit: normalizedLimit },
     )) as IdentityLinkRow[];
 
     const shadowBanStates = await getShadowBanStateMap(links.map((link) => link.identityKey));
@@ -281,7 +288,14 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("/api/admin/identity GET error:", error);
-    return NextResponse.json({ error: "Failed to load identity graph" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: isAbuseBackendUnavailable(error)
+          ? "abuse protection backend unavailable"
+          : "Failed to load identity graph",
+      },
+      { status: isAbuseBackendUnavailable(error) ? 503 : 500 },
+    );
   }
 }
 
@@ -307,6 +321,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, shadowBanStates });
   } catch (error) {
     console.error("/api/admin/identity POST error:", error);
-    return NextResponse.json({ error: "Failed to update shadow ban state" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: isAbuseBackendUnavailable(error)
+          ? "abuse protection backend unavailable"
+          : "Failed to update shadow ban state",
+      },
+      { status: isAbuseBackendUnavailable(error) ? 503 : 500 },
+    );
   }
 }

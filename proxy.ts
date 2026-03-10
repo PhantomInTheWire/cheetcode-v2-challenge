@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { API_ROUTE_TO_ABUSE_ROUTE } from "./src/lib/abuse/config";
+import { SHADOW_BAN_HEADER } from "./src/lib/abuse/guard";
+import { TRUSTED_FINGERPRINT_HEADER } from "./src/lib/abuse/identity";
+import { checkAndTrackAbuseInKv, isKvConfigured } from "./src/lib/abuse/kv";
 import {
-  API_ROUTE_TO_ABUSE_ROUTE,
-  SHADOW_BAN_HEADER,
-  TRUSTED_FINGERPRINT_HEADER,
-  checkAndTrackAbuse,
-  checkAndTrackAbuseInKv,
-} from "./src/lib/abuse";
-
-const FINGERPRINT_COOKIE = "ctf_fp";
+  CLIENT_FINGERPRINT_HEADER,
+  FINGERPRINT_COOKIE,
+  isFallbackFingerprint,
+  normalizeClientFingerprint,
+} from "./src/lib/fingerprint/fingerprint-contract";
 const FINGERPRINT_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
 function setFingerprintCookie(response: NextResponse, value: string): void {
@@ -18,10 +19,6 @@ function setFingerprintCookie(response: NextResponse, value: string): void {
     path: "/",
     maxAge: FINGERPRINT_COOKIE_MAX_AGE,
   });
-}
-
-function isFallbackFingerprint(value: string | undefined): boolean {
-  return value?.startsWith("fallback-") ?? false;
 }
 
 function rateLimitBody(pathname: string): Record<string, unknown> {
@@ -54,11 +51,9 @@ export async function proxy(request: NextRequest) {
   if (request.method !== "POST") return NextResponse.next();
 
   const fingerprintCookie = request.cookies.get(FINGERPRINT_COOKIE)?.value?.trim();
-  const rawClientFingerprint = request.headers.get("x-client-fingerprint")?.trim();
-  const normalizedClientFingerprint =
-    rawClientFingerprint && /^[A-Za-z0-9._-]{8,128}$/.test(rawClientFingerprint)
-      ? rawClientFingerprint
-      : "";
+  const normalizedClientFingerprint = normalizeClientFingerprint(
+    request.headers.get(CLIENT_FINGERPRINT_HEADER),
+  );
   const shouldPromoteClientFingerprint =
     !!normalizedClientFingerprint &&
     (!fingerprintCookie ||
@@ -81,16 +76,31 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  const kvAbuse = await checkAndTrackAbuseInKv(
+  if (!isKvConfigured() && process.env.NODE_ENV !== "test") {
+    const response = NextResponse.json(
+      { error: "abuse protection backend unavailable" },
+      { status: 503 },
+    );
+    if (!fingerprintCookie || shouldPromoteClientFingerprint) {
+      setFingerprintCookie(response, fingerprint);
+    }
+    return response;
+  }
+
+  const abuse = await checkAndTrackAbuseInKv(
     new Request(request.url, { method: request.method, headers: requestHeaders }),
     route,
   );
-  const abuse =
-    kvAbuse ??
-    checkAndTrackAbuse(
-      new Request(request.url, { method: request.method, headers: requestHeaders }),
-      route,
+  if (!abuse) {
+    const response = NextResponse.json(
+      { error: "abuse protection backend unavailable" },
+      { status: 503 },
     );
+    if (!fingerprintCookie || shouldPromoteClientFingerprint) {
+      setFingerprintCookie(response, fingerprint);
+    }
+    return response;
+  }
 
   const limited = abuse.limited;
   const shadowBanned = abuse.shadowBanned;
@@ -122,7 +132,6 @@ export const proxyConfig = {
   matcher: [
     "/api/session",
     "/api/validate-l1",
-    "/api/validate-batch",
     "/api/validate-l2",
     "/api/validate-l3",
     "/api/finish-l1",

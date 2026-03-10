@@ -64,22 +64,9 @@ export function Level3PrereqScreen({
         </>
       }
     >
-      <div
-        style={{
-          fontSize: 12,
-          color: "rgba(0,0,0,0.12)",
-          fontFamily: "var(--font-geist-mono), monospace",
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          marginBottom: 16,
-          marginTop: 12,
-        }}
-      >
-        [ Preparation ]
-      </div>
       <p
         style={{
-          margin: "0 0 20px",
+          margin: "12px 0 20px",
           fontSize: 14,
           color: "rgba(0,0,0,0.6)",
           lineHeight: 1.6,
