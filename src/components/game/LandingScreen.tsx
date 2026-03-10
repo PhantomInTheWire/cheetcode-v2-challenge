@@ -1,10 +1,10 @@
 "use client";
 
 import { signIn, signOut } from "next-auth/react";
-import Image from "next/image";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
 import { FIRECRAWL_FLAME_SVG } from "@/components/game/firecrawl-flame";
 import { BrailleSpinner, AnimatedLandingDecor } from "@/components/game/decor";
+import { IdentityPill } from "@/components/shared/IdentityPill";
 import {
   ROUND_DURATION_SECONDS,
   PROBLEMS_PER_SESSION,
@@ -333,36 +333,7 @@ export function LandingScreen({
                     marginBottom: 24,
                   }}
                 >
-                  <div
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "4px 12px 4px 4px",
-                      background: "rgba(0,0,0,0.04)",
-                      borderRadius: 999,
-                    }}
-                  >
-                    {authSession?.user?.image && (
-                      <Image
-                        src={authSession.user.image}
-                        alt=""
-                        width={22}
-                        height={22}
-                        style={{ borderRadius: "50%", border: "1px solid rgba(0,0,0,0.06)" }}
-                      />
-                    )}
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 450,
-                        color: "#262626",
-                        fontFamily: "var(--font-geist-mono), monospace",
-                      }}
-                    >
-                      {github}
-                    </span>
-                  </div>
+                  <IdentityPill github={github} image={authSession?.user?.image} />
                   <button
                     onClick={() => signOut()}
                     style={{

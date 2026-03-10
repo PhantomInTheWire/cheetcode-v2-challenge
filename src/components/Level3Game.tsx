@@ -97,6 +97,13 @@ function editorExtensionFor(language: string) {
   return cpp();
 }
 
+function formatCountdownMs(timeLeftMs: number): string {
+  const totalSeconds = Math.max(0, Math.ceil(timeLeftMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
 async function hashText(input: string): Promise<string> {
   if (typeof window !== "undefined" && window.crypto?.subtle) {
     const hashBuffer = await window.crypto.subtle.digest(
@@ -348,6 +355,7 @@ export function Level3Game({
     [getElapsedActiveMs, now],
   );
   const timeUp = timeLeftMs === 0;
+  const timeLeftLabel = useMemo(() => formatCountdownMs(timeLeftMs), [timeLeftMs]);
   const sourceExtension = useMemo(
     () => extensionForLanguage(challenge.language),
     [challenge.language],
@@ -697,6 +705,18 @@ export function Level3Game({
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <span
+            style={{
+              fontSize: 12,
+              color: timeUp ? "#dc2626" : "rgba(0,0,0,0.45)",
+              fontFamily: "var(--font-geist-mono), monospace",
+              fontWeight: 600,
+              letterSpacing: 0.3,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {timeLeftLabel}
+          </span>
           <button
             onClick={() => void runChecks()}
             disabled={isSubmitting || timeUp || !code.trim()}

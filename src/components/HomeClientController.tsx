@@ -11,162 +11,59 @@ import { useHomeGameState } from "@/hooks/useHomeGameState";
 import { useSessionReplay } from "@/hooks/useSessionReplay";
 import { postSessionReplayEvent } from "@/lib/session/session-replay-client";
 import type { HomeClientProps } from "@/components/HomeClient";
+import { GameLoadingScreen } from "@/components/game/GameLoadingScreen";
 
 const MOBILE_BREAKPOINT = 900;
 const LandingScreen = dynamic(
   () => import("@/components/game/LandingScreen").then((m) => m.LandingScreen),
   {
-    loading: () => (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "grid",
-          placeItems: "center",
-          background: "#f9f9f9",
-          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-          color: "rgba(0,0,0,0.35)",
-          fontSize: 14,
-        }}
-      >
-        Loading...
-      </div>
-    ),
+    loading: () => <GameLoadingScreen label="Preparing homepage" />,
   },
 );
 const Level1Game = dynamic(() => import("@/components/game/Level1Game").then((m) => m.Level1Game), {
-  loading: () => (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
-  ),
+  loading: () => <GameLoadingScreen label="Loading level 1" />,
 });
 const Level2Game = dynamic(() => import("@/components/Level2Game").then((m) => m.Level2Game), {
-  loading: () => (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
-  ),
+  loading: () => <GameLoadingScreen label="Loading level 2" />,
 });
 const Level3Game = dynamic(() => import("@/components/Level3Game").then((m) => m.Level3Game), {
-  loading: () => (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>
-  ),
+  loading: () => <GameLoadingScreen label="Loading level 3" />,
 });
 const Level2PrereqScreen = dynamic(
   () => import("@/components/game/Level2PrereqScreen").then((m) => m.Level2PrereqScreen),
   {
-    loading: () => (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "grid",
-          placeItems: "center",
-          background: "#f9f9f9",
-          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-          color: "rgba(0,0,0,0.35)",
-          fontSize: 14,
-        }}
-      >
-        Loading...
-      </div>
-    ),
+    loading: () => <GameLoadingScreen label="Preparing level 2 briefing" />,
   },
 );
 const Level3PrereqScreen = dynamic(
   () => import("@/components/game/Level3PrereqScreen").then((m) => m.Level3PrereqScreen),
   {
-    loading: () => (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "grid",
-          placeItems: "center",
-          background: "#f9f9f9",
-          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-          color: "rgba(0,0,0,0.35)",
-          fontSize: 14,
-        }}
-      >
-        Loading...
-      </div>
-    ),
+    loading: () => <GameLoadingScreen label="Preparing level 3 briefing" />,
   },
 );
 const MobileGateScreen = dynamic(
   () => import("@/components/game/MobileGateScreen").then((m) => m.MobileGateScreen),
   {
-    loading: () => (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "grid",
-          placeItems: "center",
-          background: "#f9f9f9",
-          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-          color: "rgba(0,0,0,0.35)",
-          fontSize: 14,
-        }}
-      >
-        Loading...
-      </div>
-    ),
+    loading: () => <GameLoadingScreen label="Checking device support" />,
   },
 );
 const RestoreScreen = dynamic(
   () => import("@/components/game/RestoreScreen").then((m) => m.RestoreScreen),
   {
-    loading: () => (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "grid",
-          placeItems: "center",
-          background: "#f9f9f9",
-          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-          color: "rgba(0,0,0,0.35)",
-          fontSize: 14,
-        }}
-      >
-        Loading...
-      </div>
-    ),
+    loading: () => <GameLoadingScreen label="Restoring session" />,
   },
 );
 const ResultsScreen = dynamic(
   () => import("@/components/game/ResultsScreen").then((m) => m.ResultsScreen),
   {
-    loading: () => (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "grid",
-          placeItems: "center",
-          background: "#f9f9f9",
-          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-          color: "rgba(0,0,0,0.35)",
-          fontSize: 14,
-        }}
-      >
-        Loading...
-      </div>
-    ),
+    loading: () => <GameLoadingScreen label="Assembling results" />,
   },
 );
 const Level3VerificationScreen = dynamic(
   () =>
     import("@/components/game/Level3VerificationScreen").then((m) => m.Level3VerificationScreen),
   {
-    loading: () => (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "grid",
-          placeItems: "center",
-          background: "#f9f9f9",
-          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-          color: "rgba(0,0,0,0.35)",
-          fontSize: 14,
-        }}
-      >
-        Loading...
-      </div>
-    ),
+    loading: () => <GameLoadingScreen label="Verifying final run" />,
   },
 );
 

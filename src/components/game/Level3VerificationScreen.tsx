@@ -144,7 +144,7 @@ export function Level3VerificationScreen({ results, onContinue }: Level3Verifica
               fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             }}
           >
-            {allPassed ? "VALIDATED" : validation?.compiled ? "PARTIAL PASS" : "FAILED"}
+            {allPassed ? "CLEARED" : validation?.compiled ? "PARTIAL PASS" : "FAILED"}
           </h1>
         </div>
 
