@@ -22,17 +22,15 @@ extern "C" __attribute__((visibility("default"))) void cpu_reset(void) {
   ct_reset_state();
 }
 
-extern "C" __attribute__((visibility("default"))) void cpu_load_word(int addr, int word) {
+extern "C" __attribute__((visibility("default"))) void cpu_load_word(int addr,
+                                                                     int word) {
   ct_load_word(addr, word);
 }
 
-extern "C" __attribute__((visibility("default"))) int cpu_assemble(
-  const char* src,
-  int src_len,
-  uint16_t* out_words,
-  int max_words
-) {
-  // TODO: implement two-pass assembler; return words written or negative on error.
+extern "C" __attribute__((visibility("default"))) int
+cpu_assemble(const char *src, int src_len, uint16_t *out_words, int max_words) {
+  // TODO: implement two-pass assembler; return words written or negative on
+  // error.
   (void)src;
   (void)src_len;
   (void)out_words;
@@ -40,7 +38,8 @@ extern "C" __attribute__((visibility("default"))) int cpu_assemble(
   return -1;
 }
 
-extern "C" __attribute__((visibility("default"))) void cpu_set_reg(int idx, int value) {
+extern "C" __attribute__((visibility("default"))) void cpu_set_reg(int idx,
+                                                                   int value) {
   ct_set_reg(idx, value);
 }
 

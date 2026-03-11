@@ -93,9 +93,12 @@ export const recordResultsInternal = internalMutation({
     let shouldUpdateBests = false;
 
     if (level === 1) {
+      if (solvedCount > currentL1Solved) {
+        currentL1Solved = solvedCount;
+        shouldUpdateBests = true;
+      }
       if (elo > currentL1Elo) {
         currentL1Elo = elo;
-        currentL1Solved = solvedCount;
         shouldUpdateBests = true;
       }
       if (solvedCount === 25) {
@@ -103,9 +106,12 @@ export const recordResultsInternal = internalMutation({
         shouldUpdateBests = true;
       }
     } else if (level === 2) {
+      if (solvedCount > currentL2Solved) {
+        currentL2Solved = solvedCount;
+        shouldUpdateBests = true;
+      }
       if (elo > currentL2Elo) {
         currentL2Elo = elo;
-        currentL2Solved = solvedCount;
         shouldUpdateBests = true;
       }
       if (solvedCount === 10) {
@@ -113,9 +119,12 @@ export const recordResultsInternal = internalMutation({
         shouldUpdateBests = true;
       }
     } else if (level === 3) {
+      if (solvedCount > currentL3Solved) {
+        currentL3Solved = solvedCount;
+        shouldUpdateBests = true;
+      }
       if (elo > currentL3Elo) {
         currentL3Elo = elo;
-        currentL3Solved = solvedCount;
         shouldUpdateBests = true;
       }
     }

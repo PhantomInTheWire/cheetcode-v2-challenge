@@ -1,7 +1,6 @@
 import {
   type Level3Check,
   type Level3ChallengeMeta,
-  generateLevel3ChallengeMeta,
   getLevel3ChallengeMetaFromId,
 } from "./catalog";
 import { resolveLevel3TaskAssets } from "./taskAssets";

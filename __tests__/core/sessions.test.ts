@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  MAX_SESSION_PAUSE_EXTENSION_MS,
-  clampSessionPauseExtension,
-} from "../../convex/sessions";
+import { MAX_SESSION_PAUSE_EXTENSION_MS, clampSessionPauseExtension } from "../../convex/sessions";
 import {
   PROBLEM_DISTRIBUTION,
   injectDescriptionCanary,

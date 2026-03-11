@@ -85,11 +85,7 @@ pub extern "C" fn auth_effective_mask(_grant_id: i32, _ts: i64) -> i32 {
 }
 
 #[no_mangle]
-pub extern "C" fn auth_audit_get(
-    _grant_id: i32,
-    _ts: i64,
-    _out_view: *mut AuthAuditView,
-) -> i32 {
+pub extern "C" fn auth_audit_get(_grant_id: i32, _ts: i64, _out_view: *mut AuthAuditView) -> i32 {
     0
 }
 

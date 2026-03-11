@@ -28,12 +28,14 @@ static void set_zn(unsigned short value) {
   flag_n = (value & 0x8000) ? 1 : 0;
 }
 
-static void set_add_flags(unsigned short a, unsigned short b, unsigned short r) {
+static void set_add_flags(unsigned short a, unsigned short b,
+                          unsigned short r) {
   set_zn(r);
   flag_v = (((a ^ r) & (b ^ r) & 0x8000) != 0) ? 1 : 0;
 }
 
-static void set_sub_flags(unsigned short a, unsigned short b, unsigned short r) {
+static void set_sub_flags(unsigned short a, unsigned short b,
+                          unsigned short r) {
   set_zn(r);
   flag_v = (((a ^ b) & (a ^ r) & 0x8000) != 0) ? 1 : 0;
 }
@@ -44,8 +46,10 @@ static void set_logic_flags(unsigned short r) {
 }
 
 __attribute__((visibility("default"))) void cpu_reset(void) {
-  for (int i = 0; i < 8; i++) regs[i] = 0;
-  for (int i = 0; i < 65536; i++) mem[i] = 0;
+  for (int i = 0; i < 8; i++)
+    regs[i] = 0;
+  for (int i = 0; i < 65536; i++)
+    mem[i] = 0;
   pc = 0;
   sp = 0xFFFF;
   flag_z = 0;
@@ -55,49 +59,60 @@ __attribute__((visibility("default"))) void cpu_reset(void) {
 }
 
 __attribute__((visibility("default"))) void cpu_load_word(int addr, int word) {
-  if (addr < 0 || addr > 65534) return;
+  if (addr < 0 || addr > 65534)
+    return;
   write16((unsigned short)addr, (unsigned short)word);
 }
 
-typedef struct { char name[64]; int addr; } AsmLabel;
+typedef struct {
+  char name[64];
+  int addr;
+} AsmLabel;
 
-static char* asm_trim(char* s) {
-  while (*s && isspace((unsigned char)*s)) s++;
-  char* e = s + strlen(s);
-  while (e > s && isspace((unsigned char)e[-1])) e--;
+static char *asm_trim(char *s) {
+  while (*s && isspace((unsigned char)*s))
+    s++;
+  char *e = s + strlen(s);
+  while (e > s && isspace((unsigned char)e[-1]))
+    e--;
   *e = '\0';
   return s;
 }
 
-static int asm_parse_reg(const char* t) {
-  if (!t || (t[0] != 'R' && t[0] != 'r') || !t[1] || t[2]) return -1;
-  if (t[1] < '0' || t[1] > '7') return -1;
+static int asm_parse_reg(const char *t) {
+  if (!t || (t[0] != 'R' && t[0] != 'r') || !t[1] || t[2])
+    return -1;
+  if (t[1] < '0' || t[1] > '7')
+    return -1;
   return t[1] - '0';
 }
 
-static int asm_is_simd_base_reg(int reg) {
-  return reg == 0 || reg == 4;
-}
+static int asm_is_simd_base_reg(int reg) { return reg == 0 || reg == 4; }
 
-static int asm_parse_int(const char* t, int* out) {
-  if (!t || !*t) return -1;
-  if (*t == '#') t++;
-  char* end = 0;
+static int asm_parse_int(const char *t, int *out) {
+  if (!t || !*t)
+    return -1;
+  if (*t == '#')
+    t++;
+  char *end = 0;
   long v = strtol(t, &end, 10);
-  if (!end || *end) return -1;
+  if (!end || *end)
+    return -1;
   *out = (int)v;
   return 0;
 }
 
-static int asm_find_label(AsmLabel* labels, int label_count, const char* name) {
+static int asm_find_label(AsmLabel *labels, int label_count, const char *name) {
   for (int i = 0; i < label_count; i++) {
-    if (strcmp(labels[i].name, name) == 0) return labels[i].addr;
+    if (strcmp(labels[i].name, name) == 0)
+      return labels[i].addr;
   }
   return -1;
 }
 
 static unsigned short asm_enc_r(int op, int dst, int src, int imm5) {
-  return (unsigned short)(((op & 0x1F) << 11) | ((dst & 7) << 8) | ((src & 7) << 5) | (imm5 & 0x1F));
+  return (unsigned short)(((op & 0x1F) << 11) | ((dst & 7) << 8) |
+                          ((src & 7) << 5) | (imm5 & 0x1F));
 }
 static unsigned short asm_enc_j(int op, int addr11) {
   return (unsigned short)(((op & 0x1F) << 11) | (addr11 & 0x7FF));
@@ -106,49 +121,69 @@ static unsigned short asm_enc_x(int op, int dst) {
   return (unsigned short)(((op & 0x1F) << 11) | ((dst & 7) << 8));
 }
 
-static int asm_instr_words(const char* op) {
-  if (!op) return -1;
-  if (!strcmp(op, "LOAD") || !strcmp(op, "CALL")) return 2;
+static int asm_instr_words(const char *op) {
+  if (!op)
+    return -1;
+  if (!strcmp(op, "LOAD") || !strcmp(op, "CALL"))
+    return 2;
   return 1;
 }
 
-static int asm_resolve(const char* tok, AsmLabel* labels, int label_count, int* out) {
-  if (asm_parse_int(tok, out) == 0) return 0;
+static int asm_resolve(const char *tok, AsmLabel *labels, int label_count,
+                       int *out) {
+  if (asm_parse_int(tok, out) == 0)
+    return 0;
   int addr = asm_find_label(labels, label_count, tok);
-  if (addr < 0) return -1;
+  if (addr < 0)
+    return -1;
   *out = addr;
   return 0;
 }
 
-__attribute__((visibility("default"))) int cpu_assemble(const char* src, int src_len, unsigned short* out_words, int max_words) {
-  if (!src || src_len <= 0 || !out_words || max_words <= 0) return -1;
+__attribute__((visibility("default"))) int
+cpu_assemble(const char *src, int src_len, unsigned short *out_words,
+             int max_words) {
+  if (!src || src_len <= 0 || !out_words || max_words <= 0)
+    return -1;
 
-  char* buf = (char*)malloc((size_t)src_len + 1);
-  if (!buf) return -3;
+  char *buf = (char *)malloc((size_t)src_len + 1);
+  if (!buf)
+    return -3;
   memcpy(buf, src, (size_t)src_len);
   buf[src_len] = '\0';
 
   int label_capacity = 1024;
-  AsmLabel* labels = (AsmLabel*)malloc((size_t)label_capacity * sizeof(AsmLabel));
-  if (!labels) { free(buf); return -4; }
+  AsmLabel *labels =
+      (AsmLabel *)malloc((size_t)label_capacity * sizeof(AsmLabel));
+  if (!labels) {
+    free(buf);
+    return -4;
+  }
   int label_count = 0;
   int pc = 0;
 
   for (int pass = 0; pass < 2; pass++) {
-    if (pass == 1) pc = 0;
-    char* save = 0;
-    char* line = strtok_r(buf, "\n", &save);
+    if (pass == 1)
+      pc = 0;
+    char *save = 0;
+    char *line = strtok_r(buf, "\n", &save);
     while (line) {
-      char* comment = strchr(line, ';');
-      if (comment) *comment = '\0';
-      char* s = asm_trim(line);
+      char *comment = strchr(line, ';');
+      if (comment)
+        *comment = '\0';
+      char *s = asm_trim(line);
 
       while (*s) {
-        char* colon = strchr(s, ':');
-        if (!colon) break;
+        char *colon = strchr(s, ':');
+        if (!colon)
+          break;
         *colon = '\0';
-        char* label = asm_trim(s);
-        if (!*label) { free(labels); free(buf); return -4; }
+        char *label = asm_trim(s);
+        if (!*label) {
+          free(labels);
+          free(buf);
+          return -4;
+        }
         if (pass == 0) {
           if (asm_find_label(labels, label_count, label) >= 0) {
             free(labels);
@@ -157,8 +192,13 @@ __attribute__((visibility("default"))) int cpu_assemble(const char* src, int src
           }
           if (label_count >= label_capacity) {
             int next_capacity = label_capacity * 2;
-            AsmLabel* grown = (AsmLabel*)realloc(labels, (size_t)next_capacity * sizeof(AsmLabel));
-            if (!grown) { free(labels); free(buf); return -5; }
+            AsmLabel *grown = (AsmLabel *)realloc(
+                labels, (size_t)next_capacity * sizeof(AsmLabel));
+            if (!grown) {
+              free(labels);
+              free(buf);
+              return -5;
+            }
             labels = grown;
             label_capacity = next_capacity;
           }
@@ -171,67 +211,138 @@ __attribute__((visibility("default"))) int cpu_assemble(const char* src, int src
       }
 
       if (*s) {
-        for (char* p = s; *p; p++) if (*p == ',') *p = ' ';
-        char* tok_save = 0;
-        char* op = strtok_r(s, " \t\r", &tok_save);
-        if (!op) { line = strtok_r(0, "\n", &save); continue; }
-        for (char* p = op; *p; p++) *p = (char)toupper((unsigned char)*p);
+        for (char *p = s; *p; p++)
+          if (*p == ',')
+            *p = ' ';
+        char *tok_save = 0;
+        char *op = strtok_r(s, " \t\r", &tok_save);
+        if (!op) {
+          line = strtok_r(0, "\n", &save);
+          continue;
+        }
+        for (char *p = op; *p; p++)
+          *p = (char)toupper((unsigned char)*p);
         int words = asm_instr_words(op);
-        if (words < 0) { free(labels); free(buf); return -6; }
+        if (words < 0) {
+          free(labels);
+          free(buf);
+          return -6;
+        }
         if (pass == 1) {
-          if ((pc / 2) + words > max_words) { free(labels); free(buf); return -7; }
-          int opv =
-            !strcmp(op, "NOP") ? 0x00 : !strcmp(op, "LOAD") ? 0x01 : !strcmp(op, "MOV") ? 0x02 :
-            !strcmp(op, "ADD") ? 0x03 : !strcmp(op, "SUB") ? 0x04 : !strcmp(op, "AND") ? 0x05 :
-            !strcmp(op, "OR") ? 0x06 : !strcmp(op, "XOR") ? 0x07 : !strcmp(op, "NOT") ? 0x08 :
-            !strcmp(op, "SHL") ? 0x09 : !strcmp(op, "SHR") ? 0x0A : !strcmp(op, "CMP") ? 0x0B :
-            !strcmp(op, "JMP") ? 0x0C : !strcmp(op, "JZ") ? 0x0D : !strcmp(op, "JNZ") ? 0x0E :
-            !strcmp(op, "JN") ? 0x0F : !strcmp(op, "LDR") ? 0x10 : !strcmp(op, "STR") ? 0x11 :
-            !strcmp(op, "PUSH") ? 0x12 : !strcmp(op, "POP") ? 0x13 : !strcmp(op, "CALL") ? 0x14 :
-            !strcmp(op, "RET") ? 0x15 : !strcmp(op, "HALT") ? 0x16 :
-            !strcmp(op, "VADD") ? 0x17 : !strcmp(op, "VSUB") ? 0x18 : !strcmp(op, "VXOR") ? 0x19 : -1;
-          if (opv < 0) { free(labels); free(buf); return -8; }
+          if ((pc / 2) + words > max_words) {
+            free(labels);
+            free(buf);
+            return -7;
+          }
+          int opv = !strcmp(op, "NOP")    ? 0x00
+                    : !strcmp(op, "LOAD") ? 0x01
+                    : !strcmp(op, "MOV")  ? 0x02
+                    : !strcmp(op, "ADD")  ? 0x03
+                    : !strcmp(op, "SUB")  ? 0x04
+                    : !strcmp(op, "AND")  ? 0x05
+                    : !strcmp(op, "OR")   ? 0x06
+                    : !strcmp(op, "XOR")  ? 0x07
+                    : !strcmp(op, "NOT")  ? 0x08
+                    : !strcmp(op, "SHL")  ? 0x09
+                    : !strcmp(op, "SHR")  ? 0x0A
+                    : !strcmp(op, "CMP")  ? 0x0B
+                    : !strcmp(op, "JMP")  ? 0x0C
+                    : !strcmp(op, "JZ")   ? 0x0D
+                    : !strcmp(op, "JNZ")  ? 0x0E
+                    : !strcmp(op, "JN")   ? 0x0F
+                    : !strcmp(op, "LDR")  ? 0x10
+                    : !strcmp(op, "STR")  ? 0x11
+                    : !strcmp(op, "PUSH") ? 0x12
+                    : !strcmp(op, "POP")  ? 0x13
+                    : !strcmp(op, "CALL") ? 0x14
+                    : !strcmp(op, "RET")  ? 0x15
+                    : !strcmp(op, "HALT") ? 0x16
+                    : !strcmp(op, "VADD") ? 0x17
+                    : !strcmp(op, "VSUB") ? 0x18
+                    : !strcmp(op, "VXOR") ? 0x19
+                                          : -1;
+          if (opv < 0) {
+            free(labels);
+            free(buf);
+            return -8;
+          }
 
           int idx = pc / 2;
           if (opv == 0x00 || opv == 0x15 || opv == 0x16) {
             out_words[idx] = asm_enc_r(opv, 0, 0, 0);
           } else if (opv == 0x12 || opv == 0x13 || opv == 0x08) {
-            char* a = strtok_r(0, " \t\r", &tok_save);
+            char *a = strtok_r(0, " \t\r", &tok_save);
             int rd = asm_parse_reg(a);
-            if (rd < 0) { free(labels); free(buf); return -9; }
+            if (rd < 0) {
+              free(labels);
+              free(buf);
+              return -9;
+            }
             out_words[idx] = asm_enc_r(opv, rd, 0, 0);
           } else if (opv == 0x09 || opv == 0x0A) {
-            char* a = strtok_r(0, " \t\r", &tok_save);
-            char* b = strtok_r(0, " \t\r", &tok_save);
+            char *a = strtok_r(0, " \t\r", &tok_save);
+            char *b = strtok_r(0, " \t\r", &tok_save);
             int rd = asm_parse_reg(a), imm = 0;
-            if (rd < 0 || asm_resolve(b, labels, label_count, &imm) != 0) { free(labels); free(buf); return -10; }
+            if (rd < 0 || asm_resolve(b, labels, label_count, &imm) != 0) {
+              free(labels);
+              free(buf);
+              return -10;
+            }
             out_words[idx] = asm_enc_r(opv, rd, 0, imm);
           } else if (opv >= 0x0C && opv <= 0x0F) {
-            char* a = strtok_r(0, " \t\r", &tok_save);
+            char *a = strtok_r(0, " \t\r", &tok_save);
             int addr = 0;
-            if (asm_resolve(a, labels, label_count, &addr) != 0) { free(labels); free(buf); return -11; }
-            if (addr < 0 || addr > 0x7FF) { free(labels); free(buf); return -15; }
+            if (asm_resolve(a, labels, label_count, &addr) != 0) {
+              free(labels);
+              free(buf);
+              return -11;
+            }
+            if (addr < 0 || addr > 0x7FF) {
+              free(labels);
+              free(buf);
+              return -15;
+            }
             out_words[idx] = asm_enc_j(opv, addr);
           } else if (opv == 0x01) {
-            char* a = strtok_r(0, " \t\r", &tok_save);
-            char* b = strtok_r(0, " \t\r", &tok_save);
+            char *a = strtok_r(0, " \t\r", &tok_save);
+            char *b = strtok_r(0, " \t\r", &tok_save);
             int rd = asm_parse_reg(a), imm = 0;
-            if (rd < 0 || asm_resolve(b, labels, label_count, &imm) != 0) { free(labels); free(buf); return -12; }
-            if (imm < -32768 || imm > 65535) { free(labels); free(buf); return -16; }
+            if (rd < 0 || asm_resolve(b, labels, label_count, &imm) != 0) {
+              free(labels);
+              free(buf);
+              return -12;
+            }
+            if (imm < -32768 || imm > 65535) {
+              free(labels);
+              free(buf);
+              return -16;
+            }
             out_words[idx] = asm_enc_x(opv, rd);
             out_words[idx + 1] = (unsigned short)imm;
           } else if (opv == 0x14) {
-            char* a = strtok_r(0, " \t\r", &tok_save);
+            char *a = strtok_r(0, " \t\r", &tok_save);
             int addr = 0;
-            if (asm_resolve(a, labels, label_count, &addr) != 0) { free(labels); free(buf); return -13; }
-            if (addr < 0 || addr > 0xFFFF) { free(labels); free(buf); return -17; }
+            if (asm_resolve(a, labels, label_count, &addr) != 0) {
+              free(labels);
+              free(buf);
+              return -13;
+            }
+            if (addr < 0 || addr > 0xFFFF) {
+              free(labels);
+              free(buf);
+              return -17;
+            }
             out_words[idx] = asm_enc_x(opv, 0);
             out_words[idx + 1] = (unsigned short)addr;
           } else {
-            char* a = strtok_r(0, " \t\r", &tok_save);
-            char* b = strtok_r(0, " \t\r", &tok_save);
+            char *a = strtok_r(0, " \t\r", &tok_save);
+            char *b = strtok_r(0, " \t\r", &tok_save);
             int rd = asm_parse_reg(a), rs = asm_parse_reg(b);
-            if (rd < 0 || rs < 0) { free(labels); free(buf); return -14; }
+            if (rd < 0 || rs < 0) {
+              free(labels);
+              free(buf);
+              return -14;
+            }
             if ((opv == 0x17 || opv == 0x18 || opv == 0x19) &&
                 (!asm_is_simd_base_reg(rd) || !asm_is_simd_base_reg(rs))) {
               free(labels);
@@ -259,29 +370,39 @@ __attribute__((visibility("default"))) int cpu_assemble(const char* src, int src
 }
 
 __attribute__((visibility("default"))) void cpu_set_reg(int idx, int value) {
-  if (idx < 0 || idx > 7) return;
+  if (idx < 0 || idx > 7)
+    return;
   regs[idx] = (unsigned short)value;
 }
 
 __attribute__((visibility("default"))) int cpu_get_reg(int idx) {
-  if (idx < 0 || idx > 7) return 0;
+  if (idx < 0 || idx > 7)
+    return 0;
   return regs[idx];
 }
 
 __attribute__((visibility("default"))) int cpu_get_pc(void) { return pc; }
 __attribute__((visibility("default"))) int cpu_get_sp(void) { return sp; }
-__attribute__((visibility("default"))) int cpu_get_flag_z(void) { return flag_z; }
-__attribute__((visibility("default"))) int cpu_get_flag_n(void) { return flag_n; }
-__attribute__((visibility("default"))) int cpu_get_flag_v(void) { return flag_v; }
+__attribute__((visibility("default"))) int cpu_get_flag_z(void) {
+  return flag_z;
+}
+__attribute__((visibility("default"))) int cpu_get_flag_n(void) {
+  return flag_n;
+}
+__attribute__((visibility("default"))) int cpu_get_flag_v(void) {
+  return flag_v;
+}
 
 __attribute__((visibility("default"))) int cpu_mem_read16(int addr) {
-  if (addr < 0 || addr > 65534) return 0;
+  if (addr < 0 || addr > 65534)
+    return 0;
   return read16((unsigned short)addr);
 }
 
 __attribute__((visibility("default"))) int cpu_run(int max_cycles) {
   int cycles = 0;
-  if (max_cycles <= 0) return 0;
+  if (max_cycles <= 0)
+    return 0;
 
   while (cycles < max_cycles && !halted) {
     unsigned short instr = read16(pc);
@@ -295,129 +416,132 @@ __attribute__((visibility("default"))) int cpu_run(int max_cycles) {
     cycles++;
 
     switch (op) {
-      case 0x00: // NOP
-        break;
-      case 0x01: // LOAD
-        regs[dst] = read16(pc);
-        pc = (unsigned short)(pc + 2);
-        break;
-      case 0x02: // MOV
-        regs[dst] = regs[src];
-        break;
-      case 0x03: { // ADD
-        unsigned short a = regs[dst];
-        unsigned short b = regs[src];
-        unsigned short r = (unsigned short)(a + b);
-        regs[dst] = r;
-        set_add_flags(a, b, r);
-      } break;
-      case 0x04: { // SUB
-        unsigned short a = regs[dst];
-        unsigned short b = regs[src];
-        unsigned short r = (unsigned short)(a - b);
-        regs[dst] = r;
-        set_sub_flags(a, b, r);
-      } break;
-      case 0x05: // AND
-        regs[dst] = (unsigned short)(regs[dst] & regs[src]);
-        set_logic_flags(regs[dst]);
-        break;
-      case 0x06: // OR
-        regs[dst] = (unsigned short)(regs[dst] | regs[src]);
-        set_logic_flags(regs[dst]);
-        break;
-      case 0x07: // XOR
-        regs[dst] = (unsigned short)(regs[dst] ^ regs[src]);
-        set_logic_flags(regs[dst]);
-        break;
-      case 0x08: // NOT
-        regs[dst] = (unsigned short)(~regs[dst]);
-        set_logic_flags(regs[dst]);
-        break;
-      case 0x09: // SHL
-        regs[dst] = (unsigned short)(regs[dst] << (imm5 & 0x0F));
-        set_logic_flags(regs[dst]);
-        break;
-      case 0x0A: // SHR
-        regs[dst] = (unsigned short)(regs[dst] >> (imm5 & 0x0F));
-        set_logic_flags(regs[dst]);
-        break;
-      case 0x0B: { // CMP
-        unsigned short a = regs[dst];
-        unsigned short b = regs[src];
-        unsigned short r = (unsigned short)(a - b);
-        set_sub_flags(a, b, r);
-      } break;
-      case 0x0C: // JMP
+    case 0x00: // NOP
+      break;
+    case 0x01: // LOAD
+      regs[dst] = read16(pc);
+      pc = (unsigned short)(pc + 2);
+      break;
+    case 0x02: // MOV
+      regs[dst] = regs[src];
+      break;
+    case 0x03: { // ADD
+      unsigned short a = regs[dst];
+      unsigned short b = regs[src];
+      unsigned short r = (unsigned short)(a + b);
+      regs[dst] = r;
+      set_add_flags(a, b, r);
+    } break;
+    case 0x04: { // SUB
+      unsigned short a = regs[dst];
+      unsigned short b = regs[src];
+      unsigned short r = (unsigned short)(a - b);
+      regs[dst] = r;
+      set_sub_flags(a, b, r);
+    } break;
+    case 0x05: // AND
+      regs[dst] = (unsigned short)(regs[dst] & regs[src]);
+      set_logic_flags(regs[dst]);
+      break;
+    case 0x06: // OR
+      regs[dst] = (unsigned short)(regs[dst] | regs[src]);
+      set_logic_flags(regs[dst]);
+      break;
+    case 0x07: // XOR
+      regs[dst] = (unsigned short)(regs[dst] ^ regs[src]);
+      set_logic_flags(regs[dst]);
+      break;
+    case 0x08: // NOT
+      regs[dst] = (unsigned short)(~regs[dst]);
+      set_logic_flags(regs[dst]);
+      break;
+    case 0x09: // SHL
+      regs[dst] = (unsigned short)(regs[dst] << (imm5 & 0x0F));
+      set_logic_flags(regs[dst]);
+      break;
+    case 0x0A: // SHR
+      regs[dst] = (unsigned short)(regs[dst] >> (imm5 & 0x0F));
+      set_logic_flags(regs[dst]);
+      break;
+    case 0x0B: { // CMP
+      unsigned short a = regs[dst];
+      unsigned short b = regs[src];
+      unsigned short r = (unsigned short)(a - b);
+      set_sub_flags(a, b, r);
+    } break;
+    case 0x0C: // JMP
+      pc = jaddr;
+      break;
+    case 0x0D: // JZ
+      if (flag_z)
         pc = jaddr;
-        break;
-      case 0x0D: // JZ
-        if (flag_z) pc = jaddr;
-        break;
-      case 0x0E: // JNZ
-        if (!flag_z) pc = jaddr;
-        break;
-      case 0x0F: // JN
-        if (flag_n) pc = jaddr;
-        break;
-      case 0x10: // LDR
-        regs[dst] = read16(regs[src]);
-        break;
-      case 0x11: // STR
-        write16(regs[dst], regs[src]);
-        break;
-      case 0x12: // PUSH
-        sp = (unsigned short)(sp - 2);
-        write16(sp, regs[dst]);
-        break;
-      case 0x13: // POP
-        regs[dst] = read16(sp);
-        sp = (unsigned short)(sp + 2);
-        break;
-      case 0x14: { // CALL
-        unsigned short target = read16(pc);
-        pc = (unsigned short)(pc + 2);
-        sp = (unsigned short)(sp - 2);
-        write16(sp, pc);
-        pc = target;
-      } break;
-      case 0x15: // RET
-        pc = read16(sp);
-        sp = (unsigned short)(sp + 2);
-        break;
-      case 0x16: // HALT
+      break;
+    case 0x0E: // JNZ
+      if (!flag_z)
+        pc = jaddr;
+      break;
+    case 0x0F: // JN
+      if (flag_n)
+        pc = jaddr;
+      break;
+    case 0x10: // LDR
+      regs[dst] = read16(regs[src]);
+      break;
+    case 0x11: // STR
+      write16(regs[dst], regs[src]);
+      break;
+    case 0x12: // PUSH
+      sp = (unsigned short)(sp - 2);
+      write16(sp, regs[dst]);
+      break;
+    case 0x13: // POP
+      regs[dst] = read16(sp);
+      sp = (unsigned short)(sp + 2);
+      break;
+    case 0x14: { // CALL
+      unsigned short target = read16(pc);
+      pc = (unsigned short)(pc + 2);
+      sp = (unsigned short)(sp - 2);
+      write16(sp, pc);
+      pc = target;
+    } break;
+    case 0x15: // RET
+      pc = read16(sp);
+      sp = (unsigned short)(sp + 2);
+      break;
+    case 0x16: // HALT
+      halted = 1;
+      break;
+    case 0x17: // VADD
+      if (dst > 4 || src > 4 || (dst & 3) != 0 || (src & 3) != 0) {
         halted = 1;
         break;
-      case 0x17: // VADD
-        if (dst > 4 || src > 4 || (dst & 3) != 0 || (src & 3) != 0) {
-          halted = 1;
-          break;
-        }
-        for (int i = 0; i < 4; i++) {
-          regs[dst + i] = (unsigned short)(regs[dst + i] + regs[src + i]);
-        }
-        break;
-      case 0x18: // VSUB
-        if (dst > 4 || src > 4 || (dst & 3) != 0 || (src & 3) != 0) {
-          halted = 1;
-          break;
-        }
-        for (int i = 0; i < 4; i++) {
-          regs[dst + i] = (unsigned short)(regs[dst + i] - regs[src + i]);
-        }
-        break;
-      case 0x19: // VXOR
-        if (dst > 4 || src > 4 || (dst & 3) != 0 || (src & 3) != 0) {
-          halted = 1;
-          break;
-        }
-        for (int i = 0; i < 4; i++) {
-          regs[dst + i] = (unsigned short)(regs[dst + i] ^ regs[src + i]);
-        }
-        break;
-      default:
+      }
+      for (int i = 0; i < 4; i++) {
+        regs[dst + i] = (unsigned short)(regs[dst + i] + regs[src + i]);
+      }
+      break;
+    case 0x18: // VSUB
+      if (dst > 4 || src > 4 || (dst & 3) != 0 || (src & 3) != 0) {
         halted = 1;
         break;
+      }
+      for (int i = 0; i < 4; i++) {
+        regs[dst + i] = (unsigned short)(regs[dst + i] - regs[src + i]);
+      }
+      break;
+    case 0x19: // VXOR
+      if (dst > 4 || src > 4 || (dst & 3) != 0 || (src & 3) != 0) {
+        halted = 1;
+        break;
+      }
+      for (int i = 0; i < 4; i++) {
+        regs[dst + i] = (unsigned short)(regs[dst + i] ^ regs[src + i]);
+      }
+      break;
+    default:
+      halted = 1;
+      break;
     }
   }
 
